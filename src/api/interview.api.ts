@@ -20,6 +20,7 @@ import type {
   HintResponse,
   TimerStatus,
   SessionResults,
+  SessionListResponse,
 } from '@/types';
 
 export const interviewApi = {
@@ -94,6 +95,19 @@ export const interviewApi = {
 
   getReplayHistory: async () => {
     const res = await api.get('/interview/replay/history');
+    return res.data.data;
+  },
+
+  getSessions: async (params?: {
+    page?: number;
+    limit?: number;
+    status?: string;
+  }): Promise<SessionListResponse> => {
+    const q = new URLSearchParams();
+    if (params?.page) q.set('page', String(params.page));
+    if (params?.limit) q.set('limit', String(params.limit));
+    if (params?.status) q.set('status', params.status);
+    const res = await api.get(`/interview/sessions?${q}`);
     return res.data.data;
   },
 

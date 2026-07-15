@@ -1,8 +1,4 @@
 // src/hooks/useInterviewExtended.ts
-//
-// Hooks for features that existed in the backend but had no frontend wiring.
-// Complements useInterview.ts — never duplicates existing exports.
-
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { codeApi, historyApi, adaptiveApi } from '@/api/interview-extended.api';
 import { interviewApi } from '@/api/interview.api';
@@ -16,13 +12,34 @@ export function useExecuteCode() {
   });
 }
 
-// ── Recent Sessions (via replay history) ──────────────────────────────────
+// ── All Sessions (uses new GET /interview/sessions endpoint) ───────────────
+// Returns ALL sessions for the user with pagination, not just replayed ones.
 
-export function useRecentSessions() {
+export function useRecentSessions(params?: {
+  page?: number;
+  limit?: number;
+  status?: string;
+}) {
   return useQuery({
-    queryKey: ['interview', 'recent-sessions'],
-    queryFn: historyApi.getRecentSessions,
-    staleTime: 1000 * 60 * 2, // 2 min
+    queryKey: ['interview', 'sessions', params],
+    queryFn: () => interviewApi.getSessions(params),
+    select: (data) => data.sessions,
+    staleTime: 1000 * 60 * 2,
+  });
+}
+
+// ── Replay History (only sessions the user has replayed) ──────────────────
+
+export function useReplayHistory() {
+  return useQuery({
+    queryKey: ['interview', 'replay-history'],
+    queryFn: interviewApi.getReplayHistory,
+    select: (data: any) => {
+      if (Array.isArray(data)) return data;
+      if (data?.history && Array.isArray(data.history)) return data.history;
+      return [];
+    },
+    staleTime: 1000 * 60 * 2,
   });
 }
 
@@ -57,7 +74,7 @@ export function useAdaptiveNextQuestion(sessionId: string | null) {
   return useQuery({
     queryKey: ['interview', 'adaptive', sessionId],
     queryFn: () => adaptiveApi.getNextQuestion(sessionId!),
-    enabled: false, // triggered manually via refetch()
+    enabled: false,
     staleTime: 0,
   });
 }
