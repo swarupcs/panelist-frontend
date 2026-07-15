@@ -53,7 +53,7 @@ import { Button } from '@/components/ui/Button';
 import { Card, CardContent, CardHeader } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { LoadingScreen } from '@/components/common';
-import { SessionTimer } from '@/components/interview/SessionTimer';
+import { SessionTimer, TimedBadge } from '@/components/interview/SessionTimer';
 import { CodeExecutionPanel } from '@/components/interview/CodeExecutionPanel';
 import { getDifficultyBadge } from '@/utils/formatters';
 import { cn } from '@/lib/cn';
@@ -403,11 +403,7 @@ export default function InterviewSessionPage() {
           </span>
           <Progress value={progress} className='w-32 h-1.5' />
           {/* Mode badges */}
-          {isTimed && (
-            <span className='flex items-center gap-1 text-xs text-primary'>
-              <Timer className='size-3' /> Timed
-            </span>
-          )}
+          <TimedBadge sessionId={sessionId ?? ''} isTimed={isTimed} />
           {adaptiveMode && (
             <span className='flex items-center gap-1 text-xs text-yellow-400'>
               <Zap className='size-3' /> Adaptive
