@@ -19,6 +19,8 @@ import {
   History,
   Monitor,
   Server,
+  Cloud,
+  Smartphone,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { useAnalyticsDashboard } from '@/hooks/useAnalytics';
@@ -180,6 +182,22 @@ export default function DashboardPage() {
       color: 'text-teal-400',
       bg: 'border-teal-500/20 bg-teal-500/5 hover:bg-teal-500/10',
       onClick: () => navigate('/interview?type=backend'),
+    },
+    {
+      icon: Cloud,
+      label: 'DevOps',
+      description: 'CI/CD, Docker & Cloud',
+      color: 'text-orange-400',
+      bg: 'border-orange-500/20 bg-orange-500/5 hover:bg-orange-500/10',
+      onClick: () => navigate('/interview?type=devops'),
+    },
+    {
+      icon: Smartphone,
+      label: 'Mobile',
+      description: 'iOS, Android & React Native',
+      color: 'text-indigo-400',
+      bg: 'border-indigo-500/20 bg-indigo-500/5 hover:bg-indigo-500/10',
+      onClick: () => navigate('/interview?type=mobile'),
     },
     {
       icon: Shuffle,
