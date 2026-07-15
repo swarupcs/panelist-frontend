@@ -101,6 +101,11 @@ export const learningApi = {
     const res = await api.post(`/learning-path/reviews/${itemId}`, { quality })
     return res.data.data
   },
+
+  updateTargetDate: async (pathId: string, targetDate: string | null): Promise<{ learningPath: LearningPath }> => {
+    const res = await api.patch(`/learning-path/${pathId}/target-date`, { targetDate })
+    return res.data.data
+  },
 }
 
 // ── Progress ───────────────────────────────────────────────────────────────

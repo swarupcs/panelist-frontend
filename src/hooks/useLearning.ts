@@ -135,3 +135,15 @@ export function useRecordReview() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['learning', 'reviews'] }),
   });
 }
+
+export const useUpdateTargetDate = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ pathId, targetDate }: { pathId: string; targetDate: string | null }) =>
+      learningApi.updateTargetDate(pathId, targetDate),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['learning', 'path'] });
+    }
+  });
+};
