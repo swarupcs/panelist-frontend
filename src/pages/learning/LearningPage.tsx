@@ -1,3 +1,9 @@
+// src/pages/learning/LearningPage.tsx
+//
+// FIX: replaced shadcn/Radix Tabs with plain state-driven tabs.
+// Radix sets display:grid on the Tabs root, causing TabsList and TabsContent
+// to render side-by-side in a grid instead of stacking vertically —
+// the same bug fixed in AnalyticsPage.
 import { useState } from 'react';
 import {
   BookOpen,
@@ -6,7 +12,6 @@ import {
   ChevronDown,
   ChevronRight,
   Sparkles,
-  Clock,
   RotateCcw,
 } from 'lucide-react';
 import {
@@ -15,18 +20,12 @@ import {
   useDueReviews,
   useRecordReview,
   useRecommendations,
+  useGenerateLearningPath,
 } from '@/hooks/useAnalytics';
-import {
-  PageHeader,
-  LoadingScreen,
-  ErrorState,
-  EmptyState,
-} from '@/components/common';
+import { PageHeader, LoadingScreen, EmptyState } from '@/components/common';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-
-import { Badge} from '@/components/ui/Badge';
-
+import { Badge } from '@/components/ui/Badge';
 import {
   Dialog,
   DialogContent,
@@ -41,13 +40,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/Select';
-import { useGenerateLearningPath } from '@/hooks/useAnalytics';
-import { formatDate, formatRelative } from '@/utils/formatters';
+import { formatRelative } from '@/utils/formatters';
 import { cn } from '@/lib/cn';
 import { Progress } from '@/components/ui/progress';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
-
+type Tab = 'path' | 'reviews' | 'recommendations';
 
 const ROLES = [
   { value: 'FRONTEND_DEVELOPER', label: 'Frontend Developer' },
@@ -131,8 +128,8 @@ function GeneratePathDialog({
             variant='gradient'
             className='w-full'
             onClick={handleGenerate}
+            disabled={!role || !level || generate.isPending}
             loading={generate.isPending}
-            disabled={!role || !level}
           >
             Generate Path
           </Button>
@@ -153,6 +150,7 @@ function PhaseCard({ phase, index }: { phase: any; index: number }) {
   return (
     <Card className={cn(phase.isCompleted && 'opacity-75')}>
       <button
+        type='button'
         onClick={() => setExpanded((e) => !e)}
         className='w-full flex items-center justify-between p-5 text-left'
       >
@@ -202,6 +200,7 @@ function PhaseCard({ phase, index }: { phase: any; index: number }) {
               )}
             >
               <button
+                type='button'
                 onClick={() =>
                   !topic.isCompleted && completeTopic.mutate(topic.id)
                 }
@@ -243,11 +242,15 @@ function PhaseCard({ phase, index }: { phase: any; index: number }) {
 }
 
 export default function LearningPage() {
+  const [activeTab, setActiveTab] = useState<Tab>('path');
   const [showGenerate, setShowGenerate] = useState(false);
-  const { data: learningPath, isLoading, isError, refetch } = useLearningPath();
+
+  const { data: learningPath, isLoading } = useLearningPath();
   const { data: reviewData } = useDueReviews();
   const { data: recommendations } = useRecommendations();
   const recordReview = useRecordReview();
+
+  const dueCount = reviewData?.stats?.dueForReview ?? 0;
 
   if (isLoading) return <LoadingScreen message='Loading learning path...' />;
 
@@ -274,21 +277,37 @@ export default function LearningPage() {
         onClose={() => setShowGenerate(false)}
       />
 
-      <Tabs defaultValue='path'>
-        <TabsList>
-          <TabsTrigger value='path'>Learning Path</TabsTrigger>
-          <TabsTrigger value='reviews'>
-            Due Reviews
-            {(reviewData?.stats?.dueForReview ?? 0) > 0 && (
-              <span className='ml-1.5 rounded-full bg-primary px-1.5 py-0.5 text-xs text-primary-foreground'>
-                {reviewData?.stats?.dueForReview}
-              </span>
+      {/* Plain state tab bar — no Radix grid interference */}
+      <div className='flex gap-1 rounded-lg bg-secondary/50 p-1 w-full max-w-sm'>
+        {(
+          [
+            { key: 'path', label: 'Learning Path' },
+            {
+              key: 'reviews',
+              label: `Due Reviews${dueCount > 0 ? ` (${dueCount})` : ''}`,
+            },
+            { key: 'recommendations', label: 'Recommendations' },
+          ] as { key: Tab; label: string }[]
+        ).map((tab) => (
+          <button
+            key={tab.key}
+            type='button'
+            onClick={() => setActiveTab(tab.key)}
+            className={cn(
+              'flex-1 rounded-md px-2 py-2 text-xs font-medium transition-all duration-200 whitespace-nowrap',
+              activeTab === tab.key
+                ? 'bg-background text-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground hover:bg-background/50',
             )}
-          </TabsTrigger>
-          <TabsTrigger value='recommendations'>Recommendations</TabsTrigger>
-        </TabsList>
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
 
-        <TabsContent value='path' className='space-y-4'>
+      {/* ── Learning Path tab ── */}
+      {activeTab === 'path' && (
+        <div className='space-y-4'>
           {!learningPath ? (
             <EmptyState
               icon={BookOpen}
@@ -300,8 +319,7 @@ export default function LearningPage() {
                   onClick={() => setShowGenerate(true)}
                   className='gap-2'
                 >
-                  <Sparkles className='size-4' />
-                  Generate Learning Path
+                  <Sparkles className='size-4' /> Generate Learning Path
                 </Button>
               }
             />
@@ -330,9 +348,12 @@ export default function LearningPage() {
               ))}
             </>
           )}
-        </TabsContent>
+        </div>
+      )}
 
-        <TabsContent value='reviews' className='space-y-4'>
+      {/* ── Due Reviews tab ── */}
+      {activeTab === 'reviews' && (
+        <div className='space-y-4'>
           {reviewData?.stats && (
             <div className='grid grid-cols-3 gap-3'>
               {[
@@ -386,9 +407,10 @@ export default function LearningPage() {
                         </p>
                       </div>
                       <div className='flex gap-2'>
-                        {[0, 1, 3, 5].map((q) => (
+                        {([0, 1, 3, 5] as const).map((q, idx) => (
                           <button
                             key={q}
+                            type='button'
                             onClick={() =>
                               recordReview.mutate({
                                 itemId: item.id,
@@ -397,21 +419,17 @@ export default function LearningPage() {
                             }
                             className={cn(
                               'rounded px-2 py-1 text-xs font-medium transition-colors',
-                              q === 0
+                              idx === 0
                                 ? 'bg-red-500/10 text-red-400 hover:bg-red-500/20'
-                                : q === 1
+                                : idx === 1
                                   ? 'bg-orange-500/10 text-orange-400 hover:bg-orange-500/20'
-                                  : q === 3
+                                  : idx === 2
                                     ? 'bg-yellow-500/10 text-yellow-400 hover:bg-yellow-500/20'
                                     : 'bg-green-500/10 text-green-400 hover:bg-green-500/20',
                             )}
-                            title={
-                              ['Blackout', 'Wrong', 'Hard', 'Easy'][
-                                [0, 1, 3, 5].indexOf(q)
-                              ]
-                            }
+                            title={['Blackout', 'Wrong', 'Hard', 'Easy'][idx]}
                           >
-                            {['✗', '~', '✓', '★'][[0, 1, 3, 5].indexOf(q)]}
+                            {['✗', '~', '✓', '★'][idx]}
                           </button>
                         ))}
                       </div>
@@ -421,9 +439,12 @@ export default function LearningPage() {
               ))}
             </div>
           )}
-        </TabsContent>
+        </div>
+      )}
 
-        <TabsContent value='recommendations' className='space-y-3'>
+      {/* ── Recommendations tab ── */}
+      {activeTab === 'recommendations' && (
+        <div className='space-y-3'>
           {!recommendations?.length ? (
             <EmptyState
               icon={Sparkles}
@@ -453,8 +474,8 @@ export default function LearningPage() {
               </Card>
             ))
           )}
-        </TabsContent>
-      </Tabs>
+        </div>
+      )}
     </div>
   );
 }

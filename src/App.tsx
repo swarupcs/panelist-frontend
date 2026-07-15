@@ -1,20 +1,4 @@
 // src/App.tsx
-//
-// FIXES
-// ─────────────────────────────────────────────────────────────────────────────
-// ROUTE-1  /interview/complete/:sessionId → /interview/results/:sessionId
-//          Session page navigates to /results; the old /complete route was a
-//          dead end that nothing pointed to after our refactor.
-//
-// ROUTE-2  Route ordering: /interview/results/:sessionId and
-//          /interview/complete/:sessionId must be declared BEFORE
-//          /interview/:sessionId — React Router v6 ranks routes by specificity,
-//          but static segments ("results", "complete") must come before dynamic
-//          ones (":sessionId") when they share the same parent path to avoid
-//          any ambiguity during matching.
-//
-// ROUTE-3  Lazy import updated: InterviewCompletePage → InterviewResultsPage
-
 import { useEffect, Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClientProvider } from '@tanstack/react-query';
@@ -40,12 +24,13 @@ const InterviewSetupPage = lazy(
 const InterviewSessionPage = lazy(
   () => import('@/pages/interview/InterviewSessionPage'),
 );
-// ROUTE-3: renamed from InterviewCompletePage → InterviewResultsPage
 const InterviewResultsPage = lazy(
   () => import('@/pages/interview/InterviewResultsPage'),
 );
 const AnalyticsPage = lazy(() => import('@/pages/analytics/AnalyticsPage'));
 const LearningPage = lazy(() => import('@/pages/learning/LearningPage'));
+const CompaniesPage = lazy(() => import('@/pages/companies/CompaniesPage'));
+const TopicsPage = lazy(() => import('@/pages/topics/TopicsPage'));
 const ProfilePage = lazy(() => import('@/pages/profile/ProfilePage'));
 const AchievementsPage = lazy(() => import('@/pages/profile/AchievementsPage'));
 const AdminPage = lazy(() => import('@/pages/admin/AdminPage'));
@@ -55,27 +40,24 @@ function AppRoutes() {
   return (
     <Suspense fallback={<LoadingScreen message='Loading page...' />}>
       <Routes>
-        {/* ── Guest-only routes ──────────────────────────────────────────── */}
+        {/* ── Guest-only ──────────────────────────────────────────────── */}
         <Route element={<GuestRoute />}>
           <Route path='/login' element={<LoginPage />} />
           <Route path='/register' element={<RegisterPage />} />
           <Route path='/forgot-password' element={<ForgotPasswordPage />} />
         </Route>
 
-        {/* ── Authenticated routes ───────────────────────────────────────── */}
+        {/* ── Authenticated ───────────────────────────────────────────── */}
         <Route element={<ProtectedRoute />}>
           <Route element={<AppShell />}>
             <Route path='/dashboard' element={<DashboardPage />} />
 
-            {/* Interview — static segments BEFORE dynamic :sessionId */}
+            {/* Interview — static segments before dynamic :sessionId */}
             <Route path='/interview' element={<InterviewSetupPage />} />
-
-            {/* ROUTE-1 + ROUTE-2: /results declared before /:sessionId */}
             <Route
               path='/interview/results/:sessionId'
               element={<InterviewResultsPage />}
             />
-
             <Route
               path='/interview/:sessionId'
               element={<InterviewSessionPage />}
@@ -83,8 +65,10 @@ function AppRoutes() {
 
             <Route path='/analytics' element={<AnalyticsPage />} />
             <Route path='/learning' element={<LearningPage />} />
-            <Route path='/profile' element={<ProfilePage />} />
+            <Route path='/companies' element={<CompaniesPage />} />
+            <Route path='/topics' element={<TopicsPage />} />
             <Route path='/achievements' element={<AchievementsPage />} />
+            <Route path='/profile' element={<ProfilePage />} />
 
             <Route element={<AdminRoute />}>
               <Route path='/admin' element={<AdminPage />} />
@@ -92,7 +76,7 @@ function AppRoutes() {
           </Route>
         </Route>
 
-        {/* ── Fallbacks ─────────────────────────────────────────────────── */}
+        {/* ── Fallbacks ───────────────────────────────────────────────── */}
         <Route path='/' element={<Navigate to='/dashboard' replace />} />
         <Route path='*' element={<NotFoundPage />} />
       </Routes>
