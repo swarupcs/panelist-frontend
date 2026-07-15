@@ -58,6 +58,7 @@ import { LoadingScreen } from '@/components/common';
 import { SessionTimer, TimedBadge } from '@/components/interview/SessionTimer';
 import { CodeExecutionPanel } from '@/components/interview/CodeExecutionPanel';
 import { getDifficultyBadge } from '@/utils/formatters';
+import { MultiFileEditor } from '@/components/interview/MultiFileEditor';
 import { cn } from '@/lib/cn';
 import { Progress } from '@/components/ui/progress';
 import { Textarea } from '@/components/ui/textarea';
@@ -227,6 +228,8 @@ export default function InterviewSessionPage() {
   const endInterview = useEndInterview();
 
   const isDSA = sessionType === 'dsa';
+  const isSystemDesign = sessionType === 'system_design';
+  const showTabs = isDSA || isSystemDesign;
 
   // Local elapsed timer
   useEffect(() => {
@@ -574,8 +577,8 @@ export default function InterviewSessionPage() {
           {!isPaused && (
             <Card className='border-border/50 bg-background/60 backdrop-blur-xl shadow-lg overflow-hidden'>
               <CardContent className='pt-5 space-y-4'>
-                {/* DSA tab switcher */}
-                {isDSA && (
+                {/* DSA and System Design tab switcher */}
+                {showTabs && (
                   <div className='flex items-center gap-1 rounded-lg border border-border bg-secondary/30 p-1 w-fit'>
                     {(['text', 'code'] as AnswerTab[]).map((tab) => (
                       <button
@@ -595,7 +598,7 @@ export default function InterviewSessionPage() {
                           </>
                         ) : (
                           <>
-                            <Code2 className='size-3.5' /> Code
+                            <Code2 className='size-3.5' /> {isSystemDesign ? 'Multi-File Editor' : 'Code'}
                           </>
                         )}
                       </button>
@@ -615,6 +618,26 @@ export default function InterviewSessionPage() {
                       disabled={isSubmitting}
                     />
                     <div className='flex justify-start'>
+                      <TextButton
+                        onClick={handleSkip}
+                        loading={skipQuestion.isPending}
+                        className='text-muted-foreground hover:text-yellow-400 hover:bg-secondary'
+                      >
+                        {!skipQuestion.isPending && (
+                          <SkipForward className='size-3.5' />
+                        )}
+                        Skip question
+                      </TextButton>
+                    </div>
+                  </>
+                ) : isSystemDesign && answerTab === 'code' ? (
+                  <>
+                    <MultiFileEditor
+                      onSubmit={(code) => handleSubmit(code)}
+                      submitLoading={isSubmitting}
+                      disabled={isSubmitting}
+                    />
+                    <div className='flex justify-start mt-2'>
                       <TextButton
                         onClick={handleSkip}
                         loading={skipQuestion.isPending}
