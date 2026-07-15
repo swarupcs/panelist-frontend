@@ -17,6 +17,7 @@ import { ExcalidrawTab } from '@/components/p2p/ExcalidrawTab';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { useScreenRecorder } from '@/hooks/useScreenRecorder';
+import { exportToBlob as excalidrawExportToBlob } from '@excalidraw/excalidraw';
 
 function formatTimeLeft(ms: number) {
   if (ms <= 0) return '00:00';
@@ -54,6 +55,7 @@ export default function P2PRoomPage() {
     sendWhiteboardSync,
     sendExcalidrawSync,
     sendExcalidrawPointerSync,
+    sendAnalyzeWhiteboard,
     setLanguage,
     reportFocusLoss,
     executeCode,
@@ -84,6 +86,8 @@ export default function P2PRoomPage() {
   ]);
   const [isVimMode, setIsVimMode] = useState(false);
   const [whiteboardEngine, setWhiteboardEngine] = useState<'tldraw' | 'excalidraw'>('tldraw');
+  const [excalidrawAPI, setExcalidrawAPI] = useState<any>(null);
+  const [tldrawEditor, setTldrawEditor] = useState<any>(null);
   const editorRef = useRef<any>(null);
   const vimRef = useRef<any>(null);
 
@@ -179,6 +183,56 @@ export default function P2PRoomPage() {
 
   const handleEditorMount = (editor: any, monaco: any) => {
     editorRef.current = editor;
+  };
+
+  const getWhiteboardSnapshot = async (): Promise<string | null> => {
+    try {
+      let blob: Blob | null = null;
+      if (whiteboardEngine === 'excalidraw' && excalidrawAPI) {
+        blob = await excalidrawExportToBlob({
+          elements: excalidrawAPI.getSceneElements(),
+          mimeType: 'image/png',
+          appState: excalidrawAPI.getAppState()
+        });
+      } else if (whiteboardEngine === 'tldraw' && tldrawEditor) {
+        const shapeIds = Array.from(tldrawEditor.getCurrentPageShapeIds());
+        if (shapeIds.length > 0) {
+          const result = await tldrawEditor.toImage(shapeIds, { format: 'png', background: true });
+          blob = result.blob;
+        }
+      }
+
+      if (blob) {
+        return new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.readAsDataURL(blob!);
+        });
+      }
+    } catch (e) {
+      console.error('Failed to snapshot whiteboard:', e);
+    }
+    return null;
+  };
+
+  const handleAnalyzeWhiteboard = async () => {
+    toast.info('Analyzing whiteboard...');
+    const dataUrl = await getWhiteboardSnapshot();
+    if (dataUrl) {
+      sendAnalyzeWhiteboard(dataUrl);
+    } else {
+      toast.error('Canvas is empty or unavailable.');
+    }
+  };
+
+  const handleSnapshotToChat = async () => {
+    const dataUrl = await getWhiteboardSnapshot();
+    if (dataUrl) {
+      const msgId = Date.now().toString();
+      sendMessage(`[IMAGE:${dataUrl}]`);
+    } else {
+      toast.error('Canvas is empty or unavailable.');
+    }
   };
 
   // Handle VIM Mode Toggle
@@ -390,12 +444,21 @@ export default function P2PRoomPage() {
                     <option value="tldraw">TLDraw (Basic)</option>
                     <option value="excalidraw">Excalidraw (Advanced)</option>
                   </select>
+                  <div className="ml-auto flex gap-2">
+                    <Button size="sm" variant="outline" className="text-xs h-7" onClick={handleSnapshotToChat}>
+                      Snapshot to Chat
+                    </Button>
+                    <Button size="sm" variant="default" className="text-xs h-7 bg-indigo-600 hover:bg-indigo-700" onClick={handleAnalyzeWhiteboard}>
+                      <Bot className="h-3 w-3 mr-1" /> Ask AI
+                    </Button>
+                  </div>
                 </div>
                 <div className="flex-1 relative">
                   {whiteboardEngine === 'tldraw' ? (
                     <WhiteboardTab 
                       onSync={sendWhiteboardSync} 
                       incomingPatch={incomingWhiteboardPatch} 
+                      setEditor={setTldrawEditor}
                     />
                   ) : (
                     <ExcalidrawTab 
@@ -403,6 +466,7 @@ export default function P2PRoomPage() {
                       incomingElements={incomingExcalidrawElements} 
                       onPointerSync={sendExcalidrawPointerSync}
                       incomingPointer={incomingExcalidrawPointer}
+                      setApi={setExcalidrawAPI}
                     />
                   )}
                 </div>
@@ -443,7 +507,14 @@ export default function P2PRoomPage() {
                       isSystem ? "bg-red-500/20 text-red-500 border border-red-500/30 text-xs font-bold" : 
                       "bg-muted text-foreground"
                     )}>
-                      {msg.text}
+                      {msg.text.startsWith('[IMAGE:') ? (
+                        <div className="space-y-1">
+                          <span className="text-xs font-semibold opacity-70">📸 Whiteboard Snapshot</span>
+                          <img src={msg.text.replace('[IMAGE:', '').replace(']$', '').replace(/\]$/, '')} alt="Whiteboard Snapshot" className="max-w-full rounded-md border mt-1" />
+                        </div>
+                      ) : (
+                        msg.text
+                      )}
                     </div>
                   </div>
                 );

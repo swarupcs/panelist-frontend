@@ -5,11 +5,16 @@ import 'tldraw/tldraw.css';
 interface WhiteboardTabProps {
   onSync: (data: any) => void;
   incomingPatch: any | null;
+  setEditor?: (editor: any) => void;
 }
 
 // Wrapper component to access the editor instance
-function WhiteboardEvents({ onSync, incomingPatch }: WhiteboardTabProps) {
+function WhiteboardEvents({ onSync, incomingPatch, setEditor }: WhiteboardTabProps) {
   const editor = useEditor();
+
+  useEffect(() => {
+    if (setEditor) setEditor(editor);
+  }, [editor, setEditor]);
 
   useEffect(() => {
     // Listen for local changes and send them
@@ -78,14 +83,14 @@ function WhiteboardEvents({ onSync, incomingPatch }: WhiteboardTabProps) {
   return null;
 }
 
-export function WhiteboardTab({ onSync, incomingPatch }: WhiteboardTabProps) {
+export function WhiteboardTab({ onSync, incomingPatch, setEditor }: WhiteboardTabProps) {
   // Use a stable store instance
   const [store] = useState(() => createTLStore({ shapeUtils: defaultShapeUtils }));
 
   return (
     <div className="w-full h-full relative">
       <Tldraw store={store}>
-        <WhiteboardEvents onSync={onSync} incomingPatch={incomingPatch} />
+        <WhiteboardEvents onSync={onSync} incomingPatch={incomingPatch} setEditor={setEditor} />
       </Tldraw>
     </div>
   );

@@ -6,9 +6,10 @@ interface ExcalidrawTabProps {
   incomingElements: readonly any[] | null;
   onPointerSync?: (pointer: any) => void;
   incomingPointer?: any | null;
+  setApi?: (api: any) => void;
 }
 
-export function ExcalidrawTab({ onSync, incomingElements, onPointerSync, incomingPointer }: ExcalidrawTabProps) {
+export function ExcalidrawTab({ onSync, incomingElements, onPointerSync, incomingPointer, setApi }: ExcalidrawTabProps) {
   const [excalidrawAPI, setExcalidrawAPI] = useState<any>(null);
   const isUpdatingFromRemote = useRef(false);
   const [collaborators, setCollaborators] = useState(new Map());
@@ -58,7 +59,10 @@ export function ExcalidrawTab({ onSync, incomingElements, onPointerSync, incomin
   return (
     <div className="w-full h-full relative excalidraw-wrapper">
       <Excalidraw
-        excalidrawAPI={(api) => setExcalidrawAPI(api)}
+        excalidrawAPI={(api) => {
+          setExcalidrawAPI(api);
+          if (setApi) setApi(api);
+        }}
         onChange={handleChange}
         onPointerUpdate={handlePointerUpdate}
         theme="dark"

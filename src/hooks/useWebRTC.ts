@@ -28,6 +28,7 @@ interface UseWebRTCReturn {
   sendWhiteboardSync: (patch: any) => void;
   sendExcalidrawSync: (elements: any) => void;
   sendExcalidrawPointerSync: (pointer: any) => void;
+  sendAnalyzeWhiteboard: (image: string) => void;
   setLanguage: (lang: string) => void;
   reportFocusLoss: () => void;
   executeCode: (code: string, testCases?: any[]) => void;
@@ -355,6 +356,10 @@ export function useWebRTC(): UseWebRTCReturn {
     sendWsMessage({ type: 'EXCALIDRAW_POINTER_SYNC', payload: { pointer } });
   }, []);
 
+  const sendAnalyzeWhiteboard = useCallback((image: string) => {
+    sendWsMessage({ type: 'ANALYZE_WHITEBOARD', payload: { image } });
+  }, []);
+
   const setLanguage = useCallback((language: string) => {
     setEditorLanguage(language);
     sendWsMessage({ type: 'LANGUAGE_SYNC', payload: { language } });
@@ -490,6 +495,7 @@ export function useWebRTC(): UseWebRTCReturn {
     sendWhiteboardSync,
     sendExcalidrawSync,
     sendExcalidrawPointerSync,
+    sendAnalyzeWhiteboard,
     setLanguage,
     reportFocusLoss,
     executeCode,
