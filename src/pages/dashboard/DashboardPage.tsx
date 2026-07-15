@@ -17,6 +17,8 @@ import {
   Zap,
   Clock,
   History,
+  Monitor,
+  Server,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { useAnalyticsDashboard } from '@/hooks/useAnalytics';
@@ -162,6 +164,22 @@ export default function DashboardPage() {
       color: 'text-green-400',
       bg: 'border-green-500/20 bg-green-500/5 hover:bg-green-500/10',
       onClick: () => navigate('/interview?type=behavioral'),
+    },
+    {
+      icon: Monitor,
+      label: 'Frontend',
+      description: 'React, CSS & Browser APIs',
+      color: 'text-pink-400',
+      bg: 'border-pink-500/20 bg-pink-500/5 hover:bg-pink-500/10',
+      onClick: () => navigate('/interview?type=frontend'),
+    },
+    {
+      icon: Server,
+      label: 'Backend',
+      description: 'APIs, DBs & Architecture',
+      color: 'text-teal-400',
+      bg: 'border-teal-500/20 bg-teal-500/5 hover:bg-teal-500/10',
+      onClick: () => navigate('/interview?type=backend'),
     },
     {
       icon: Shuffle,

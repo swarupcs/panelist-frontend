@@ -22,6 +22,9 @@ import {
   AlertCircle,
   ChevronDown,
   ChevronUp,
+  Gauge,
+  Zap,
+  Timer
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import {
