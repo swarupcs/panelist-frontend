@@ -38,6 +38,7 @@ import { PageHeader } from '@/components/common';
 import { useStartInterview } from '@/hooks/useInterview';
 import type { InterviewType, Difficulty } from '@/types';
 import { cn } from '@/lib/cn';
+import { Loader2 } from 'lucide-react';
 
 // ── Static data ────────────────────────────────────────────────────────────
 
@@ -319,6 +320,24 @@ export default function InterviewSetupPage() {
     );
   };
 
+  const handleQuickStart = () => {
+    const types: InterviewType[] = ['dsa', 'system_design', 'behavioral', 'frontend', 'backend', 'devops', 'mobile', 'mixed'];
+    const diffs: Difficulty[] = ['easy', 'medium', 'hard'];
+    
+    const randomType = types[Math.floor(Math.random() * types.length)];
+    const randomDiff = diffs[Math.floor(Math.random() * diffs.length)];
+    const randomDuration = [15, 30][Math.floor(Math.random() * 2)];
+
+    sessionStorage.setItem('interview_isTimed', 'false');
+    sessionStorage.setItem('interview_adaptiveMode', 'true');
+
+    startInterview.mutate({
+      type: randomType,
+      difficulty: randomDiff,
+      duration: randomDuration,
+    });
+  };
+
   const handleStart = () => {
     sessionStorage.setItem('interview_isTimed', String(isTimed));
     sessionStorage.setItem('interview_adaptiveMode', String(adaptiveMode));
@@ -334,11 +353,26 @@ export default function InterviewSetupPage() {
   const questionCount = Math.floor(selectedDuration / 15);
 
   return (
-    <div className='space-y-6 max-w-2xl animate-fade-in'>
-      <PageHeader
-        title='Start Interview'
-        description='Configure your mock interview session'
-      />
+    <div className='space-y-6 max-w-2xl animate-fade-in relative'>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <PageHeader
+          title='Start Interview'
+          description='Configure your mock interview session'
+        />
+        <Button
+          variant='outline'
+          onClick={handleQuickStart}
+          disabled={startInterview.isPending}
+          className='gap-2 shrink-0 border-primary/30 text-primary hover:bg-primary/10 w-full sm:w-auto'
+        >
+          {startInterview.isPending ? (
+            <Loader2 className='size-4 animate-spin' />
+          ) : (
+            <Zap className='size-4 text-yellow-400' />
+          )}
+          Quick Start (Random)
+        </Button>
+      </div>
 
       {/* ── Interview Type ── */}
       <Card>
