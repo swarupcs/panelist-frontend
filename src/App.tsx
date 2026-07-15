@@ -36,6 +36,8 @@ const AdminPage = lazy(() => import('@/pages/admin/AdminPage'));
 const NotFoundPage = lazy(() => import('@/pages/NotFoundPage'));
 const PublicScorecardPage = lazy(() => import('@/pages/public/PublicScorecardPage'));
 const LandingPage = lazy(() => import('@/pages/public/LandingPage'));
+const BlogListPage = lazy(() => import('@/pages/blog/BlogListPage'));
+const BlogPostPage = lazy(() => import('@/pages/blog/BlogPostPage'));
 
 /** Show landing page for guests, redirect to dashboard for logged-in users */
 function LandingOrDashboard() {
@@ -55,8 +57,10 @@ function AppRoutes() {
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         </Route>
 
-        {/* Public Scorecard - viewable by anyone */}
+        {/* Public pages - viewable by anyone */}
         <Route path="/scorecard/:token" element={<PublicScorecardPage />} />
+        <Route path="/blog" element={<BlogListPage />} />
+        <Route path="/blog/:slug" element={<BlogPostPage />} />
 
         <Route element={<ProtectedRoute />}>
           <Route element={<AppShell />}>

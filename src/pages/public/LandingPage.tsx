@@ -169,6 +169,7 @@ export default function LandingPage() {
             <a href="#how-it-works" className="hover:text-foreground transition-colors">How It Works</a>
             <a href="#testimonials" className="hover:text-foreground transition-colors">Testimonials</a>
             <a href="#pricing" className="hover:text-foreground transition-colors">Pricing</a>
+            <Link to="/blog" className="hover:text-foreground transition-colors">Blog</Link>
           </div>
 
           <div className="flex items-center gap-3">
@@ -540,6 +541,7 @@ export default function LandingPage() {
           <div className="flex items-center gap-6 text-sm text-muted-foreground">
             <a href="#features" className="hover:text-foreground transition-colors">Features</a>
             <a href="#pricing" className="hover:text-foreground transition-colors">Pricing</a>
+            <Link to="/blog" className="hover:text-foreground transition-colors">Blog</Link>
             <Link to="/login" className="hover:text-foreground transition-colors">Sign In</Link>
             <Link to="/register" className="hover:text-foreground transition-colors">Sign Up</Link>
           </div>
