@@ -15,6 +15,7 @@ import {
   Play,
   Filter,
   X,
+  Target
 } from 'lucide-react';
 import { companyApi } from '@/api/company.api';
  
@@ -28,6 +29,7 @@ import { PageHeader, EmptyState } from '@/components/common';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/cn';
 import { useAuthStore } from '@/store/authStore';
+import { useGeneratePath } from '@/hooks/useLearning';
 
 // ── Difficulty color ───────────────────────────────────────────────────────
 
@@ -211,6 +213,8 @@ function CompanyDetail({
     },
   });
 
+  const generateGauntlet = useGeneratePath();
+
   const company = companyData?.company;
   const questions = questionsData?.questions ?? [];
 
@@ -299,19 +303,45 @@ function CompanyDetail({
               </div>
 
               {/* Practice button */}
-              <Button
-                variant='gradient'
-                className='w-full gap-2'
-                onClick={() => startPractice.mutate()}
-                loading={startPractice.isPending}
-              >
-                <Play className='size-4' />
-                Start Company Practice
-              </Button>
+              <div className='flex gap-2'>
+                <Button
+                  variant='gradient'
+                  className='flex-1 gap-2'
+                  onClick={() => startPractice.mutate()}
+                  loading={startPractice.isPending}
+                >
+                  <Play className='size-4' />
+                  Quick Practice
+                </Button>
+
+                <Button
+                  variant='outline'
+                  className='flex-1 gap-2 border-primary/50 text-primary hover:bg-primary/10'
+                  onClick={() => {
+                    generateGauntlet.mutate({
+                      targetRole: 'FULLSTACK_DEVELOPER',
+                      currentLevel: 'INTERMEDIATE',
+                      weeklyHours: 15,
+                      targetCompanies: company.name
+                    }, {
+                      onSuccess: () => navigate('/learning')
+                    });
+                  }}
+                  loading={generateGauntlet.isPending}
+                >
+                  <Target className='size-4' />
+                  Generate Gauntlet
+                </Button>
+              </div>
 
               {startPractice.isError && (
                 <p className='text-xs text-destructive text-center'>
                   Failed to start practice session.
+                </p>
+              )}
+              {generateGauntlet.isError && (
+                <p className='text-xs text-destructive text-center'>
+                  Failed to generate Gauntlet.
                 </p>
               )}
 
