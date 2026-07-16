@@ -398,8 +398,8 @@ export default function InterviewSessionPage() {
   return (
     <div className='max-w-3xl mx-auto space-y-5 animate-fade-in'>
       {/* ── Header bar ───────────────────────────────────────────────────── */}
-      <div className='flex items-center justify-between rounded-2xl border border-border/50 bg-background/40 backdrop-blur-md p-4 shadow-sm'>
-        <div className='flex items-center gap-3'>
+      <div className='flex flex-col md:flex-row items-start md:items-center justify-between gap-4 md:gap-0 rounded-2xl border border-border/50 bg-background/40 backdrop-blur-md p-4 shadow-sm'>
+        <div className='flex flex-wrap items-center gap-3'>
           <span className='text-sm text-muted-foreground'>
             Question {currentQuestionIndex + 1} of {totalQuestions}
           </span>
@@ -413,7 +413,7 @@ export default function InterviewSessionPage() {
           )}
         </div>
 
-        <div className='flex items-center gap-2'>
+        <div className='flex flex-wrap items-center gap-2 w-full md:w-auto justify-end'>
           {/* FEAT-4: shortcuts toggle */}
           <button
             type='button'
@@ -636,8 +636,8 @@ export default function InterviewSessionPage() {
                       className='min-h-[180px] font-mono text-sm resize-y'
                       disabled={isSubmitting}
                     />
-                    <div className='flex items-center justify-between gap-2'>
-                      <div className='flex items-center gap-1'>
+                    <div className='flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sm:gap-2'>
+                      <div className='flex flex-wrap items-center gap-1'>
                         <TextButton
                           onClick={handleHint}
                           loading={requestHint.isPending}
@@ -672,7 +672,7 @@ export default function InterviewSessionPage() {
                         size='sm'
                         onClick={() => handleSubmit()}
                         disabled={!answer.trim() || isSubmitting}
-                        className='gap-1.5'
+                        className='gap-1.5 w-full sm:w-auto'
                         title='Ctrl+Enter'
                       >
                         {isSubmitting ? (

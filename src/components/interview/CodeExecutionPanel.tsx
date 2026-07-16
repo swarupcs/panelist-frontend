@@ -241,9 +241,9 @@ export function CodeExecutionPanel({
 
   return (
     <div className='space-y-3 flex flex-col h-full'>
-      {/* Toolbar */}
-      <div className='flex items-center justify-between gap-2 shrink-0'>
-        {/* Language picker */}
+      {/* Header / Toolbar */}
+      <div className='flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sm:gap-2 shrink-0'>
+        {/* Language selector */}
         <div className='relative'>
           <button
             type='button'
@@ -284,13 +284,13 @@ export function CodeExecutionPanel({
         </div>
 
         {/* Run + Submit */}
-        <div className='flex items-center gap-2'>
+        <div className='flex flex-wrap items-center gap-2 w-full sm:w-auto'>
           <button
             type='button'
             onClick={handleRun}
             disabled={!currentCode.trim() || executeCode.isPending || disabled}
             className={cn(
-              'flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5',
+              'flex flex-1 sm:flex-none justify-center items-center gap-1.5 rounded-md border border-border px-3 py-1.5',
               'text-xs font-medium text-muted-foreground transition-colors',
               'hover:bg-secondary hover:text-foreground disabled:opacity-50',
             )}
@@ -308,7 +308,7 @@ export function CodeExecutionPanel({
             onClick={handleSubmit}
             disabled={!currentCode.trim() || submitLoading || disabled}
             className={cn(
-              'flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5',
+              'flex flex-1 sm:flex-none justify-center items-center gap-1.5 rounded-md bg-primary px-3 py-1.5',
               'text-xs font-medium text-primary-foreground transition-colors',
               'hover:bg-primary/90 disabled:opacity-50',
             )}
