@@ -269,6 +269,7 @@ export interface LearningTopic {
   resources?: LearningResource[];
   topicQuestions?: LearningTopicQuestion[];
   isRemedial?: boolean;
+  crashCourse?: string;
 }
 
 export interface LearningPhase {

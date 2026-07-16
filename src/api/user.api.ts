@@ -61,6 +61,11 @@ export const learningApi = {
     return res.data.data
   },
 
+  getCrashCourse: async (topicId: string) => {
+    const res = await api.get(`/learning-path/topics/${topicId}/crash-course`)
+    return res.data.data
+  },
+
   updateTopicProgress: async (topicId: string, questionsSolved: number, averageScore: number) => {
     const res = await api.patch(`/learning-path/topics/${topicId}/progress`, {
       questionsSolved, averageScore,

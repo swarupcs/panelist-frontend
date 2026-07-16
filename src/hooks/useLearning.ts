@@ -84,6 +84,15 @@ export function useCompleteTopic() {
   });
 }
 
+export function useCrashCourse(topicId: string, enabled: boolean = false) {
+  return useQuery({
+    queryKey: ['learning', 'crashCourse', topicId],
+    queryFn: () => learningApi.getCrashCourse(topicId),
+    enabled: !!topicId && enabled,
+    staleTime: Infinity,
+  });
+}
+
 export function useRecommendations() {
   return useQuery({
     queryKey: ['learning', 'recommendations'],
