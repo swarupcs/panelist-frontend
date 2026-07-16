@@ -35,6 +35,15 @@ const AIChatPage = lazy(() => import('@/pages/chat/AIChatPage'));
 const AdminPage = lazy(() => import('@/pages/admin/AdminPage'));
 const NotFoundPage = lazy(() => import('@/pages/NotFoundPage'));
 const PublicScorecardPage = lazy(() => import('@/pages/public/PublicScorecardPage'));
+const LandingPage = lazy(() => import('@/pages/public/LandingPage'));
+
+/** Show landing page for guests, redirect to dashboard for logged-in users */
+function LandingOrDashboard() {
+  const { isAuthenticated, isInitialized } = useAuthStore();
+  if (!isInitialized) return <LoadingScreen message="Loading..." />;
+  if (isAuthenticated) return <Navigate to="/dashboard" replace />;
+  return <LandingPage />;
+}
 
 function AppRoutes() {
   return (
@@ -77,7 +86,7 @@ function AppRoutes() {
           </Route>
         </Route>
 
-        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+        <Route path="/" element={<LandingOrDashboard />} />
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </Suspense>
