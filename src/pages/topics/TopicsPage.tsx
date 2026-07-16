@@ -18,6 +18,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { PageHeader, EmptyState } from '@/components/common';
+import { Skeleton } from '@/components/ui/skeleton';
 import { formatCategory, getDifficultyBadge } from '@/utils/formatters';
 import { cn } from '@/lib/cn';
 
@@ -219,8 +220,15 @@ function TopicDetail({ slug, onClose }: { slug: string; onClose: () => void }) {
 
         <div className='p-5 space-y-5'>
           {isLoading ? (
-            <div className='flex justify-center py-8'>
-              <Loader2 className='size-6 animate-spin text-primary' />
+            <div className='space-y-4 py-4'>
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-4/5" />
+              <div className="grid grid-cols-2 gap-3 mt-6">
+                <Skeleton className="h-16 w-full rounded-lg" />
+                <Skeleton className="h-16 w-full rounded-lg" />
+                <Skeleton className="h-16 w-full rounded-lg" />
+                <Skeleton className="h-16 w-full rounded-lg" />
+              </div>
             </div>
           ) : (
             topic && (
@@ -480,8 +488,19 @@ export default function TopicsPage() {
 
       {/* Topic list */}
       {isLoading ? (
-        <div className='flex justify-center py-12'>
-          <Loader2 className='size-8 animate-spin text-primary' />
+        <div className='space-y-2'>
+          {[1, 2, 3, 4, 5].map((i) => (
+            <div key={i} className="flex items-center justify-between p-4 rounded-xl border border-border bg-card">
+              <div className="flex gap-3 items-center flex-1">
+                <Skeleton className="size-4 rounded-sm" />
+                <div className="space-y-2 w-full max-w-[200px]">
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-3 w-2/3" />
+                </div>
+              </div>
+              <Skeleton className="h-8 w-20 rounded-lg" />
+            </div>
+          ))}
         </div>
       ) : isError ? (
         <EmptyState

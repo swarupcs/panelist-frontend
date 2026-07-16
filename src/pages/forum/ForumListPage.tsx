@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { usePosts } from '@/hooks/useForum';
 import { ForumCategories } from '@/api/forum';
 import type { GetPostsOptions, ForumPost } from '@/api/forum';
+import { Skeleton } from '@/components/ui/skeleton';
 import { MessageSquare, ThumbsUp, Eye, CheckCircle2, Search, Plus, Filter, MessageCircle } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { formatDistanceToNow } from 'date-fns';
@@ -121,7 +122,24 @@ export default function ForumListPage() {
           {/* Post List */}
           <div className="space-y-4">
             {isLoading ? (
-              <div className="text-center py-20 text-muted-foreground">Loading posts...</div>
+              [1, 2, 3, 4, 5].map(i => (
+                <div key={i} className="bg-card border border-border rounded-xl p-6 flex flex-col md:flex-row gap-6">
+                  <div className="flex gap-4 md:flex-col md:items-end shrink-0 md:w-32">
+                    <Skeleton className="h-4 w-16" />
+                    <Skeleton className="h-4 w-16" />
+                    <Skeleton className="h-4 w-16" />
+                  </div>
+                  <div className="flex-1">
+                    <Skeleton className="h-6 w-3/4 mb-3" />
+                    <Skeleton className="h-4 w-full mb-2" />
+                    <Skeleton className="h-4 w-5/6 mb-4" />
+                    <div className="flex gap-2">
+                      <Skeleton className="h-5 w-16" />
+                      <Skeleton className="h-5 w-16" />
+                    </div>
+                  </div>
+                </div>
+              ))
             ) : data?.posts.length === 0 ? (
               <div className="text-center py-20 bg-card border border-border rounded-xl">
                 <MessageSquare className="size-10 text-muted-foreground/30 mx-auto mb-3" />

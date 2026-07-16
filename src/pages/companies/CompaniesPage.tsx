@@ -18,6 +18,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { PageHeader, EmptyState } from '@/components/common';
+import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/cn';
 
 // ── Difficulty color ───────────────────────────────────────────────────────
@@ -204,12 +205,19 @@ function CompanyDetail({
 
         <div className='p-5 space-y-5'>
           {companyLoading && (
-            <div className='flex justify-center py-8'>
-              <Loader2 className='size-6 animate-spin text-primary' />
+            <div className='space-y-4 py-4'>
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-5/6" />
+              <div className="grid grid-cols-2 gap-3 mt-4">
+                <Skeleton className="h-16 w-full rounded-lg" />
+                <Skeleton className="h-16 w-full rounded-lg" />
+                <Skeleton className="h-16 w-full rounded-lg" />
+                <Skeleton className="h-16 w-full rounded-lg" />
+              </div>
             </div>
           )}
 
-          {company && (
+          {company && !companyLoading && (
             <>
               {company.description && (
                 <p className='text-sm text-muted-foreground'>
@@ -298,8 +306,10 @@ function CompanyDetail({
           )}
 
           {questionsLoading && (
-            <div className='flex justify-center py-4'>
-              <Loader2 className='size-4 animate-spin text-primary' />
+            <div className='space-y-2 mt-4'>
+              <Skeleton className="h-14 w-full rounded-lg" />
+              <Skeleton className="h-14 w-full rounded-lg" />
+              <Skeleton className="h-14 w-full rounded-lg" />
             </div>
           )}
         </div>
@@ -417,8 +427,26 @@ export default function CompaniesPage() {
 
       {/* Company grid */}
       {isLoading ? (
-        <div className='flex justify-center py-12'>
-          <Loader2 className='size-8 animate-spin text-primary' />
+        <div className='grid grid-cols-1 sm:grid-cols-2 gap-3'>
+          {[1, 2, 3, 4, 5, 6].map(i => (
+            <div key={i} className="flex flex-col gap-3 rounded-xl border border-border p-4 h-[140px]">
+              <div className="flex justify-between">
+                <div className="flex gap-3">
+                  <Skeleton className="size-10 rounded-lg shrink-0" />
+                  <div className="space-y-2">
+                    <Skeleton className="h-4 w-24" />
+                    <Skeleton className="h-3 w-16" />
+                  </div>
+                </div>
+                <Skeleton className="h-5 w-16 rounded-full" />
+              </div>
+              <Skeleton className="h-3 w-full mt-2" />
+              <div className="flex justify-between mt-auto">
+                <Skeleton className="h-3 w-32" />
+                <Skeleton className="size-3" />
+              </div>
+            </div>
+          ))}
         </div>
       ) : isError ? (
         <EmptyState
