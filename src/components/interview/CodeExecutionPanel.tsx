@@ -220,6 +220,25 @@ export function CodeExecutionPanel({
         }
       });
       monaco.editor.setTheme('interview-dark');
+
+      // Enable Autocomplete / IntelliSense for JS/TS
+      monaco.languages.typescript.javascriptDefaults.setDiagnosticsOptions({
+        noSemanticValidation: false,
+        noSyntaxValidation: false,
+      });
+      monaco.languages.typescript.javascriptDefaults.setCompilerOptions({
+        target: monaco.languages.typescript.ScriptTarget.ES2020,
+        allowNonTsExtensions: true,
+      });
+
+      monaco.languages.typescript.typescriptDefaults.setDiagnosticsOptions({
+        noSemanticValidation: false,
+        noSyntaxValidation: false,
+      });
+      monaco.languages.typescript.typescriptDefaults.setCompilerOptions({
+        target: monaco.languages.typescript.ScriptTarget.ES2020,
+        allowNonTsExtensions: true,
+      });
     }
   }, [monaco]);
 
@@ -345,6 +364,14 @@ export function CodeExecutionPanel({
             cursorBlinking: "smooth",
             cursorSmoothCaretAnimation: "on",
             formatOnPaste: true,
+            suggestOnTriggerCharacters: true,
+            quickSuggestions: {
+              other: true,
+              comments: false,
+              strings: true
+            },
+            snippetSuggestions: "inline",
+            wordBasedSuggestions: "currentDocument",
           }}
         />
       </div>
