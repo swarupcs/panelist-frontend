@@ -16,10 +16,36 @@ function WhiteboardEvents({ onSync, incomingPatch }: WhiteboardTabProps) {
     const unlisten = editor.store.listen(
       (update) => {
         if (update.source === 'user') {
-          onSync(update.changes);
+          const { added, updated, removed } = update.changes;
+          const filtered: any = { added: {}, updated: {}, removed: {} };
+          
+          const isSyncable = (record: any) => {
+            return record && (
+              record.typeName === 'shape' ||
+              record.typeName === 'binding' ||
+              record.typeName === 'asset' ||
+              record.typeName === 'instance_presence'
+            );
+          };
+
+          for (const [id, record] of Object.entries(added)) {
+            if (isSyncable(record)) filtered.added[id] = record;
+          }
+          for (const [id, [from, to]] of Object.entries(updated as Record<string, any>)) {
+            if (isSyncable(to)) filtered.updated[id] = [from, to];
+          }
+          for (const [id, record] of Object.entries(removed)) {
+            if (id.startsWith('shape:') || id.startsWith('binding:') || id.startsWith('asset:') || id.startsWith('instance_presence:')) {
+              filtered.removed[id] = record;
+            }
+          }
+          
+          if (Object.keys(filtered.added).length || Object.keys(filtered.updated).length || Object.keys(filtered.removed).length) {
+            onSync(filtered);
+          }
         }
       },
-      { scope: 'document' } // Only listen to document changes, not presence/ui
+      { scope: 'all' } // Listen to all, then filter
     );
     return () => unlisten();
   }, [editor, onSync]);

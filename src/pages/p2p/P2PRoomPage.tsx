@@ -44,6 +44,7 @@ export default function P2PRoomPage() {
     currentQuestion,
     incomingWhiteboardPatch,
     incomingExcalidrawElements,
+    incomingExcalidrawPointer,
     aiHint,
     interviewEndTime,
     joinRoom,
@@ -52,6 +53,7 @@ export default function P2PRoomPage() {
     sendCodeUpdate,
     sendWhiteboardSync,
     sendExcalidrawSync,
+    sendExcalidrawPointerSync,
     setLanguage,
     reportFocusLoss,
     executeCode,
@@ -399,6 +401,8 @@ export default function P2PRoomPage() {
                     <ExcalidrawTab 
                       onSync={sendExcalidrawSync} 
                       incomingElements={incomingExcalidrawElements} 
+                      onPointerSync={sendExcalidrawPointerSync}
+                      incomingPointer={incomingExcalidrawPointer}
                     />
                   )}
                 </div>

@@ -27,6 +27,7 @@ export type P2PMessageType =
   | 'LANGUAGE_SYNC'
   | 'TAB_FOCUS_LOST'
   | 'EXCALIDRAW_SYNC'
+  | 'EXCALIDRAW_POINTER_SYNC'
   | 'ERROR';
 
 export interface P2PMessage {
