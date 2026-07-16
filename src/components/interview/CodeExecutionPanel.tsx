@@ -1,9 +1,9 @@
 // src/components/interview/CodeExecutionPanel.tsx
 //
-// DSA code editor with language switcher, test-case runner (POST /api/code/execute),
+// DSA code editor with Monaco Editor, language switcher, test-case runner,
 // and a "Submit Code" button that calls the parent's onSubmit callback.
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import {
   Play,
   CheckCircle2,
@@ -12,7 +12,10 @@ import {
   Terminal,
   Loader2,
   AlertCircle,
+  Clock,
+  Cpu
 } from 'lucide-react';
+import Editor, { useMonaco } from '@monaco-editor/react';
 import { cn } from '@/lib/cn';
 import { useExecuteCode } from '@/hooks/useInterviewExtended';
 import type {
@@ -26,11 +29,13 @@ import type {
 const LANGUAGES: {
   value: ProgrammingLanguage;
   label: string;
+  monacoLang: string;
   placeholder: string;
 }[] = [
   {
     value: 'JAVASCRIPT',
     label: 'JavaScript',
+    monacoLang: 'javascript',
     placeholder: `/**
  * @param {number[]} nums
  * @param {number} target
@@ -43,6 +48,7 @@ function solution(nums, target) {
   {
     value: 'PYTHON',
     label: 'Python',
+    monacoLang: 'python',
     placeholder: `class Solution:
     def solution(self, nums, target):
         # your code here
@@ -51,6 +57,7 @@ function solution(nums, target) {
   {
     value: 'TYPESCRIPT',
     label: 'TypeScript',
+    monacoLang: 'typescript',
     placeholder: `function solution(nums: number[], target: number): number[] {
   // your code here
 }`,
@@ -58,6 +65,7 @@ function solution(nums, target) {
   {
     value: 'JAVA',
     label: 'Java',
+    monacoLang: 'java',
     placeholder: `class Solution {
     public int[] solution(int[] nums, int target) {
         // your code here
@@ -67,6 +75,7 @@ function solution(nums, target) {
   {
     value: 'CPP',
     label: 'C++',
+    monacoLang: 'cpp',
     placeholder: `class Solution {
 public:
     vector<int> solution(vector<int>& nums, int target) {
@@ -95,7 +104,7 @@ function TestCaseRow({
   return (
     <div
       className={cn(
-        'rounded-lg border text-xs',
+        'rounded-lg border text-xs overflow-hidden',
         result.passed
           ? 'border-green-500/20 bg-green-500/5'
           : 'border-red-500/20 bg-red-500/5',
@@ -104,7 +113,7 @@ function TestCaseRow({
       <button
         type='button'
         onClick={() => setOpen((o) => !o)}
-        className='flex w-full items-center justify-between px-3 py-2'
+        className='flex w-full items-center justify-between px-3 py-2 hover:bg-black/5 transition-colors'
       >
         <div className='flex items-center gap-2'>
           {result.passed ? (
@@ -120,11 +129,20 @@ function TestCaseRow({
           >
             Test {index + 1}
           </span>
-          {result.executionTime != null && (
-            <span className='text-muted-foreground'>
-              {result.executionTime}ms
-            </span>
-          )}
+          <div className="flex items-center gap-2 ml-2">
+            {result.executionTime != null && (
+              <span className='flex items-center gap-1 text-muted-foreground'>
+                <Clock className="size-3" />
+                {result.executionTime}ms
+              </span>
+            )}
+            {result.memory != null && (
+              <span className='flex items-center gap-1 text-muted-foreground'>
+                <Cpu className="size-3" />
+                {result.memory} KB
+              </span>
+            )}
+          </div>
         </div>
         <ChevronDown
           className={cn(
@@ -135,7 +153,7 @@ function TestCaseRow({
       </button>
 
       {open && (
-        <div className='border-t border-border/50 px-3 py-2 space-y-1.5'>
+        <div className='border-t border-border/50 px-3 py-2 space-y-1.5 bg-black/10'>
           <div>
             <span className='text-muted-foreground'>Input: </span>
             <code className='text-foreground'>
@@ -151,10 +169,8 @@ function TestCaseRow({
           {!result.passed && (
             <div>
               <span className='text-muted-foreground'>Got: </span>
-              <code className='text-red-400'>
-                {result.actualOutput != null
-                  ? JSON.stringify(result.actualOutput)
-                  : 'No output'}
+              <code className='text-red-400 whitespace-pre-wrap font-mono text-[11px] block mt-1 p-2 rounded bg-red-950/30 border border-red-500/20'>
+                {result.actualOutput || result.error || 'No output'}
               </code>
             </div>
           )}
@@ -180,30 +196,53 @@ export function CodeExecutionPanel({
   disabled = false,
 }: CodeExecutionPanelProps) {
   const [language, setLanguage] = useState<ProgrammingLanguage>('JAVASCRIPT');
-  const [code, setCode] = useState('');
+  const [codeMap, setCodeMap] = useState<Partial<Record<ProgrammingLanguage, string>>>({});
   const [showLangMenu, setShowLangMenu] = useState(false);
-
+  const monaco = useMonaco();
+  
   const executeCode = useExecuteCode();
   const activeLang = LANGUAGES.find((l) => l.value === language)!;
-  const cases =
-    testCases && testCases.length > 0 ? testCases : DEFAULT_TEST_CASES;
+  const cases = testCases && testCases.length > 0 ? testCases : DEFAULT_TEST_CASES;
+
+  // Initialize code for current language if empty
+  const currentCode = codeMap[language] ?? activeLang.placeholder;
+
+  useEffect(() => {
+    if (monaco) {
+      // Setup custom theme for Monaco matching our dark UI
+      monaco.editor.defineTheme('interview-dark', {
+        base: 'vs-dark',
+        inherit: true,
+        rules: [],
+        colors: {
+          'editor.background': '#09090b', // Matches our tailwind background
+          'editor.lineHighlightBackground': '#18181b',
+        }
+      });
+      monaco.editor.setTheme('interview-dark');
+    }
+  }, [monaco]);
+
+  const handleEditorChange = (value: string | undefined) => {
+    setCodeMap(prev => ({ ...prev, [language]: value || '' }));
+  };
 
   const handleRun = () => {
-    if (!code.trim() || executeCode.isPending || disabled) return;
-    executeCode.mutate({ code, language, testCases: cases });
+    if (!currentCode.trim() || executeCode.isPending || disabled) return;
+    executeCode.mutate({ code: currentCode, language, testCases: cases });
   };
 
   const handleSubmit = () => {
-    if (!code.trim() || submitLoading || disabled) return;
-    onSubmit(code);
+    if (!currentCode.trim() || submitLoading || disabled) return;
+    onSubmit(currentCode);
   };
 
   const result = executeCode.data;
 
   return (
-    <div className='space-y-3'>
+    <div className='space-y-3 flex flex-col h-full'>
       {/* Toolbar */}
-      <div className='flex items-center justify-between gap-2'>
+      <div className='flex items-center justify-between gap-2 shrink-0'>
         {/* Language picker */}
         <div className='relative'>
           <button
@@ -249,7 +288,7 @@ export function CodeExecutionPanel({
           <button
             type='button'
             onClick={handleRun}
-            disabled={!code.trim() || executeCode.isPending || disabled}
+            disabled={!currentCode.trim() || executeCode.isPending || disabled}
             className={cn(
               'flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5',
               'text-xs font-medium text-muted-foreground transition-colors',
@@ -267,7 +306,7 @@ export function CodeExecutionPanel({
           <button
             type='button'
             onClick={handleSubmit}
-            disabled={!code.trim() || submitLoading || disabled}
+            disabled={!currentCode.trim() || submitLoading || disabled}
             className={cn(
               'flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5',
               'text-xs font-medium text-primary-foreground transition-colors',
@@ -284,40 +323,52 @@ export function CodeExecutionPanel({
         </div>
       </div>
 
-      {/* Code textarea */}
-      <textarea
-        value={code}
-        onChange={(e) => setCode(e.target.value)}
-        placeholder={activeLang.placeholder}
-        disabled={disabled}
-        spellCheck={false}
-        className={cn(
-          'w-full min-h-[240px] resize-y rounded-lg border border-border',
-          'bg-card p-4 font-mono text-sm text-foreground',
-          'placeholder:text-muted-foreground/40 focus:outline-none',
-          'focus:ring-1 focus:ring-primary/50 disabled:opacity-50',
-        )}
-      />
+      {/* Editor Container */}
+      <div className={cn(
+        'w-full rounded-lg border border-border overflow-hidden bg-[#09090b] flex-1 min-h-[300px] shadow-inner',
+        disabled && 'opacity-50 pointer-events-none'
+      )}>
+        <Editor
+          height="100%"
+          language={activeLang.monacoLang}
+          value={currentCode}
+          onChange={handleEditorChange}
+          theme="interview-dark"
+          options={{
+            minimap: { enabled: false },
+            fontSize: 14,
+            fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
+            lineHeight: 1.5,
+            padding: { top: 16, bottom: 16 },
+            scrollBeyondLastLine: false,
+            smoothScrolling: true,
+            cursorBlinking: "smooth",
+            cursorSmoothCaretAnimation: "on",
+            formatOnPaste: true,
+          }}
+        />
+      </div>
 
       {/* Execution error */}
       {executeCode.isError && (
-        <div className='flex items-center gap-2 rounded-lg border border-destructive/20 bg-destructive/5 px-3 py-2 text-xs text-destructive'>
+        <div className='flex items-center gap-2 rounded-lg border border-destructive/20 bg-destructive/5 px-3 py-2 text-xs text-destructive shrink-0'>
           <AlertCircle className='size-3.5 shrink-0' />
           {(executeCode.error as any)?.response?.data?.error?.message ??
+            (executeCode.error as any)?.message ??
             'Code execution failed'}
         </div>
       )}
 
       {/* Results */}
       {result && (
-        <div className='space-y-2'>
+        <div className='space-y-2 shrink-0 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar'>
           {/* Summary */}
           <div
             className={cn(
-              'flex items-center justify-between rounded-lg border px-3 py-2 text-xs font-medium',
+              'flex items-center justify-between rounded-lg border px-3 py-2 text-xs font-medium sticky top-0 backdrop-blur-md z-10',
               result.success
-                ? 'border-green-500/20 bg-green-500/5 text-green-400'
-                : 'border-red-500/20 bg-red-500/5 text-red-400',
+                ? 'border-green-500/20 bg-green-500/10 text-green-400'
+                : 'border-red-500/20 bg-red-500/10 text-red-400',
             )}
           >
             <div className='flex items-center gap-2'>
@@ -334,7 +385,7 @@ export function CodeExecutionPanel({
           </div>
 
           {/* Per-test breakdown */}
-          {result.testCaseResults.length > 0 && (
+          {result.testCaseResults && result.testCaseResults.length > 0 && (
             <div className='space-y-1.5'>
               {result.testCaseResults.map((tcr, i) => (
                 <TestCaseRow key={i} result={tcr} index={i} />
