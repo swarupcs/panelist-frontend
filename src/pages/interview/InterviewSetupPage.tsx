@@ -1,19 +1,6 @@
 // src/pages/interview/InterviewSetupPage.tsx
-//
-// NEW FEATURES
-// ─────────────────────────────────────────────────────────────────────────────
-// FEAT-1  Focus areas picker — multi-select category chips. Sent as
-//         focusAreas[] in StartInterviewRequest. Only shown for DSA / mixed
-//         sessions since those benefit most from topic targeting.
-//
-// FEAT-2  Timed session toggle — Switch that sets isTimed on the request.
-//         When enabled, the session page receives isTimed=true so SessionTimer
-//         polls the backend countdown instead of showing local elapsed.
-//         The backend already supports isTimed via InterviewSessionManager.
-//
-// FEAT-3  Adaptive mode toggle — Switch that adds adaptiveMode=true to the
-//         request. The backend AdaptiveInterviewService adjusts difficulty
-//         between questions based on the last 3 scores.
+// FIXED: Replaced shadcn Switch+Label (unstyled/missing) with a self-contained
+// custom toggle that works reliably in dark mode without extra dependencies.
 
 import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
@@ -38,8 +25,6 @@ import {
   CardTitle,
   CardDescription,
 } from '@/components/ui/Card';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
 import { PageHeader } from '@/components/common';
 import { useStartInterview } from '@/hooks/useInterview';
 import type { InterviewType, Difficulty } from '@/types';
@@ -108,7 +93,6 @@ const DIFFICULTIES = [
 
 const DURATIONS = [15, 30, 45, 60, 90];
 
-// FEAT-1: Focus area categories per interview type
 const FOCUS_AREAS: Record<string, { value: string; label: string }[]> = {
   dsa: [
     { value: 'ARRAYS', label: 'Arrays' },
@@ -152,6 +136,94 @@ const FOCUS_AREAS: Record<string, { value: string; label: string }[]> = {
   ],
 };
 
+// ── Custom Toggle ──────────────────────────────────────────────────────────
+
+function Toggle({
+  checked,
+  onChange,
+  id,
+}: {
+  checked: boolean;
+  onChange: (val: boolean) => void;
+  id?: string;
+}) {
+  return (
+    <button
+      type='button'
+      id={id}
+      role='switch'
+      aria-checked={checked}
+      onClick={() => onChange(!checked)}
+      className={cn(
+        'relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent',
+        'transition-colors duration-200 ease-in-out focus-visible:outline-none',
+        'focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2',
+        checked ? 'bg-primary' : 'bg-secondary',
+      )}
+    >
+      <span
+        className={cn(
+          'pointer-events-none inline-block size-5 rounded-full bg-white shadow-lg',
+          'transform transition duration-200 ease-in-out',
+          checked ? 'translate-x-5' : 'translate-x-0',
+        )}
+      />
+    </button>
+  );
+}
+
+// ── Advanced option row ────────────────────────────────────────────────────
+
+function AdvancedOption({
+  icon: Icon,
+  iconColor,
+  title,
+  description,
+  checked,
+  onChange,
+  id,
+}: {
+  icon: React.ElementType;
+  iconColor: string;
+  title: string;
+  description: string;
+  checked: boolean;
+  onChange: (val: boolean) => void;
+  id: string;
+}) {
+  return (
+    <div className='flex items-start justify-between gap-4'>
+      <div className='flex items-start gap-3 flex-1'>
+        <div
+          className={cn(
+            'rounded-lg p-2 shrink-0 mt-0.5',
+            checked ? 'bg-primary/10' : 'bg-secondary/50',
+          )}
+        >
+          <Icon
+            className={cn(
+              'size-4',
+              checked ? iconColor : 'text-muted-foreground',
+            )}
+          />
+        </div>
+        <div>
+          <label
+            htmlFor={id}
+            className='text-sm font-semibold text-foreground cursor-pointer select-none'
+          >
+            {title}
+          </label>
+          <p className='text-xs text-muted-foreground mt-0.5 leading-relaxed'>
+            {description}
+          </p>
+        </div>
+      </div>
+      <Toggle id={id} checked={checked} onChange={onChange} />
+    </div>
+  );
+}
+
 // ── Main page ──────────────────────────────────────────────────────────────
 
 export default function InterviewSetupPage() {
@@ -162,20 +234,13 @@ export default function InterviewSetupPage() {
   const [selectedDifficulty, setSelectedDifficulty] =
     useState<Difficulty>('medium');
   const [selectedDuration, setSelectedDuration] = useState(30);
-
-  // FEAT-1: focus areas
   const [focusAreas, setFocusAreas] = useState<string[]>([]);
   const [showFocusAreas, setShowFocusAreas] = useState(false);
-
-  // FEAT-2: timed session
   const [isTimed, setIsTimed] = useState(false);
-
-  // FEAT-3: adaptive mode
   const [adaptiveMode, setAdaptiveMode] = useState(false);
 
   const startInterview = useStartInterview();
 
-  // Reset focus areas when type changes — previous selections may not apply
   const handleTypeChange = (type: InterviewType) => {
     setSelectedType(type);
     setFocusAreas([]);
@@ -189,24 +254,14 @@ export default function InterviewSetupPage() {
   };
 
   const handleStart = () => {
-    startInterview.mutate(
-      {
-        type: selectedType,
-        difficulty: selectedDifficulty,
-        duration: selectedDuration,
-        focusAreas: focusAreas.length > 0 ? focusAreas : undefined,
-        // isTimed and adaptiveMode are stored in the store so SessionPage can read them
-      },
-      {
-        // Pass isTimed + adaptiveMode through meta so useStartInterview can forward them
-        // They're stored in the interview store after session starts
-      },
-    );
-
-    // Store isTimed for SessionPage to read via a sessionStorage flag
-    // (the store will be populated by useStartInterview's onSuccess)
     sessionStorage.setItem('interview_isTimed', String(isTimed));
     sessionStorage.setItem('interview_adaptiveMode', String(adaptiveMode));
+    startInterview.mutate({
+      type: selectedType,
+      difficulty: selectedDifficulty,
+      duration: selectedDuration,
+      focusAreas: focusAreas.length > 0 ? focusAreas : undefined,
+    });
   };
 
   const availableFocusAreas = FOCUS_AREAS[selectedType] ?? [];
@@ -219,12 +274,11 @@ export default function InterviewSetupPage() {
         description='Configure your mock interview session'
       />
 
-      {/* ── Interview Type ───────────────────────────────────────────────── */}
+      {/* ── Interview Type ── */}
       <Card>
         <CardHeader>
           <CardTitle className='text-base flex items-center gap-2'>
-            <Brain className='size-4 text-primary' />
-            Interview Type
+            <Brain className='size-4 text-primary' /> Interview Type
           </CardTitle>
           <CardDescription>
             What type of interview do you want to practice?
@@ -258,12 +312,11 @@ export default function InterviewSetupPage() {
         </CardContent>
       </Card>
 
-      {/* ── Difficulty ───────────────────────────────────────────────────── */}
+      {/* ── Difficulty ── */}
       <Card>
         <CardHeader>
           <CardTitle className='text-base flex items-center gap-2'>
-            <Gauge className='size-4 text-primary' />
-            Difficulty
+            <Gauge className='size-4 text-primary' /> Difficulty
           </CardTitle>
           <CardDescription>
             Choose the difficulty level for your session
@@ -299,12 +352,11 @@ export default function InterviewSetupPage() {
         </CardContent>
       </Card>
 
-      {/* ── Duration ─────────────────────────────────────────────────────── */}
+      {/* ── Duration ── */}
       <Card>
         <CardHeader>
           <CardTitle className='text-base flex items-center gap-2'>
-            <Clock className='size-4 text-primary' />
-            Duration
+            <Clock className='size-4 text-primary' /> Duration
           </CardTitle>
           <CardDescription>
             How long do you want to practice? (~{questionCount} question
@@ -331,7 +383,7 @@ export default function InterviewSetupPage() {
         </CardContent>
       </Card>
 
-      {/* ── FEAT-1: Focus Areas ───────────────────────────────────────────── */}
+      {/* ── Focus Areas ── */}
       {availableFocusAreas.length > 0 && (
         <Card>
           <CardHeader>
@@ -363,7 +415,6 @@ export default function InterviewSetupPage() {
               )}
             </button>
           </CardHeader>
-
           {showFocusAreas && (
             <CardContent>
               <div className='flex flex-wrap gap-2'>
@@ -400,72 +451,46 @@ export default function InterviewSetupPage() {
         </Card>
       )}
 
-      {/* ── FEAT-2 + FEAT-3: Advanced options ────────────────────────────── */}
+      {/* ── Advanced Options ── */}
       <Card>
         <CardHeader>
           <CardTitle className='text-base flex items-center gap-2'>
-            <Zap className='size-4 text-primary' />
-            Advanced Options
+            <Zap className='size-4 text-primary' /> Advanced Options
           </CardTitle>
         </CardHeader>
         <CardContent className='space-y-5'>
-          {/* FEAT-2: Timed session */}
-          <div className='flex items-start justify-between gap-4'>
-            <div className='space-y-0.5'>
-              <Label
-                htmlFor='timed-switch'
-                className='flex items-center gap-1.5 text-sm font-medium cursor-pointer'
-              >
-                <Timer className='size-4 text-primary' />
-                Timed Session
-              </Label>
-              <p className='text-xs text-muted-foreground'>
-                Countdown timer based on your chosen duration. Auto-submits
-                unanswered questions when time expires.
-              </p>
-            </div>
-            <Switch
-              id='timed-switch'
-              checked={isTimed}
-              onCheckedChange={setIsTimed}
-            />
-          </div>
+          <AdvancedOption
+            id='timed-toggle'
+            icon={Timer}
+            iconColor='text-primary'
+            title='Timed Session'
+            description='Countdown timer based on your chosen duration. Auto-submits unanswered questions when time expires.'
+            checked={isTimed}
+            onChange={setIsTimed}
+          />
 
           <div className='border-t border-border/50' />
 
-          {/* FEAT-3: Adaptive mode */}
-          <div className='flex items-start justify-between gap-4'>
-            <div className='space-y-0.5'>
-              <Label
-                htmlFor='adaptive-switch'
-                className='flex items-center gap-1.5 text-sm font-medium cursor-pointer'
-              >
-                <Zap className='size-4 text-yellow-400' />
-                Adaptive Difficulty
-              </Label>
-              <p className='text-xs text-muted-foreground'>
-                Question difficulty adjusts automatically based on your last 3
-                scores. Scores ≥ 85 increase difficulty; scores &lt; 60 decrease
-                it.
-              </p>
-            </div>
-            <Switch
-              id='adaptive-switch'
-              checked={adaptiveMode}
-              onCheckedChange={setAdaptiveMode}
-            />
-          </div>
+          <AdvancedOption
+            id='adaptive-toggle'
+            icon={Zap}
+            iconColor='text-yellow-400'
+            title='Adaptive Difficulty'
+            description='Question difficulty adjusts automatically based on your last 3 scores. Scores ≥ 85 increase difficulty; scores < 60 decrease it.'
+            checked={adaptiveMode}
+            onChange={setAdaptiveMode}
+          />
         </CardContent>
       </Card>
 
-      {/* ── Summary & Start ───────────────────────────────────────────────── */}
+      {/* ── Summary & Start ── */}
       <Card className='border-primary/30 bg-primary/5'>
         <CardContent className='pt-5'>
           <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-4'>
             <div className='space-y-1.5'>
               <p className='font-medium text-foreground'>Session Summary</p>
               <div className='flex flex-wrap gap-x-2 gap-y-1 text-xs text-muted-foreground'>
-                <span className='capitalize'>
+                <span>
                   {INTERVIEW_TYPES.find((t) => t.value === selectedType)?.label}
                 </span>
                 <span>·</span>
