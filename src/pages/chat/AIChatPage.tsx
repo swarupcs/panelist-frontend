@@ -72,6 +72,16 @@ const STARTERS = [
     prompt:
       'Start a short mock DSA interview — give me a question and evaluate my answer.',
   },
+  {
+    label: 'Code debugging',
+    prompt:
+      "I have a bug in my code. Can you tell me what's wrong?\n\n```javascript\n// Paste your code here\n```",
+  },
+  {
+    label: 'Code optimization',
+    prompt:
+      'Can you optimize this code for better time/space complexity?\n\n```python\n# Paste your code here\n```',
+  },
 ];
 
 // ── Agent badge ────────────────────────────────────────────────────────────
