@@ -222,21 +222,22 @@ export function CodeExecutionPanel({
       monaco.editor.setTheme('interview-dark');
 
       // Enable Autocomplete / IntelliSense for JS/TS
-      monaco.languages.typescript.javascriptDefaults.setDiagnosticsOptions({
+      const m = monaco as any;
+      m.languages.typescript.javascriptDefaults.setDiagnosticsOptions({
         noSemanticValidation: false,
         noSyntaxValidation: false,
       });
-      monaco.languages.typescript.javascriptDefaults.setCompilerOptions({
-        target: monaco.languages.typescript.ScriptTarget.ES2020,
+      m.languages.typescript.javascriptDefaults.setCompilerOptions({
+        target: m.languages.typescript.ScriptTarget.ES2020,
         allowNonTsExtensions: true,
       });
 
-      monaco.languages.typescript.typescriptDefaults.setDiagnosticsOptions({
+      m.languages.typescript.typescriptDefaults.setDiagnosticsOptions({
         noSemanticValidation: false,
         noSyntaxValidation: false,
       });
-      monaco.languages.typescript.typescriptDefaults.setCompilerOptions({
-        target: monaco.languages.typescript.ScriptTarget.ES2020,
+      m.languages.typescript.typescriptDefaults.setCompilerOptions({
+        target: m.languages.typescript.ScriptTarget.ES2020,
         allowNonTsExtensions: true,
       });
     }

@@ -182,6 +182,12 @@ export interface PerformanceTrend {
   date: string;
   averageScore: number;
   interviewCount: number;
+  questionCount: number;
+}
+
+export interface DifficultyDistribution {
+  difficulty: string;
+  count: number;
 }
 
 export interface WeakArea {
@@ -224,6 +230,7 @@ export interface AnalyticsDashboard {
   userProgress: UserProgress | null;
   comparative: ComparativeAnalytics;
   readinessScore: number;
+  difficultyDistribution: DifficultyDistribution[];
 }
 
 // ============================================================

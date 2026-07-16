@@ -87,86 +87,9 @@ function ProgressBar({
   );
 }
 
-// ── Bar Chart ──────────────────────────────────────────────────────────────
-// CHART-1 + CHART-2 FIX: explicit height wrapper, absolute bars, Tailwind colors
-
-function MiniBarChart({
-  data,
-}: {
-  data: { date: string; averageScore: number; interviewCount: number }[];
-}) {
-  if (!data?.length) {
-    return (
-      <div className='h-32 flex flex-col items-center justify-center gap-2 text-muted-foreground'>
-        <Calendar className='size-6 opacity-40' />
-        <span className='text-sm'>No data yet — complete some interviews</span>
-      </div>
-    );
-  }
-
-  const recent = data.slice(-20);
-  const max = Math.max(...recent.map((d) => d.averageScore), 1);
-
-  return (
-    <div className='space-y-2'>
-      {/* Chart area */}
-      <div className='flex items-end gap-1 h-28 w-full'>
-        {recent.map((d, i) => {
-          const pct = max > 0 ? (d.averageScore / max) * 100 : 0;
-          const height = d.interviewCount > 0 ? Math.max(pct, 4) : 2;
-          const isGood = d.averageScore >= 70;
-          const hasData = d.interviewCount > 0;
-
-          return (
-            <div
-              key={i}
-              className='group relative flex-1 flex flex-col justify-end h-full'
-              title={`${formatDate(d.date)}: ${d.interviewCount > 0 ? formatScore(d.averageScore) : 'No interviews'}`}
-            >
-              <div
-                className={cn(
-                  'w-full rounded-sm transition-all duration-300',
-                  hasData
-                    ? isGood
-                      ? 'bg-primary hover:bg-primary/80'
-                      : 'bg-destructive/70 hover:bg-destructive/90'
-                    : 'bg-border',
-                )}
-                style={{ height: `${height}%` }}
-              />
-              {/* Tooltip */}
-              <div
-                className='absolute bottom-full mb-1 left-1/2 -translate-x-1/2 hidden group-hover:flex
-                              flex-col items-center z-10 pointer-events-none'
-              >
-                <div className='bg-popover border border-border rounded px-2 py-1 text-xs whitespace-nowrap shadow-lg'>
-                  <p className='text-muted-foreground'>{formatDate(d.date)}</p>
-                  {hasData && (
-                    <p
-                      className={cn(
-                        'font-semibold',
-                        isGood ? 'text-primary' : 'text-destructive',
-                      )}
-                    >
-                      {formatScore(d.averageScore)}
-                    </p>
-                  )}
-                </div>
-                <div className='size-1.5 rotate-45 bg-popover border-r border-b border-border -mt-1' />
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* X-axis labels — first and last date */}
-      <div className='flex justify-between text-xs text-muted-foreground px-0.5'>
-        <span>{formatDate(recent[0]?.date)}</span>
-        <span>{formatDate(recent[recent.length - 1]?.date)}</span>
-      </div>
-    </div>
-  );
-}
+import { ScoreOverTimeChart } from '@/components/analytics/ScoreOverTimeChart';
+import { QuestionsPerWeekChart } from '@/components/analytics/QuestionsPerWeekChart';
+import { DifficultyDistributionChart } from '@/components/analytics/DifficultyDistributionChart';
 
 // ── Page ───────────────────────────────────────────────────────────────────
 
@@ -277,19 +200,29 @@ export default function AnalyticsPage() {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <MiniBarChart data={trends ?? []} />
-                  <div className='flex items-center gap-4 mt-4 text-xs text-muted-foreground'>
-                    <div className='flex items-center gap-1.5'>
-                      <div className='size-2.5 rounded-sm bg-primary' />
-                      Score ≥ 70
-                    </div>
-                    <div className='flex items-center gap-1.5'>
-                      <div className='size-2.5 rounded-sm bg-destructive/70' />
-                      Score &lt; 70
-                    </div>
-                  </div>
+                  <ScoreOverTimeChart data={trends ?? []} />
                 </CardContent>
               </Card>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className='text-base'>Questions per Week</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <QuestionsPerWeekChart data={trends ?? []} />
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle className='text-base'>Difficulty Distribution</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <DifficultyDistributionChart data={data?.difficultyDistribution ?? []} />
+                  </CardContent>
+                </Card>
+              </div>
 
               {comparative && (
                 <Card>
