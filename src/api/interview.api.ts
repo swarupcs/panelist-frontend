@@ -1,5 +1,5 @@
 import api from './axios'
-import {
+import type {
   StartInterviewRequest, StartInterviewResponse,
   SubmitAnswerRequest, SubmitAnswerResponse,
   HintResponse, TimerStatus,

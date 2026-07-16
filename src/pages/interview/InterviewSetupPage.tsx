@@ -6,11 +6,10 @@ import { z } from 'zod'
 import { Brain, Code2, Layers, Users, Shuffle, Clock, Gauge, Target } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/Card'
-import { Label } from '@/components/ui/Input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/Select'
 import { PageHeader } from '@/components/common'
 import { useStartInterview } from '@/hooks/useInterview'
-import { InterviewType, Difficulty } from '@/types'
+import type { InterviewType, Difficulty } from '@/types'
 import { cn } from '@/lib/cn'
 
 const interviewTypes = [

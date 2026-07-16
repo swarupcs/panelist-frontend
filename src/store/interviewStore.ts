@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { InterviewQuestion, InterviewType, Difficulty } from '@/types'
+import type { InterviewQuestion, InterviewType, Difficulty } from '@/types'
 
 interface InterviewState {
   sessionId: string | null

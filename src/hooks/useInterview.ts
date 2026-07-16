@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { interviewApi } from '@/api/interview.api'
 import { useInterviewStore } from '@/store/interviewStore'
 import { useAuthStore } from '@/store/authStore'
-import { StartInterviewRequest, SubmitAnswerRequest, InterviewType, Difficulty } from '@/types'
+import type { StartInterviewRequest, SubmitAnswerRequest, InterviewType, Difficulty } from '@/types'
 import { queryClient } from '@/lib/queryClient'
 
 export function useStartInterview() {
