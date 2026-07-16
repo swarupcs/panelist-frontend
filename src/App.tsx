@@ -38,6 +38,9 @@ const PublicScorecardPage = lazy(() => import('@/pages/public/PublicScorecardPag
 const LandingPage = lazy(() => import('@/pages/public/LandingPage'));
 const BlogListPage = lazy(() => import('@/pages/blog/BlogListPage'));
 const BlogPostPage = lazy(() => import('@/pages/blog/BlogPostPage'));
+const ForumListPage = lazy(() => import('@/pages/forum/ForumListPage'));
+const ForumPostPage = lazy(() => import('@/pages/forum/ForumPostPage'));
+const CreatePostPage = lazy(() => import('@/pages/forum/CreatePostPage'));
 
 /** Show landing page for guests, redirect to dashboard for logged-in users */
 function LandingOrDashboard() {
@@ -61,6 +64,10 @@ function AppRoutes() {
         <Route path="/scorecard/:token" element={<PublicScorecardPage />} />
         <Route path="/blog" element={<BlogListPage />} />
         <Route path="/blog/:slug" element={<BlogPostPage />} />
+        
+        {/* Forum - public list and post views */}
+        <Route path="/forum" element={<ForumListPage />} />
+        <Route path="/forum/:id" element={<ForumPostPage />} />
 
         <Route element={<ProtectedRoute />}>
           <Route element={<AppShell />}>
@@ -83,6 +90,9 @@ function AppRoutes() {
             <Route path="/topics" element={<TopicsPage />} />
             <Route path="/achievements" element={<AchievementsPage />} />
             <Route path="/profile" element={<ProfilePage />} />
+
+            {/* Protected Forum Route */}
+            <Route path="/forum/ask" element={<CreatePostPage />} />
 
             <Route element={<AdminRoute />}>
               <Route path="/admin" element={<AdminPage />} />
