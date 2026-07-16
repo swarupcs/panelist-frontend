@@ -21,8 +21,11 @@ import {
   Server,
   Cloud,
   Smartphone,
+  Play,
+  Loader2,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
+import { useStartInterview } from '@/hooks/useInterview';
 import { useAnalyticsDashboard } from '@/hooks/useAnalytics';
 import { useUserProgress } from '@/hooks/useProgress';
 import { useAchievements } from '@/hooks/useGamification';
@@ -123,6 +126,7 @@ function StatTile({
 export default function DashboardPage() {
   const navigate = useNavigate();
   const { user } = useAuthStore();
+  const startInterview = useStartInterview();
   const { data: analytics, isLoading: analyticsLoading } =
     useAnalyticsDashboard();
   const { data: progress } = useUserProgress();
@@ -140,6 +144,24 @@ export default function DashboardPage() {
     if (h < 12) return 'Good morning';
     if (h < 17) return 'Good afternoon';
     return 'Good evening';
+  };
+
+  const handleQuickStart = () => {
+    const types: any[] = ['dsa', 'system_design', 'behavioral', 'frontend', 'backend', 'devops', 'mobile', 'mixed'];
+    const diffs: any[] = ['easy', 'medium', 'hard'];
+    
+    const randomType = types[Math.floor(Math.random() * types.length)];
+    const randomDiff = diffs[Math.floor(Math.random() * diffs.length)];
+    const randomDuration = [15, 30][Math.floor(Math.random() * 2)];
+
+    sessionStorage.setItem('interview_isTimed', 'false');
+    sessionStorage.setItem('interview_adaptiveMode', 'true');
+
+    startInterview.mutate({
+      type: randomType,
+      difficulty: randomDiff,
+      duration: randomDuration,
+    });
   };
 
   const QUICK_ACTIONS = [
@@ -236,13 +258,27 @@ export default function DashboardPage() {
             </Button>
           )}
           <Button
+            variant='outline'
+            size='sm'
+            onClick={handleQuickStart}
+            disabled={startInterview.isPending}
+            className='gap-1.5 border-primary/50 text-primary hover:bg-primary/10'
+          >
+            {startInterview.isPending ? (
+              <Loader2 className='size-3.5 animate-spin' />
+            ) : (
+              <Play className='size-3.5' />
+            )}
+            Quick Start
+          </Button>
+          <Button
             variant='gradient'
             size='sm'
             onClick={() => navigate('/interview')}
             className='gap-1.5'
           >
             <Brain className='size-3.5' />
-            Start Interview
+            Setup Interview
           </Button>
         </div>
       </div>
@@ -293,9 +329,22 @@ export default function DashboardPage() {
                 Complete your first interview to see your stats here.
               </p>
             </div>
-            <Button variant='gradient' onClick={() => navigate('/interview')}>
-              Start Your First Interview
-            </Button>
+            <div className="flex gap-3 justify-center">
+              <Button
+                variant='outline'
+                onClick={handleQuickStart}
+                disabled={startInterview.isPending}
+              >
+                {startInterview.isPending ? (
+                  <><Loader2 className='size-4 animate-spin mr-2' /> Starting...</>
+                ) : (
+                  <><Play className='size-4 mr-2' /> Quick Start</>
+                )}
+              </Button>
+              <Button variant='gradient' onClick={() => navigate('/interview')}>
+                Setup Interview
+              </Button>
+            </div>
           </CardContent>
         </Card>
       )}
