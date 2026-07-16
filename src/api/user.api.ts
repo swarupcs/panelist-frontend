@@ -22,6 +22,14 @@ export const learningApi = {
     return res.data.data
   },
 
+  adaptPath: async (data: {
+    weakCategory: string
+    feedback?: string
+  }): Promise<{ phase: any }> => {
+    const res = await api.post('/learning-path/adapt', data)
+    return res.data.data
+  },
+
   getPath: async (pathId?: string): Promise<{ learningPath: LearningPath }> => {
     const url = pathId ? `/learning-path?pathId=${pathId}` : '/learning-path'
     const res = await api.get(url)

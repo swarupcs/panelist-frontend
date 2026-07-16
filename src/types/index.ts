@@ -268,6 +268,7 @@ export interface LearningTopic {
   prerequisites: string[];
   resources?: LearningResource[];
   topicQuestions?: LearningTopicQuestion[];
+  isRemedial?: boolean;
 }
 
 export interface LearningPhase {
@@ -279,6 +280,7 @@ export interface LearningPhase {
   isCompleted: boolean;
   completedAt?: string;
   topics: LearningTopic[];
+  isRemedial?: boolean;
 }
 
 export interface LearningPath {

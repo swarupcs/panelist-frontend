@@ -207,6 +207,8 @@ function TopicRow({
         'rounded-lg border p-3 space-y-2',
         topic.isCompleted
           ? 'border-green-500/20 bg-green-500/5'
+          : topic.isRemedial
+          ? 'border-orange-500/30 bg-orange-500/5'
           : 'border-border bg-secondary/20',
         isLocked && 'opacity-50',
       )}
@@ -627,7 +629,10 @@ export default function LearningPage() {
                 return (
                   <Card
                     key={phase.id}
-                    className={cn(phase.isCompleted && 'opacity-70')}
+                    className={cn(
+                      phase.isCompleted && 'opacity-70',
+                      phase.isRemedial && 'border-orange-500/50 shadow-[0_0_15px_rgba(249,115,22,0.1)]'
+                    )}
                   >
                     <button
                       type='button'
@@ -647,14 +652,21 @@ export default function LearningPage() {
                             >
                               {phase.isCompleted ? (
                                 <CheckCircle2 className='size-4' />
+                              ) : phase.isRemedial ? (
+                                <span className='text-[10px]'>R</span>
                               ) : (
                                 phase.phaseNumber
                               )}
                             </div>
-                            <div>
+                            <div className='flex flex-wrap items-center gap-2'>
                               <p className='font-semibold text-sm text-foreground'>
                                 {phase.title}
                               </p>
+                              {phase.isRemedial && (
+                                <Badge variant='outline' className='text-[9px] h-4 py-0 text-orange-400 border-orange-400/50 bg-orange-400/10'>
+                                  Remedial
+                                </Badge>
+                              )}
                               <p className='text-xs text-muted-foreground'>
                                 {completedTopics}/{totalTopics} topics ·{' '}
                                 {phase.estimatedDays}d est.

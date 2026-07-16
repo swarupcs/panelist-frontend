@@ -23,6 +23,17 @@ export function useGeneratePath() {
   });
 }
 
+export function useAdaptPath() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: learningApi.adaptPath,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['learning', 'path'] });
+      qc.invalidateQueries({ queryKey: ['learning', 'allPaths'] });
+    },
+  });
+}
+
 export function useAllPaths() {
   return useQuery<{ paths: LearningPath[] }>({
     queryKey: ['learning', 'allPaths'],
