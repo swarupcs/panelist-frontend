@@ -44,7 +44,8 @@ import {
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { Excalidraw } from '@excalidraw/excalidraw';
+import { Tldraw } from 'tldraw';
+import 'tldraw/tldraw.css';
 import { useAppSelector } from '@/store/hooks';
 import {
   useSubmitAnswer,
@@ -664,9 +665,26 @@ export default function InterviewSessionPage() {
                     </div>
                   </>
                 ) : answerTab === 'whiteboard' ? (
-                  <div className='w-full h-[500px] border border-border rounded-lg overflow-hidden relative'>
-                    <Excalidraw theme="dark" />
-                  </div>
+                  <>
+                    <div style={{ height: '500px', width: '100%', position: 'relative', display: 'flex' }} className='border border-border rounded-lg overflow-hidden bg-background'>
+                      <Tldraw />
+                    </div>
+                    <div className='flex justify-between items-center mt-4'>
+                      <p className='text-xs text-muted-foreground'>
+                        💡 Use the whiteboard to sketch your architecture. Switch back to the Text or Editor tab to write and submit your final answer.
+                      </p>
+                      <TextButton
+                        onClick={handleSkip}
+                        loading={skipQuestion.isPending}
+                        className='text-muted-foreground hover:text-yellow-400 hover:bg-secondary shrink-0'
+                      >
+                        {!skipQuestion.isPending && (
+                          <SkipForward className='size-3.5' />
+                        )}
+                        Skip question
+                      </TextButton>
+                    </div>
+                  </>
                 ) : (
                   <>
                     <Textarea
