@@ -33,4 +33,9 @@ export const analyticsApi = {
     const res = await api.get('/analytics/skill-gaps')
     return res.data.data
   },
+
+  getBenchmark: async (): Promise<import('../types').PeerBenchmark> => {
+    const res = await api.get('/analytics/benchmark')
+    return res.data.data
+  },
 }

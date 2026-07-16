@@ -50,3 +50,11 @@ export function useSkillGaps() {
     staleTime: 1000 * 60 * 10,
   });
 }
+
+export function usePeerBenchmark() {
+  return useQuery({
+    queryKey: ['analytics', 'benchmark'],
+    queryFn: analyticsApi.getBenchmark,
+    staleTime: 1000 * 60 * 10,
+  });
+}

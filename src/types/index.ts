@@ -569,3 +569,46 @@ export interface SessionListResponse {
     totalPages: number;
   };
 }
+
+// ── Peer Benchmarking ────────────────────────────────────────────────────────
+
+export interface CategoryPercentile {
+  category: string;
+  userScore: number;
+  globalAverage: number;
+  percentile: number;
+  totalUsersInCategory: number;
+}
+
+export interface ScoreDistributionBucket {
+  bucket: string;
+  count: number;
+  isUserBucket: boolean;
+}
+
+export interface PeerBenchmark {
+  categoryPercentiles: CategoryPercentile[];
+  rolePercentile: {
+    role: string;
+    percentile: number;
+    userRank: number;
+    totalInRole: number;
+  } | null;
+  scoreDistribution: ScoreDistributionBucket[];
+  difficultyComparison: {
+    difficulty: string;
+    userPercent: number;
+    peerPercent: number;
+  }[];
+  activityComparison: {
+    userSessionsPerMonth: number;
+    peerMedianSessionsPerMonth: number;
+    percentile: number;
+  };
+  insightCards: {
+    emoji: string;
+    title: string;
+    description: string;
+    type: 'positive' | 'neutral' | 'challenge';
+  }[];
+}

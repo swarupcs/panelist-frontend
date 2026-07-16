@@ -92,13 +92,14 @@ function ProgressBar({
 import { ScoreOverTimeChart } from '@/components/analytics/ScoreOverTimeChart';
 import { QuestionsPerWeekChart } from '@/components/analytics/QuestionsPerWeekChart';
 import { DifficultyDistributionChart } from '@/components/analytics/DifficultyDistributionChart';
+import { BenchmarkTab } from './components/BenchmarkTab';
 
 // ── Page ───────────────────────────────────────────────────────────────────
 
 export default function AnalyticsPage() {
   const [trendDays, setTrendDays] = useState(30);
   const [activeTab, setActiveTab] = useState<
-    'performance' | 'topics' | 'gaps' | 'weak'
+    'performance' | 'topics' | 'gaps' | 'weak' | 'benchmark'
   >('performance');
 
   const { data, isLoading, isError, refetch } = useAnalyticsDashboard();
@@ -148,12 +149,13 @@ export default function AnalyticsPage() {
       <div className='w-full space-y-4'>
         {/* Tab bar */}
         <div className='flex gap-1 rounded-lg bg-secondary/50 p-1 w-full'>
-          {(['performance', 'topics', 'gaps', 'weak'] as const).map((tab) => {
+          {(['performance', 'topics', 'gaps', 'weak', 'benchmark'] as const).map((tab) => {
             const labels: Record<string, string> = {
               performance: 'Performance',
               topics: 'Topics',
               gaps: 'Skill Gaps',
               weak: 'Weak Areas',
+              benchmark: 'Benchmarking',
             };
             return (
               <button
@@ -419,6 +421,11 @@ export default function AnalyticsPage() {
                 ))
               )}
             </div>
+          )}
+
+          {/* ── Benchmarking ── */}
+          {activeTab === 'benchmark' && (
+            <BenchmarkTab />
           )}
         </div>
       </div>
