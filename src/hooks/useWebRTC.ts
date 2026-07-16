@@ -9,12 +9,17 @@ interface UseWebRTCReturn {
   roomId: string | null;
   chatMessages: ChatMessage[];
   codeContent: string;
+  role: 'INTERVIEWER' | 'INTERVIEWEE' | null;
+  currentQuestion: any | null;
   joinQueue: (role: string, difficulty: string, language: string) => void;
   leaveQueue: () => void;
   joinRoom: (roomId: string) => void;
   leaveRoom: () => void;
   sendMessage: (text: string) => void;
   sendCodeUpdate: (code: string) => void;
+  selectQuestion: (question: any) => void;
+  swapRoles: () => void;
+  submitFeedback: (technicalRating: number, communicationRating: number, feedback: string) => void;
   toggleAudio: () => void;
   toggleVideo: () => void;
   isAudioEnabled: boolean;
@@ -38,6 +43,8 @@ export function useWebRTC(): UseWebRTCReturn {
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [codeContent, setCodeContent] = useState<string>('');
+  const [role, setRole] = useState<'INTERVIEWER' | 'INTERVIEWEE' | null>(null);
+  const [currentQuestion, setCurrentQuestion] = useState<any | null>(null);
   const [isAudioEnabled, setIsAudioEnabled] = useState(true);
   const [isVideoEnabled, setIsVideoEnabled] = useState(true);
 
@@ -62,6 +69,7 @@ export function useWebRTC(): UseWebRTCReturn {
       switch (msg.type) {
         case 'MATCH_FOUND':
           setRoomId(msg.payload.roomId);
+          setRole(msg.payload.role);
           setStatus('matched');
           break;
         case 'PEER_JOINED':
@@ -87,6 +95,12 @@ export function useWebRTC(): UseWebRTCReturn {
           break;
         case 'CODE_UPDATE':
           setCodeContent(msg.payload.code);
+          break;
+        case 'SELECT_QUESTION':
+          setCurrentQuestion(msg.payload.question);
+          break;
+        case 'SWAP_ROLES':
+          setRole(prev => prev === 'INTERVIEWER' ? 'INTERVIEWEE' : 'INTERVIEWER');
           break;
       }
     };
@@ -192,6 +206,8 @@ export function useWebRTC(): UseWebRTCReturn {
   const leaveRoom = useCallback(() => {
     setStatus('idle');
     setRoomId(null);
+    setRole(null);
+    setCurrentQuestion(null);
     setChatMessages([]);
     setCodeContent('');
     sendWsMessage({ type: 'LEAVE_ROOM' });
@@ -218,6 +234,20 @@ export function useWebRTC(): UseWebRTCReturn {
     setCodeContent(code);
     sendWsMessage({ type: 'CODE_UPDATE', payload: { code } });
   }, []);
+
+  const selectQuestion = useCallback((question: any) => {
+    setCurrentQuestion(question);
+    sendWsMessage({ type: 'SELECT_QUESTION', payload: { question } });
+  }, []);
+
+  const swapRoles = useCallback(() => {
+    setRole(prev => prev === 'INTERVIEWER' ? 'INTERVIEWEE' : 'INTERVIEWER');
+    sendWsMessage({ type: 'SWAP_ROLES', payload: {} });
+  }, []);
+
+  const submitFeedback = useCallback((technicalRating: number, communicationRating: number, feedback: string) => {
+    sendWsMessage({ type: 'SUBMIT_FEEDBACK', payload: { roomId, technicalRating, communicationRating, feedback } });
+  }, [roomId]);
 
   const toggleAudio = useCallback(() => {
     if (localStream) {
@@ -246,12 +276,17 @@ export function useWebRTC(): UseWebRTCReturn {
     roomId,
     chatMessages,
     codeContent,
+    role,
+    currentQuestion,
     joinQueue,
     leaveQueue,
     joinRoom,
     leaveRoom,
     sendMessage,
     sendCodeUpdate,
+    selectQuestion,
+    swapRoles,
+    submitFeedback,
     toggleAudio,
     toggleVideo,
     isAudioEnabled,

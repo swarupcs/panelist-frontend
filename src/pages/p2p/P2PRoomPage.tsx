@@ -5,10 +5,12 @@ import Editor from '@monaco-editor/react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Mic, MicOff, Video, VideoOff, PhoneOff, Send, MessageSquare } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Mic, MicOff, Video, VideoOff, PhoneOff, Send, MessageSquare, RefreshCcw, FileText } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { toast } from 'sonner';
 import { cn } from '@/lib/cn';
+import { FeedbackModal } from '@/components/p2p/FeedbackModal';
 
 export default function P2PRoomPage() {
   const { roomId } = useParams<{ roomId: string }>();
@@ -21,10 +23,15 @@ export default function P2PRoomPage() {
     remoteStream,
     chatMessages,
     codeContent,
+    role,
+    currentQuestion,
     joinRoom,
     leaveRoom,
     sendMessage,
     sendCodeUpdate,
+    selectQuestion,
+    swapRoles,
+    submitFeedback,
     toggleAudio,
     toggleVideo,
     isAudioEnabled,
@@ -34,6 +41,8 @@ export default function P2PRoomPage() {
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
   const [chatInput, setChatInput] = useState('');
+  const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false); // For Question Bank
 
   useEffect(() => {
     if (roomId) {
@@ -55,7 +64,16 @@ export default function P2PRoomPage() {
     }
   }, [remoteStream]);
 
-  const handleEndCall = () => {
+  const handleEndCallClick = () => {
+    setShowFeedbackModal(true);
+  };
+
+  const handleFeedbackSubmit = (tech: number, comm: number, fb: string) => {
+    submitFeedback(tech, comm, fb);
+    finishEndCall();
+  };
+
+  const finishEndCall = () => {
     leaveRoom();
     navigate('/p2p');
     toast.info('Left the P2P session.');
@@ -79,9 +97,22 @@ export default function P2PRoomPage() {
       
       {/* LEFT PANEL: IDE & Chats */}
       <div className="flex-1 flex flex-col gap-4 min-w-0">
+        {currentQuestion && (
+          <Card className="p-4 border-border bg-muted/50">
+            <h3 className="font-bold text-lg mb-2">{currentQuestion.question}</h3>
+            <p className="text-sm text-muted-foreground">{currentQuestion.description || "Implement the solution below."}</p>
+          </Card>
+        )}
         <Card className="flex-1 overflow-hidden flex flex-col border-border">
           <div className="bg-muted px-4 py-2 border-b text-sm font-medium flex items-center justify-between">
-            <span>Collaborative Editor</span>
+            <div className="flex items-center gap-3">
+              <span>Collaborative Editor</span>
+              {role && (
+                <Badge variant={role === 'INTERVIEWER' ? 'default' : 'secondary'}>
+                  {role}
+                </Badge>
+              )}
+            </div>
             {status === 'connected' ? (
               <span className="text-green-500 text-xs flex items-center gap-1">
                 <span className="relative flex h-2 w-2">
@@ -155,6 +186,20 @@ export default function P2PRoomPage() {
       {/* RIGHT PANEL: Video Feeds & Controls */}
       <div className="w-80 flex flex-col gap-4 shrink-0">
         
+        {/* Actions for Interviewer */}
+        {role === 'INTERVIEWER' && (
+          <Card className="p-3 border-border bg-primary/5 flex justify-between items-center">
+            <Button size="sm" variant="outline" onClick={() => setIsSidebarOpen(!isSidebarOpen)}>
+              <FileText className="h-4 w-4 mr-2" />
+              Question Bank
+            </Button>
+            <Button size="sm" variant="outline" onClick={swapRoles}>
+              <RefreshCcw className="h-4 w-4 mr-2" />
+              Swap Roles
+            </Button>
+          </Card>
+        )}
+
         {/* Remote Video */}
         <Card className="bg-black border-border overflow-hidden relative aspect-video flex-shrink-0">
           {remoteStream ? (
@@ -211,7 +256,7 @@ export default function P2PRoomPage() {
             <Button 
               variant="destructive" 
               size="icon" 
-              onClick={handleEndCall}
+              onClick={handleEndCallClick}
               className="rounded-full h-12 w-12"
             >
               <PhoneOff className="h-5 w-5" />
@@ -221,6 +266,31 @@ export default function P2PRoomPage() {
 
       </div>
 
+      {/* Question Bank Sidebar (Only visible to Interviewer when toggled) */}
+      {isSidebarOpen && role === 'INTERVIEWER' && (
+        <Card className="w-80 border-border p-4 flex flex-col gap-4 shrink-0">
+          <h3 className="font-bold text-sm">Question Bank</h3>
+          <p className="text-xs text-muted-foreground">Select a question to assign to the interviewee.</p>
+          <div className="flex-1 overflow-y-auto space-y-2">
+            {/* Hardcoded for demo, would fetch from API in reality */}
+            {[
+              { id: 1, question: "Two Sum", description: "Given an array of integers nums and an integer target, return indices of the two numbers such that they add up to target." },
+              { id: 2, question: "Valid Palindrome", description: "A phrase is a palindrome if, after converting all uppercase letters into lowercase letters and removing all non-alphanumeric characters, it reads the same forward and backward." },
+              { id: 3, question: "Reverse Linked List", description: "Given the head of a singly linked list, reverse the list, and return the reversed list." },
+            ].map(q => (
+              <div key={q.id} className="p-3 border rounded-md cursor-pointer hover:bg-muted" onClick={() => selectQuestion(q)}>
+                <p className="text-sm font-medium">{q.question}</p>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
+
+      <FeedbackModal 
+        isOpen={showFeedbackModal} 
+        onClose={finishEndCall} 
+        onSubmit={handleFeedbackSubmit} 
+      />
     </div>
   );
 }

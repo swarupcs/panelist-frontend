@@ -14,6 +14,9 @@ export type P2PMessageType =
   | 'CODE_UPDATE'
   | 'CURSOR_MOVE'
   | 'CHAT_MESSAGE'
+  | 'SELECT_QUESTION'
+  | 'SWAP_ROLES'
+  | 'SUBMIT_FEEDBACK'
   | 'ERROR';
 
 export interface P2PMessage {
