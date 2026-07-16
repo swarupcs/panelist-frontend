@@ -47,6 +47,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Tldraw, Editor } from 'tldraw';
 import 'tldraw/tldraw.css';
+import { Excalidraw } from '@excalidraw/excalidraw';
 import { useAppSelector } from '@/store/hooks';
 import {
   useSubmitAnswer,
@@ -219,6 +220,7 @@ export default function InterviewSessionPage() {
   // FEAT-5: timer expiry state
   const [timerExpired, setTimerExpired] = useState(false);
   const [editor, setEditor] = useState<Editor | null>(null);
+  const [whiteboardType, setWhiteboardType] = useState<'excalidraw' | 'tldraw'>('excalidraw');
 
   const autoSubmittedRef = useRef(false);
 
@@ -698,8 +700,40 @@ export default function InterviewSessionPage() {
                   </>
                 ) : answerTab === 'whiteboard' ? (
                   <>
+                    <div className='flex justify-between items-center mb-2'>
+                      <div className="flex gap-1 p-1 bg-secondary rounded-lg">
+                        <button
+                          type="button"
+                          onClick={() => setWhiteboardType('excalidraw')}
+                          className={cn(
+                            'px-3 py-1.5 text-xs font-medium rounded-md transition-all',
+                            whiteboardType === 'excalidraw'
+                              ? 'bg-background text-foreground shadow-sm'
+                              : 'text-muted-foreground hover:text-foreground'
+                          )}
+                        >
+                          Excalidraw
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setWhiteboardType('tldraw')}
+                          className={cn(
+                            'px-3 py-1.5 text-xs font-medium rounded-md transition-all',
+                            whiteboardType === 'tldraw'
+                              ? 'bg-background text-foreground shadow-sm'
+                              : 'text-muted-foreground hover:text-foreground'
+                          )}
+                        >
+                          Tldraw
+                        </button>
+                      </div>
+                    </div>
                     <div style={{ height: '500px', width: '100%', position: 'relative', display: 'flex' }} className='border border-border rounded-lg overflow-hidden bg-background'>
-                      <Tldraw onMount={(editor) => setEditor(editor)} />
+                      {whiteboardType === 'excalidraw' ? (
+                        <Excalidraw theme="dark" />
+                      ) : (
+                        <Tldraw onMount={(editor) => setEditor(editor)} />
+                      )}
                     </div>
                     <div className='flex justify-between items-center mt-4'>
                       <p className='text-xs text-muted-foreground'>
