@@ -27,6 +27,8 @@ export interface TestCaseResult {
   actualOutput: unknown;
   passed: boolean;
   executionTime?: number;
+  memory?: number;
+  error?: string;
 }
 
 export interface CodeExecutionRequest {

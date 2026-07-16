@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/Dialog';
-import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
-import { Switch } from '@/components/ui/Switch';
-import { Label } from '@/components/ui/Label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/Select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Copy, Loader2, EyeOff, Shield } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 
@@ -15,7 +15,7 @@ interface ShareScorecardModalProps {
 }
 
 export function ShareScorecardModal({ isOpen, onClose, sessionId }: ShareScorecardModalProps) {
-  const { token } = useAuthStore();
+  const { tokens } = useAuthStore();
   const [isGenerating, setIsGenerating] = useState(false);
   const [shareUrl, setShareUrl] = useState('');
   const [copied, setCopied] = useState(false);
@@ -37,7 +37,7 @@ export function ShareScorecardModal({ isOpen, onClose, sessionId }: ShareScoreca
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${tokens?.accessToken}`,
         },
         body: JSON.stringify({
           isBlindMode,

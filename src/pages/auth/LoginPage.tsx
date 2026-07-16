@@ -4,7 +4,7 @@ import { z } from 'zod'
 import { Link, useSearchParams } from 'react-router-dom'
 import { Brain, Eye, EyeOff, Github } from 'lucide-react'
 import { useState } from 'react'
-import { Button } from '@/components/ui/Button'
+import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useLogin } from '@/hooks/useAuth'

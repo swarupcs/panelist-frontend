@@ -170,7 +170,7 @@ function TestCaseRow({
             <div>
               <span className='text-muted-foreground'>Got: </span>
               <code className='text-red-400 whitespace-pre-wrap font-mono text-[11px] block mt-1 p-2 rounded bg-red-950/30 border border-red-500/20'>
-                {result.actualOutput || result.error || 'No output'}
+                {typeof result.actualOutput === 'string' ? result.actualOutput : JSON.stringify(result.actualOutput) || result.error || 'No output'}
               </code>
             </div>
           )}

@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import { Brain, Home, ArrowLeft } from 'lucide-react'
-import { Button } from '@/components/ui/Button'
+import { Button } from '@/components/ui/button'
 
 export default function NotFoundPage() {
   return (

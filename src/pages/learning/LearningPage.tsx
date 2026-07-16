@@ -27,9 +27,9 @@ import {
   useDueReviews,
   useRecordReview,
 } from '@/hooks/useLearning';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
-import { Button } from '@/components/ui/Button';
-import { Badge } from '@/components/ui/Badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { PageHeader, EmptyState } from '@/components/common';
 import { formatCategory, formatDate, formatPercent } from '@/utils/formatters';
 import { cn } from '@/lib/cn';

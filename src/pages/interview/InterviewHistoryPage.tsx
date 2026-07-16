@@ -14,7 +14,7 @@ import {
   Clock,
 } from 'lucide-react';
 import { useRecentSessions } from '@/hooks/useInterviewExtended';
-import { Button } from '@/components/ui/Button';
+import { Button } from '@/components/ui/button';
 import { EmptyState, ScoreRing, PageHeader } from '@/components/common';
 import {
   formatDate,

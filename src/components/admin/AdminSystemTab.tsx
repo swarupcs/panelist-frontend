@@ -1,9 +1,9 @@
 // src/components/admin/AdminSystemTab.tsx  (FULL REPLACEMENT)
 import { useState } from 'react'
 import { CheckCircle, XCircle, ChevronDown, ChevronUp } from 'lucide-react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
-import { Button } from '@/components/ui/Button'
-import { Badge } from '@/components/ui/Badge'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import { LoadingScreen } from '@/components/common'
 import {
   useAdminSystemHealth, useAdminPerformance,

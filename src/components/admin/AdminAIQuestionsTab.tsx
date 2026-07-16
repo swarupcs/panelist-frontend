@@ -4,9 +4,9 @@ import {
   CheckCircle, Clock, Eye, ChevronDown, ChevronUp,
   Sparkles, BarChart3, RefreshCw,
 } from 'lucide-react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
-import { Button } from '@/components/ui/Button'
-import { Badge } from '@/components/ui/Badge'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import { LoadingScreen, ErrorState } from '@/components/common'
 import {
   useAdminAIPendingQuestions, useAdminAIStats,

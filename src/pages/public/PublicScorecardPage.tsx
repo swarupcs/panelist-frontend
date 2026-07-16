@@ -2,9 +2,9 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import { Trophy, ShieldAlert, Loader2, Lock, EyeOff } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
-import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { ScoreRing } from '@/components/common';
 import { formatInterviewType, formatDate, getDifficultyBadge } from '@/utils/formatters';
 

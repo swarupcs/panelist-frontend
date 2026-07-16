@@ -6,10 +6,10 @@ import {
   ChevronRight, UserCheck, Download, Eye, RefreshCw,
   History, Trophy, Brain, Wifi,
 } from 'lucide-react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
-import { Button } from '@/components/ui/Button'
-import { Badge } from '@/components/ui/Badge'
-import { Avatar, AvatarFallback } from '@/components/ui/Avatar'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
   DropdownMenuSeparator, DropdownMenuTrigger,
@@ -298,7 +298,7 @@ function UserRow({
         <div className="flex items-center gap-1.5 flex-wrap">
           <span className="text-sm font-medium text-foreground truncate">{user.name}</span>
           {user.isBanned     && <Badge variant="destructive" className="text-xs py-0">Banned</Badge>}
-          {user.isSuspended  && <Badge variant="warning"     className="text-xs py-0">Suspended</Badge>}
+          {user.isSuspended  && <Badge className="text-xs py-0 bg-yellow-500/10 text-yellow-500 hover:bg-yellow-500/20">Suspended</Badge>}
           {user.isSuspicious && <Badge className="text-xs py-0 bg-orange-500/10 text-orange-400 border-orange-500/20">Suspicious</Badge>}
           {!user.emailVerified && <Badge variant="secondary" className="text-xs py-0">Unverified</Badge>}
         </div>

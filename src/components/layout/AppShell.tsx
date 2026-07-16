@@ -2,7 +2,7 @@ import { Outlet } from 'react-router-dom'
 import { Sidebar, MobileNav } from './Sidebar'
 import { Bell, Search } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/Avatar'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 
 function Header() {
   const { user } = useAuthStore()

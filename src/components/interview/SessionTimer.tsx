@@ -18,6 +18,7 @@ interface SessionTimerProps {
   onPause?: () => void;
   onResume?: () => void;
   isPaused?: boolean;
+  localElapsed?: number;
 }
 
 export function SessionTimer({

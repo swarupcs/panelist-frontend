@@ -411,7 +411,7 @@ export default function VoiceInterviewPage() {
 
 function EndButton({ onConfirm }: { onConfirm: () => void }) {
   const [confirming, setConfirming] = useState(false);
-  const timerRef = useRef<ReturnType<typeof setTimeout>>();
+  const timerRef = useRef<any>(null);
 
   const handleClick = () => {
     if (confirming) {
@@ -422,7 +422,7 @@ function EndButton({ onConfirm }: { onConfirm: () => void }) {
     }
   };
 
-  useEffect(() => () => clearTimeout(timerRef.current), []);
+  useEffect(() => () => { if (timerRef.current) clearTimeout(timerRef.current); }, []);
 
   return (
     <button

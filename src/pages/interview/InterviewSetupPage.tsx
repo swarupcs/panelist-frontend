@@ -26,14 +26,14 @@ import {
   Zap,
   Timer
 } from 'lucide-react';
-import { Button } from '@/components/ui/Button';
+import { Button } from '@/components/ui/button';
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
   CardDescription,
-} from '@/components/ui/Card';
+} from '@/components/ui/card';
 import { PageHeader } from '@/components/common';
 import { useStartInterview } from '@/hooks/useInterview';
 import type { InterviewType, Difficulty } from '@/types';

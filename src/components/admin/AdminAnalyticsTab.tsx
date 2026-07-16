@@ -1,6 +1,6 @@
 // src/components/admin/AdminAnalyticsTab.tsx
 import { useState } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { LoadingScreen, ErrorState } from '@/components/common'
 import { useAdminUserBehavior, useAdminCohorts } from '@/hooks/useAdmin'
 import { formatPercent } from '@/utils/formatters'

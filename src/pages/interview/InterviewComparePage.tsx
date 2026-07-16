@@ -15,8 +15,8 @@ import {
 } from 'lucide-react';
 import { useCompareAttempts } from '@/hooks/useInterview';
 import { useRecentSessions } from '@/hooks/useInterviewExtended';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
-import { Button } from '@/components/ui/Button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { ScoreRing } from '@/components/common';
 import {
   formatDate,
@@ -24,7 +24,7 @@ import {
   formatDuration,
 } from '@/utils/formatters';
 import { cn } from '@/lib/cn';
-import type { SessionListItem } from '@/api/interview.api';
+import { type SessionListItem } from '@/types';
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 

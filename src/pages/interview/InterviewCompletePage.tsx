@@ -3,9 +3,9 @@ import { Trophy, RotateCcw, BarChart3, Home, CheckCircle, XCircle } from 'lucide
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import { resetSession } from '@/store/interviewSlice'
 import { ScoreRing } from '@/components/common'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
-import { Button } from '@/components/ui/Button'
-import { Badge } from '@/components/ui/Badge'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import { formatInterviewType, formatScore, getDifficultyBadge } from '@/utils/formatters'
 import { cn } from '@/lib/cn'
 

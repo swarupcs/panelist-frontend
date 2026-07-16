@@ -1,7 +1,7 @@
 // src/pages/profile/AchievementsPage.tsx
 import { Trophy, Lock, Star } from 'lucide-react';
 import { useAchievements, useLeaderboard } from '@/hooks/useGamification';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { PageHeader, LoadingScreen } from '@/components/common';
 import { formatRelative } from '@/utils/formatters';
 import { cn } from '@/lib/cn';

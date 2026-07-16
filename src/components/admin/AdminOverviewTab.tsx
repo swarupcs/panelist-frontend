@@ -1,6 +1,6 @@
 // src/components/admin/AdminOverviewTab.tsx  (FULL REPLACEMENT)
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { LoadingScreen, ErrorState } from '@/components/common'
 import { useAdminOverview } from '@/hooks/useAdmin'
 import { formatPercent, formatNumber } from '@/utils/formatters'
