@@ -1,8 +1,4 @@
 // src/pages/interview/InterviewComparePage.tsx
-// Wires GET /interview/compare?sessionId1=&sessionId2=
-// Reached from: /interview/compare?s1=xxx&s2=yyy
-// Also reached from history page "Compare" button.
-
 import { useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import {
@@ -12,7 +8,6 @@ import {
   Minus,
   BarChart3,
   CheckCircle,
-  XCircle,
   Clock,
   ChevronLeft,
   Loader2,
@@ -26,12 +21,12 @@ import { ScoreRing } from '@/components/common';
 import {
   formatDate,
   formatInterviewType,
-  getScoreColor,
   formatDuration,
 } from '@/utils/formatters';
 import { cn } from '@/lib/cn';
+import type { SessionListItem } from '@/api/interview.api';
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+// ── Helpers ────────────────────────────────────────────────────────────────
 
 function DeltaBadge({
   value,
@@ -50,7 +45,6 @@ function DeltaBadge({
     : isPositive
       ? 'text-green-400'
       : 'text-red-400';
-
   return (
     <div className={cn('flex items-center gap-1 text-sm font-medium', color)}>
       <Icon className='size-3.5' />
@@ -61,7 +55,9 @@ function DeltaBadge({
   );
 }
 
-// ── Session selector ──────────────────────────────────────────────────────────
+// ── Session selector ───────────────────────────────────────────────────────
+// Uses SessionListItem shape (s.id, s.type, s.startTime, s.score)
+// NOT the old ReplayHistoryItem shape (s.sessionId, s.session.type, ...)
 
 function SessionSelector({
   label,
@@ -72,7 +68,12 @@ function SessionSelector({
   value: string;
   onChange: (id: string) => void;
 }) {
-  const { data: sessions, isLoading } = useRecentSessions();
+  const { data: sessions, isLoading } = useRecentSessions({
+    status: 'COMPLETED',
+  });
+  const sessionList: SessionListItem[] = Array.isArray(sessions)
+    ? sessions
+    : [];
 
   return (
     <div className='space-y-1.5'>
@@ -87,19 +88,13 @@ function SessionSelector({
         <select
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className={cn(
-            'w-full rounded-lg border border-border bg-card px-3 py-2 text-sm',
-            'text-foreground focus:outline-none focus:ring-1 focus:ring-primary/50',
-          )}
+          className='w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary/50'
         >
           <option value=''>Select a session…</option>
-          {sessions?.map((s) => (
-            <option key={s.sessionId} value={s.sessionId}>
-              {formatInterviewType(s.session.type)} ·{' '}
-              {formatDate(s.session.startTime)} · Score:{' '}
-              {s.session.score != null
-                ? Math.round(Number(s.session.score))
-                : '—'}
+          {sessionList.map((s) => (
+            <option key={s.id} value={s.id}>
+              {formatInterviewType(s.type)} · {formatDate(s.startTime)} · Score:{' '}
+              {s.score != null ? Math.round(Number(s.score)) : '—'}
             </option>
           ))}
         </select>
@@ -108,7 +103,7 @@ function SessionSelector({
   );
 }
 
-// ── Main page ─────────────────────────────────────────────────────────────────
+// ── Main page ──────────────────────────────────────────────────────────────
 
 export default function InterviewComparePage() {
   const [searchParams] = useSearchParams();
@@ -126,14 +121,9 @@ export default function InterviewComparePage() {
 
   const canCompare = !!session1 && !!session2 && session1 !== session2;
 
-  const handleCompare = () => {
-    if (!canCompare) return;
-    refetch();
-  };
-
   return (
     <div className='max-w-2xl mx-auto space-y-6 animate-fade-in'>
-      {/* Back + title */}
+      {/* Header */}
       <div className='flex items-center gap-3'>
         <button
           type='button'
@@ -179,7 +169,7 @@ export default function InterviewComparePage() {
 
           <Button
             variant='gradient'
-            onClick={handleCompare}
+            onClick={() => refetch()}
             disabled={!canCompare || isLoading}
             className='w-full gap-2'
           >
@@ -196,27 +186,22 @@ export default function InterviewComparePage() {
         </CardContent>
       </Card>
 
-      {/* Error state */}
+      {/* Error */}
       {isError && (
-        <div
-          className='flex items-center gap-3 rounded-xl border border-destructive/20
-                        bg-destructive/5 px-4 py-3 text-sm text-destructive'
-        >
+        <div className='flex items-center gap-3 rounded-xl border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive'>
           <AlertTriangle className='size-4 shrink-0' />
           Could not load comparison. Make sure both sessions belong to your
           account.
         </div>
       )}
 
-      {/* Comparison results */}
+      {/* Results */}
       {comparison && (
         <div className='space-y-4 animate-fade-in'>
-          {/* Score comparison */}
           <Card>
             <CardHeader>
               <CardTitle className='text-base flex items-center gap-2'>
-                <BarChart3 className='size-4 text-primary' />
-                Score Comparison
+                <BarChart3 className='size-4 text-primary' /> Score Comparison
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -272,7 +257,7 @@ export default function InterviewComparePage() {
                         <DeltaBadge
                           value={comparison.improvement.timeDelta}
                           unit='s'
-                          invert // faster (negative delta) is better
+                          invert
                         />
                       </div>
                     )}
@@ -347,7 +332,7 @@ export default function InterviewComparePage() {
             </CardContent>
           </Card>
 
-          {/* Jump to either session */}
+          {/* Jump to results */}
           <div className='flex gap-3'>
             <Button
               variant='outline'
