@@ -1,5 +1,5 @@
 import api from './axios'
-import {
+import type {
   LearningPath, SpacedRepetitionStats, ReviewSchedule,
   SpacedRepetitionItem, Recommendation,
   UserProgressData, UserPreferences, LoginHistoryItem,

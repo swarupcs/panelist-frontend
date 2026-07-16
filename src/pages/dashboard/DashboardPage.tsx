@@ -1,13 +1,13 @@
 import { Link } from 'react-router-dom'
-import { Code2, Brain, Users, Target, TrendingUp, Clock, ChevronRight, Play, BookOpen } from 'lucide-react'
+import { Code2, Brain, Users, Target, TrendingUp, Clock, ChevronRight, Play } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
 import { useAnalyticsDashboard } from '@/hooks/useAnalytics'
-import { PageHeader, StatCard, LoadingScreen, ErrorState, SectionHeader } from '@/components/common'
+import { StatCard, LoadingScreen, ErrorState } from '@/components/common'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
-import { Badge } from '@/components/ui/Badge'
-import { Progress } from '@/components/ui/Badge'
-import { formatScore, formatPercent, formatMinutes, getDifficultyBadge, formatRelative, formatDate } from '@/utils/formatters'
+
+import { formatScore, formatPercent, formatMinutes } from '@/utils/formatters'
+import { Progress } from '../../components/ui/progress'
 
 export default function DashboardPage() {
   const { user } = useAuthStore()

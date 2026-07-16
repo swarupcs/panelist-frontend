@@ -1,5 +1,6 @@
+import type { AnalyticsDashboard, ComparativeAnalytics, InterviewStats, PerformanceTrend, SkillGap, TopicPerformance } from '../types'
 import api from './axios'
-import { AnalyticsDashboard, InterviewStats, TopicPerformance, PerformanceTrend, ComparativeAnalytics, SkillGap } from '@/types'
+
 
 export const analyticsApi = {
   getDashboard: async (): Promise<AnalyticsDashboard> => {
