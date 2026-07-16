@@ -32,6 +32,8 @@ export type P2PMessageType =
   | 'ANALYZE_WHITEBOARD'
   | 'WHITEBOARD_SNAPSHOT'
   | 'SAVE_SNAPSHOTS'
+  | 'GET_SOCRATIC_DEBUG'
+  | 'SOCRATIC_DEBUG_RECEIVED'
   | 'ERROR';
 
 export interface P2PMessage {

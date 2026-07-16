@@ -63,6 +63,7 @@ export default function P2PRoomPage() {
     reportFocusLoss,
     executeCode,
     getHint,
+    getSocraticDebug,
     startTimer,
     selectQuestion,
     swapRoles,
@@ -478,9 +479,14 @@ export default function P2PRoomPage() {
             </div>
             {status === 'connected' ? (
               <div className="flex items-center gap-4">
-                <Button size="sm" variant="outline" onClick={handleRunCode} disabled={isCodeRunning} className="h-7 text-xs">
-                  <Play className="h-3 w-3 mr-1" /> Run Code
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button size="sm" variant="outline" onClick={handleRunCode} disabled={isCodeRunning} className="h-7 text-xs">
+                    <Play className="h-3 w-3 mr-1" /> Run Code
+                  </Button>
+                  <Button size="sm" variant="secondary" onClick={() => getSocraticDebug(codeOutput || '')} className="h-7 text-xs bg-purple-600 hover:bg-purple-700 text-white border-purple-500">
+                    <Bot className="h-3 w-3 mr-1" /> Socratic Debug
+                  </Button>
+                </div>
                 <span className="text-green-500 text-xs flex items-center gap-1">
                   <span className="relative flex h-2 w-2">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
@@ -604,11 +610,13 @@ export default function P2PRoomPage() {
               chatMessages.map(msg => {
                 const isMe = msg.senderId === user?.id;
                 const isSystem = msg.senderId === 'SYSTEM';
+                const isSocratic = msg.senderId === 'SYSTEM_SOCRATIC';
                 return (
-                  <div key={msg.id} className={cn("flex flex-col max-w-[90%]", isMe ? "ml-auto items-end" : "items-start")}>
+                  <div key={msg.id} className={cn("flex flex-col max-w-[90%]", isMe ? "ml-auto items-end" : "items-start", isSocratic && "max-w-[100%]")}>
                     <div className={cn(
                       "px-3 py-1.5 rounded-lg text-sm",
                       isMe ? "bg-primary text-primary-foreground" : 
+                      isSocratic ? "bg-purple-500/10 border border-purple-500/30 text-purple-100 font-medium" :
                       isSystem ? "bg-red-500/20 text-red-500 border border-red-500/30 text-xs font-bold" : 
                       "bg-muted text-foreground"
                     )}>

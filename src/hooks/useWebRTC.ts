@@ -36,7 +36,8 @@ interface UseWebRTCReturn {
   reportFocusLoss: () => void;
   executeCode: (code: string, testCases?: any[]) => void;
   getHint: () => void;
-  startTimer: (durationMinutes: number) => void;
+  getSocraticDebug: (output: string) => void;
+  startTimer: (durationMinutes?: number) => void;
   selectQuestion: (question: any) => void;
   swapRoles: () => void;
   submitFeedback: (technicalRating: number, communicationRating: number, feedback: string) => void;
@@ -395,6 +396,12 @@ export function useWebRTC(): UseWebRTCReturn {
     }
   }, [currentQuestion, codeContent]);
 
+  const getSocraticDebug = useCallback((output: string) => {
+    if (currentQuestion) {
+      sendWsMessage({ type: 'GET_SOCRATIC_DEBUG', payload: { question: currentQuestion.description, code: codeContent, output } });
+    }
+  }, [currentQuestion, codeContent]);
+
   const startTimer = useCallback((durationMinutes: number = 45) => {
     sendWsMessage({ type: 'START_TIMER', payload: { durationMinutes } });
   }, []);
@@ -518,6 +525,7 @@ export function useWebRTC(): UseWebRTCReturn {
     reportFocusLoss,
     executeCode,
     getHint,
+    getSocraticDebug,
     startTimer,
     selectQuestion,
     swapRoles,
