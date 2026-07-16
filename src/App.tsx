@@ -41,6 +41,8 @@ const BlogPostPage = lazy(() => import('@/pages/blog/BlogPostPage'));
 const ForumListPage = lazy(() => import('@/pages/forum/ForumListPage'));
 const ForumPostPage = lazy(() => import('@/pages/forum/ForumPostPage'));
 const CreatePostPage = lazy(() => import('@/pages/forum/CreatePostPage'));
+const StudyGroupListPage = lazy(() => import('@/pages/study-group/StudyGroupListPage'));
+const StudyGroupDetailPage = lazy(() => import('@/pages/study-group/StudyGroupDetailPage'));
 
 /** Show landing page for guests, redirect to dashboard for logged-in users */
 function LandingOrDashboard() {
@@ -65,9 +67,11 @@ function AppRoutes() {
         <Route path="/blog" element={<BlogListPage />} />
         <Route path="/blog/:slug" element={<BlogPostPage />} />
         
-        {/* Forum - public list and post views */}
+        {/* Forum & Groups - public access available */}
         <Route path="/forum" element={<ForumListPage />} />
         <Route path="/forum/:id" element={<ForumPostPage />} />
+        <Route path="/groups" element={<StudyGroupListPage />} />
+        <Route path="/groups/:id" element={<StudyGroupDetailPage />} />
 
         <Route element={<ProtectedRoute />}>
           <Route element={<AppShell />}>
