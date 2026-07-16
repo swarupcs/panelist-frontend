@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Mic, MicOff, Video, VideoOff, PhoneOff, Send, MessageSquare, RefreshCcw, FileText, Play, Bot, Loader2, Clock, CheckSquare, StopCircle, Disc } from 'lucide-react';
+import { Mic, MicOff, Video, VideoOff, PhoneOff, Send, MessageSquare, RefreshCcw, FileText, Play, Bot, Loader2, Clock, CheckSquare, StopCircle, Disc, MonitorUp, MonitorOff, Plus, Trash2, Code2 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { toast } from 'sonner';
 import { cn } from '@/lib/cn';
@@ -37,6 +37,7 @@ export default function P2PRoomPage() {
     codeContent,
     codeOutput,
     isCodeRunning,
+    editorLanguage,
     role,
     currentQuestion,
     incomingWhiteboardPatch,
@@ -47,6 +48,7 @@ export default function P2PRoomPage() {
     sendMessage,
     sendCodeUpdate,
     sendWhiteboardSync,
+    setLanguage,
     executeCode,
     getHint,
     startTimer,
@@ -55,8 +57,10 @@ export default function P2PRoomPage() {
     submitFeedback,
     toggleAudio,
     toggleVideo,
+    toggleScreenShare,
     isAudioEnabled,
-    isVideoEnabled
+    isVideoEnabled,
+    isScreenSharing
   } = useWebRTC();
 
   const localVideoRef = useRef<HTMLVideoElement>(null);
@@ -67,6 +71,9 @@ export default function P2PRoomPage() {
   const [timeLeftMs, setTimeLeftMs] = useState<number | null>(null);
   const [privateNotes, setPrivateNotes] = useState('');
   const [starChecklist, setStarChecklist] = useState({ S: false, T: false, A: false, R: false });
+  const [testCases, setTestCases] = useState<Array<{ id: number, input: string, expected: string }>>([
+    { id: 1, input: 'twoSum([2,7,11,15], 9)', expected: '[0,1]' }
+  ]);
 
   const { isRecording, startRecording, stopRecording } = useScreenRecorder();
 
@@ -129,7 +136,19 @@ export default function P2PRoomPage() {
   };
 
   const handleRunCode = () => {
-    executeCode(codeContent);
+    executeCode(codeContent, testCases);
+  };
+
+  const addTestCase = () => {
+    setTestCases([...testCases, { id: Date.now(), input: '', expected: '' }]);
+  };
+
+  const updateTestCase = (id: number, field: 'input' | 'expected', value: string) => {
+    setTestCases(testCases.map(tc => tc.id === id ? { ...tc, [field]: value } : tc));
+  };
+
+  const removeTestCase = (id: number) => {
+    setTestCases(testCases.filter(tc => tc.id !== id));
   };
 
   return (
@@ -185,6 +204,21 @@ export default function P2PRoomPage() {
           <div className="bg-muted px-4 py-2 border-b text-sm font-medium flex items-center justify-between">
             <div className="flex items-center gap-3">
               <span>Collaborative Workspace</span>
+              <div className="flex items-center border rounded overflow-hidden">
+                <div className="bg-background px-2 py-1 text-[10px] text-muted-foreground flex items-center border-r">
+                  <Code2 className="h-3 w-3 mr-1" /> Lang
+                </div>
+                <select 
+                  className="bg-background px-2 py-1 text-xs outline-none focus:ring-0 text-foreground w-28 cursor-pointer"
+                  value={editorLanguage}
+                  onChange={(e) => setLanguage(e.target.value)}
+                >
+                  <option value="javascript">JavaScript</option>
+                  <option value="python">Python</option>
+                  <option value="java">Java</option>
+                  <option value="cpp">C++</option>
+                </select>
+              </div>
             </div>
             {status === 'connected' ? (
               <div className="flex items-center gap-4">
@@ -214,7 +248,7 @@ export default function P2PRoomPage() {
               <TabsContent value="editor" className="flex-1 mt-0 p-0 h-full">
                 <Editor
                   height="100%"
-                  defaultLanguage="javascript"
+                  language={editorLanguage}
                   theme="vs-dark"
                   value={codeContent}
                   onChange={handleEditorChange}
@@ -307,10 +341,11 @@ export default function P2PRoomPage() {
             {isSidebarOpen && (
               <Card className="p-3 border-border flex flex-col gap-3">
                 <Tabs defaultValue="bank">
-                  <TabsList className="w-full grid grid-cols-3 mb-2">
-                    <TabsTrigger value="bank" className="text-xs">Bank</TabsTrigger>
-                    <TabsTrigger value="star" className="text-xs">STAR</TabsTrigger>
-                    <TabsTrigger value="notes" className="text-xs">Notes</TabsTrigger>
+                  <TabsList className="w-full grid grid-cols-4 mb-2">
+                    <TabsTrigger value="bank" className="text-[10px] px-1">Bank</TabsTrigger>
+                    <TabsTrigger value="tests" className="text-[10px] px-1">Tests</TabsTrigger>
+                    <TabsTrigger value="star" className="text-[10px] px-1">STAR</TabsTrigger>
+                    <TabsTrigger value="notes" className="text-[10px] px-1">Notes</TabsTrigger>
                   </TabsList>
                   
                   <TabsContent value="bank" className="space-y-2 mt-0 h-48 overflow-y-auto">
@@ -325,6 +360,46 @@ export default function P2PRoomPage() {
                         <p className="text-xs font-medium">{q.question}</p>
                       </div>
                     ))}
+                  </TabsContent>
+                  
+                  <TabsContent value="tests" className="space-y-2 mt-0 h-48 overflow-y-auto pr-1">
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-xs text-muted-foreground font-semibold">Test Cases</span>
+                      <Button size="sm" variant="ghost" className="h-5 px-2 text-[10px]" onClick={addTestCase}>
+                        <Plus className="h-3 w-3 mr-1" /> Add
+                      </Button>
+                    </div>
+                    {testCases.map((tc, index) => (
+                      <div key={tc.id} className="p-2 border rounded bg-muted/30 relative space-y-1">
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="absolute right-1 top-1 h-4 w-4 text-muted-foreground hover:text-red-500"
+                          onClick={() => removeTestCase(tc.id)}
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                        <div>
+                          <span className="text-[10px] text-muted-foreground">Call (Input):</span>
+                          <Input 
+                            value={tc.input} 
+                            onChange={(e) => updateTestCase(tc.id, 'input', e.target.value)} 
+                            placeholder="e.g. twoSum([2,7], 9)"
+                            className="h-6 text-xs mt-1 bg-background"
+                          />
+                        </div>
+                        <div>
+                          <span className="text-[10px] text-muted-foreground">Expected (JSON):</span>
+                          <Input 
+                            value={tc.expected} 
+                            onChange={(e) => updateTestCase(tc.id, 'expected', e.target.value)} 
+                            placeholder="e.g. [0,1]"
+                            className="h-6 text-xs mt-1 bg-background"
+                          />
+                        </div>
+                      </div>
+                    ))}
+                    {testCases.length === 0 && <p className="text-xs text-muted-foreground text-center mt-4">No test cases added.</p>}
                   </TabsContent>
                   
                   <TabsContent value="star" className="mt-0">
@@ -431,6 +506,14 @@ export default function P2PRoomPage() {
               className="rounded-full h-12 w-12"
             >
               {isVideoEnabled ? <Video className="h-5 w-5" /> : <VideoOff className="h-5 w-5" />}
+            </Button>
+            <Button 
+              variant="outline" 
+              size="icon" 
+              onClick={toggleScreenShare}
+              className={cn("rounded-full h-12 w-12", isScreenSharing && "bg-blue-100 text-blue-600")}
+            >
+              {isScreenSharing ? <MonitorUp className="h-5 w-5" /> : <MonitorOff className="h-5 w-5" />}
             </Button>
             <Button 
               variant="destructive" 

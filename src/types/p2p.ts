@@ -24,6 +24,7 @@ export type P2PMessageType =
   | 'HINT_RECEIVED'
   | 'START_TIMER'
   | 'TIMER_SYNC'
+  | 'LANGUAGE_SYNC'
   | 'ERROR';
 
 export interface P2PMessage {

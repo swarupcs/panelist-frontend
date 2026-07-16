@@ -11,6 +11,7 @@ interface UseWebRTCReturn {
   codeContent: string;
   codeOutput: string | null;
   isCodeRunning: boolean;
+  editorLanguage: string;
   role: 'INTERVIEWER' | 'INTERVIEWEE' | null;
   currentQuestion: any | null;
   incomingWhiteboardPatch: any | null;
@@ -23,7 +24,8 @@ interface UseWebRTCReturn {
   sendMessage: (text: string) => void;
   sendCodeUpdate: (code: string) => void;
   sendWhiteboardSync: (patch: any) => void;
-  executeCode: (code: string) => void;
+  setLanguage: (lang: string) => void;
+  executeCode: (code: string, testCases?: any[]) => void;
   getHint: () => void;
   startTimer: (durationMinutes: number) => void;
   selectQuestion: (question: any) => void;
@@ -31,8 +33,10 @@ interface UseWebRTCReturn {
   submitFeedback: (technicalRating: number, communicationRating: number, feedback: string) => void;
   toggleAudio: () => void;
   toggleVideo: () => void;
+  toggleScreenShare: () => void;
   isAudioEnabled: boolean;
   isVideoEnabled: boolean;
+  isScreenSharing: boolean;
 }
 
 const ICE_SERVERS = {
@@ -54,6 +58,7 @@ export function useWebRTC(): UseWebRTCReturn {
   const [codeContent, setCodeContent] = useState<string>('');
   const [codeOutput, setCodeOutput] = useState<string | null>(null);
   const [isCodeRunning, setIsCodeRunning] = useState(false);
+  const [editorLanguage, setEditorLanguage] = useState<string>('javascript');
   const [role, setRole] = useState<'INTERVIEWER' | 'INTERVIEWEE' | null>(null);
   const [currentQuestion, setCurrentQuestion] = useState<any | null>(null);
   const [incomingWhiteboardPatch, setIncomingWhiteboardPatch] = useState<any | null>(null);
@@ -61,6 +66,8 @@ export function useWebRTC(): UseWebRTCReturn {
   const [interviewEndTime, setInterviewEndTime] = useState<number | null>(null);
   const [isAudioEnabled, setIsAudioEnabled] = useState(true);
   const [isVideoEnabled, setIsVideoEnabled] = useState(true);
+  const [isScreenSharing, setIsScreenSharing] = useState(false);
+  const originalVideoTrack = useRef<MediaStreamTrack | null>(null);
 
   const wsRef = useRef<WebSocket | null>(null);
   const rtcRef = useRef<RTCPeerConnection | null>(null);
@@ -135,6 +142,9 @@ export function useWebRTC(): UseWebRTCReturn {
           break;
         case 'TIMER_SYNC':
           setInterviewEndTime(msg.payload.endTime);
+          break;
+        case 'LANGUAGE_SYNC':
+          setEditorLanguage(msg.payload.language);
           break;
       }
     };
@@ -273,9 +283,14 @@ export function useWebRTC(): UseWebRTCReturn {
     sendWsMessage({ type: 'WHITEBOARD_SYNC', payload: { patch } });
   }, []);
 
-  const executeCode = useCallback((code: string) => {
+  const setLanguage = useCallback((language: string) => {
+    setEditorLanguage(language);
+    sendWsMessage({ type: 'LANGUAGE_SYNC', payload: { language } });
+  }, []);
+
+  const executeCode = useCallback((code: string, testCases?: any[]) => {
     setIsCodeRunning(true);
-    sendWsMessage({ type: 'EXECUTE_CODE', payload: { roomId, code } });
+    sendWsMessage({ type: 'EXECUTE_CODE', payload: { roomId, code, testCases } });
   }, [roomId]);
 
   const getHint = useCallback(() => {
@@ -322,6 +337,57 @@ export function useWebRTC(): UseWebRTCReturn {
     }
   }, [localStream]);
 
+  const toggleScreenShare = useCallback(async () => {
+    if (!rtcRef.current) return;
+    
+    if (isScreenSharing) {
+      // Revert to camera
+      if (originalVideoTrack.current && localStream) {
+        const senders = rtcRef.current.getSenders();
+        const sender = senders.find(s => s.track?.kind === 'video');
+        if (sender) {
+          sender.replaceTrack(originalVideoTrack.current);
+          localStream.removeTrack(localStream.getVideoTracks()[0]);
+          localStream.addTrack(originalVideoTrack.current);
+        }
+        setIsScreenSharing(false);
+      }
+    } else {
+      // Switch to screen share
+      try {
+        const displayStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+        const screenTrack = displayStream.getVideoTracks()[0];
+        
+        if (localStream) {
+          originalVideoTrack.current = localStream.getVideoTracks()[0];
+          const senders = rtcRef.current.getSenders();
+          const sender = senders.find(s => s.track?.kind === 'video');
+          
+          if (sender) {
+            sender.replaceTrack(screenTrack);
+            localStream.removeTrack(originalVideoTrack.current);
+            localStream.addTrack(screenTrack);
+          }
+          
+          setIsScreenSharing(true);
+          
+          screenTrack.onended = () => {
+            // Revert when user stops sharing via browser native UI
+            if (originalVideoTrack.current && localStream) {
+              const sender = rtcRef.current?.getSenders().find(s => s.track?.kind === 'video');
+              if (sender) sender.replaceTrack(originalVideoTrack.current);
+              localStream.removeTrack(screenTrack);
+              localStream.addTrack(originalVideoTrack.current);
+              setIsScreenSharing(false);
+            }
+          };
+        }
+      } catch (err) {
+        console.error('Error sharing screen:', err);
+      }
+    }
+  }, [localStream, isScreenSharing]);
+
   return {
     status,
     localStream,
@@ -331,6 +397,7 @@ export function useWebRTC(): UseWebRTCReturn {
     codeContent,
     codeOutput,
     isCodeRunning,
+    editorLanguage,
     role,
     currentQuestion,
     incomingWhiteboardPatch,
@@ -343,6 +410,7 @@ export function useWebRTC(): UseWebRTCReturn {
     sendMessage,
     sendCodeUpdate,
     sendWhiteboardSync,
+    setLanguage,
     executeCode,
     getHint,
     startTimer,
@@ -351,7 +419,9 @@ export function useWebRTC(): UseWebRTCReturn {
     submitFeedback,
     toggleAudio,
     toggleVideo,
+    toggleScreenShare,
     isAudioEnabled,
-    isVideoEnabled
+    isVideoEnabled,
+    isScreenSharing,
   };
 }
