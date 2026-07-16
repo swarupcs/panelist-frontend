@@ -66,7 +66,10 @@ export default function P2PRoomPage() {
     getSocraticDebug,
     getComplexityAnalysis,
     getOptimizationChallenge,
+    getAntiPatterns,
+    sendSocraticChatMessage,
     complexityResult,
+    antiPatterns,
     startTimer,
     selectQuestion,
     swapRoles,
@@ -101,6 +104,7 @@ export default function P2PRoomPage() {
   const vimRef = useRef<any>(null);
   const monacoDecorationsRef = useRef<any[]>([]);
   const [socraticLog, setSocraticLog] = useState<Array<{ id: string; text: string; timestamp: string }>>([]);
+  const [socraticChatInput, setSocraticChatInput] = useState('');
   const [showComplexityPanel, setShowComplexityPanel] = useState(false);
   const [autoDebugEnabled, setAutoDebugEnabled] = useState(true);
 
@@ -396,10 +400,43 @@ export default function P2PRoomPage() {
 
   const handleRunCode = () => {
     executeCode(codeContent, testCases);
+    getAntiPatterns();
     // Clear decorations on new run
     if (editorRef.current) {
       monacoDecorationsRef.current = editorRef.current.deltaDecorations(monacoDecorationsRef.current, []);
     }
+  };
+
+  const handleSocraticChatSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!socraticChatInput.trim()) return;
+    
+    // Optimistically add user message to socratic log for display
+    const userMsg = { id: Date.now().toString(), text: socraticChatInput.trim(), timestamp: new Date().toISOString() };
+    
+    // Construct history array from chatMessages to send to backend
+    const history = chatMessages
+      .filter(m => m.senderId === 'SYSTEM_SOCRATIC' || m.senderId === user?.id)
+      .map(m => ({
+        role: m.senderId === 'SYSTEM_SOCRATIC' ? 'model' : 'user',
+        text: m.text
+      }));
+    
+    // Include the new message
+    history.push({ role: 'user', text: userMsg.text });
+    
+    sendSocraticChatMessage(history);
+    sendMessage(`🗣️ **To AI Mentor:** ${socraticChatInput.trim()}`);
+    setSocraticChatInput('');
+  };
+
+  const handleRubberDuck = () => {
+    const history = [{
+      role: 'user',
+      text: "I am stuck. Let's rubber duck this. Ask me to explain my code line-by-line starting from the beginning."
+    }];
+    sendSocraticChatMessage(history);
+    toast.info('🦆 Rubber duck mode activated!');
   };
 
   const handleExportSession = () => {
@@ -540,6 +577,9 @@ export default function P2PRoomPage() {
                   <Button size="sm" onClick={() => getSocraticDebug(codeOutput || '')} className="h-7 text-xs bg-purple-600 hover:bg-purple-700 text-white">
                     <Brain className="h-3 w-3 mr-1" /> Socratic Debug
                   </Button>
+                  <Button size="sm" onClick={handleRubberDuck} className="h-7 text-xs bg-yellow-500 hover:bg-yellow-600 text-black border-yellow-400">
+                    🦆 Rubber Duck
+                  </Button>
                   <Button size="sm" variant="outline" onClick={() => { getComplexityAnalysis(); setShowComplexityPanel(true); }} className="h-7 text-xs border-orange-500/50 text-orange-400 hover:bg-orange-500/10">
                     <TrendingUp className="h-3 w-3 mr-1" /> Big-O
                   </Button>
@@ -595,6 +635,18 @@ export default function P2PRoomPage() {
                     glyphMargin: true,
                   }}
                 />
+                {/* Anti-Patterns Badges */}
+                {antiPatterns && antiPatterns.length > 0 && (
+                  <div className="absolute top-2 right-6 z-10 flex flex-col items-end gap-2">
+                    {antiPatterns.map((ap, i) => (
+                      <div key={i} className="flex items-center gap-1 bg-red-500/90 text-white text-[10px] px-2 py-1 rounded shadow-lg animate-in fade-in slide-in-from-top-2" title={ap.description}>
+                        <AlertTriangle className="h-3 w-3" />
+                        <span className="font-bold">{ap.title}</span>
+                        {ap.lines && ap.lines.length > 0 && <span className="opacity-75">(L{ap.lines.join(',')})</span>}
+                      </div>
+                    ))}
+                  </div>
+                )}
                 {/* Big-O Complexity Panel */}
                 {showComplexityPanel && (
                   <div className="border-t bg-background/95 backdrop-blur-sm">
@@ -721,6 +773,19 @@ export default function P2PRoomPage() {
                       </div>
                     ))
                   )}
+                </div>
+                <div className="mt-4 pt-4 border-t sticky bottom-0 bg-muted/10 pb-2">
+                  <form onSubmit={handleSocraticChatSubmit} className="flex gap-2">
+                    <Input 
+                      value={socraticChatInput} 
+                      onChange={e => setSocraticChatInput(e.target.value)} 
+                      placeholder="Reply to the AI Mentor (e.g., 'Why is line 4 wrong?')..." 
+                      className="flex-1 h-8 text-xs border-purple-500/30 focus-visible:ring-purple-500"
+                    />
+                    <Button type="submit" size="sm" className="h-8 bg-purple-600 hover:bg-purple-700">
+                      <Send className="h-3 w-3" />
+                    </Button>
+                  </form>
                 </div>
               </TabsContent>
             </Tabs>

@@ -32,6 +32,7 @@ interface UseWebRTCReturn {
     };
   };
   interviewEndTime: number | null;
+  antiPatterns: Array<{ title: string; description: string; lines: number[] }>;
   joinQueue: (role: string, difficulty: string, language: string) => void;
   leaveQueue: () => void;
   joinRoom: (roomId: string) => void;
@@ -51,6 +52,8 @@ interface UseWebRTCReturn {
   getSocraticDebug: (output: string) => void;
   getComplexityAnalysis: () => void;
   getOptimizationChallenge: () => void;
+  getAntiPatterns: () => void;
+  sendSocraticChatMessage: (history: Array<{role: string, text: string}>) => void;
   startTimer: (durationMinutes?: number) => void;
   selectQuestion: (question: any) => void;
   swapRoles: () => void;
@@ -96,6 +99,7 @@ export function useWebRTC(): UseWebRTCReturn {
     data?: any;
   }>({ status: 'idle' });
   const [interviewEndTime, setInterviewEndTime] = useState<number | null>(null);
+  const [antiPatterns, setAntiPatterns] = useState<Array<{ title: string; description: string; lines: number[] }>>([]);
   const [isAudioEnabled, setIsAudioEnabled] = useState(true);
   const [isVideoEnabled, setIsVideoEnabled] = useState(true);
   const [isScreenSharing, setIsScreenSharing] = useState(false);
@@ -181,6 +185,11 @@ export function useWebRTC(): UseWebRTCReturn {
             status: msg.payload.status,
             data: msg.payload.data
           });
+          break;
+        case 'ANTI_PATTERNS_RESULT':
+          if (msg.payload.antiPatterns) {
+            setAntiPatterns(msg.payload.antiPatterns);
+          }
           break;
         case 'HINT_RECEIVED':
           setAiHint({
@@ -439,6 +448,26 @@ export function useWebRTC(): UseWebRTCReturn {
     }
   }, [currentQuestion, codeContent]);
 
+  const getAntiPatterns = useCallback(() => {
+    if (currentQuestion) {
+      sendWsMessage({ type: 'GET_ANTI_PATTERNS', payload: { question: currentQuestion.description, code: codeContent } });
+    }
+  }, [currentQuestion, codeContent]);
+
+  const sendSocraticChatMessage = useCallback((history: Array<{role: string, text: string}>) => {
+    if (currentQuestion) {
+      sendWsMessage({ 
+        type: 'SOCRATIC_CHAT_MESSAGE', 
+        payload: { 
+          question: currentQuestion.description, 
+          code: codeContent, 
+          output: codeOutput || '', 
+          history 
+        } 
+      });
+    }
+  }, [currentQuestion, codeContent, codeOutput]);
+
   const startTimer = useCallback((durationMinutes: number = 45) => {
     sendWsMessage({ type: 'START_TIMER', payload: { durationMinutes } });
   }, []);
@@ -547,6 +576,7 @@ export function useWebRTC(): UseWebRTCReturn {
     aiHint,
     complexityResult,
     interviewEndTime,
+    antiPatterns,
     joinQueue,
     leaveQueue,
     joinRoom,
@@ -566,6 +596,8 @@ export function useWebRTC(): UseWebRTCReturn {
     getSocraticDebug,
     getComplexityAnalysis,
     getOptimizationChallenge,
+    getAntiPatterns,
+    sendSocraticChatMessage,
     startTimer,
     selectQuestion,
     swapRoles,
