@@ -39,6 +39,7 @@ import {
   Keyboard,
   Zap,
   PenTool,
+  Box,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   Timer,
 } from 'lucide-react';
@@ -75,6 +76,9 @@ type AnswerTab = 'text' | 'code' | 'whiteboard';
 interface FeedbackState {
   score: number;
   feedback: string;
+  timeComplexity?: string;
+  spaceComplexity?: string;
+  optimizationSuggestions?: string[];
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -280,15 +284,21 @@ export default function InterviewSessionPage() {
       if (!sessionId) return;
       // Allow empty submit for auto-expiry path or whiteboard
       const payload = finalAnswer.trim() || (imageUrl ? '[WHITEBOARD_SUBMISSION]' : '[TIME_EXPIRED]');
-      submitAnswer.mutate(
-        { sessionId, answer: payload, timeSpent, imageUrl },
-        {
-          onSuccess: (data) => {
-            setPendingFeedback({ score: data.score, feedback: data.feedback });
-            setPhase(data.sessionCompleted ? 'completed' : 'feedback');
+        submitAnswer.mutate(
+          { sessionId, answer: payload, timeSpent, imageUrl },
+          {
+            onSuccess: (data) => {
+              setPendingFeedback({ 
+                score: data.score, 
+                feedback: data.feedback,
+                timeComplexity: data.nextQuestion?.timeComplexity || currentQuestion?.timeComplexity || undefined,
+                spaceComplexity: data.nextQuestion?.spaceComplexity || currentQuestion?.spaceComplexity || undefined,
+                optimizationSuggestions: data.nextQuestion?.optimizationSuggestions || currentQuestion?.optimizationSuggestions || undefined,
+              });
+              setPhase(data.sessionCompleted ? 'completed' : 'feedback');
+            },
           },
-        },
-      );
+        );
     },
     [answer, sessionId, timeSpent, submitAnswer, editor],
   );
@@ -832,6 +842,40 @@ export default function InterviewSessionPage() {
                   {pendingFeedback.feedback}
                 </p>
               </div>
+
+              {(pendingFeedback.timeComplexity || pendingFeedback.spaceComplexity) && (
+                <div className='flex items-center gap-3 pt-2'>
+                  {pendingFeedback.timeComplexity && (
+                    <Badge variant='outline' className='flex items-center gap-1.5 py-1 px-2.5 bg-primary/5 text-primary border-primary/20'>
+                      <Zap className='size-3.5' />
+                      <span>Time: {pendingFeedback.timeComplexity}</span>
+                    </Badge>
+                  )}
+                  {pendingFeedback.spaceComplexity && (
+                    <Badge variant='outline' className='flex items-center gap-1.5 py-1 px-2.5 bg-primary/5 text-primary border-primary/20'>
+                      <Box className='size-3.5' />
+                      <span>Space: {pendingFeedback.spaceComplexity}</span>
+                    </Badge>
+                  )}
+                </div>
+              )}
+
+              {pendingFeedback.optimizationSuggestions && pendingFeedback.optimizationSuggestions.length > 0 && (
+                <div className='bg-primary/5 border border-primary/20 rounded-lg p-4 mt-4'>
+                  <p className='text-xs font-semibold uppercase tracking-wider text-primary mb-3 flex items-center gap-2'>
+                    <Lightbulb className='size-4' />
+                    Optimization Suggestions
+                  </p>
+                  <ul className='space-y-2'>
+                    {pendingFeedback.optimizationSuggestions.map((suggestion, idx) => (
+                      <li key={idx} className='text-sm text-foreground/90 flex items-start gap-2'>
+                        <span className='text-primary mt-0.5 font-bold'>•</span>
+                        <span className='leading-relaxed'>{suggestion}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
 
               <div className='flex justify-end pt-1'>
                 <Button

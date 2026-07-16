@@ -67,6 +67,9 @@ export interface InterviewQuestion {
   feedback?: string;
   timeSpent?: number;
   expectedAnswer?: string;
+  timeComplexity?: string;
+  spaceComplexity?: string;
+  optimizationSuggestions?: string[];
 }
 
 export interface InterviewSession {
