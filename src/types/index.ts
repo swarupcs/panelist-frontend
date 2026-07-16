@@ -16,6 +16,7 @@ export interface User {
   oauthProvider?: string | null;
   createdAt: string;
   lastLogin?: string | null;
+  hasOnboarded?: boolean;
 }
 
 export interface AuthTokens {
@@ -205,6 +206,8 @@ export interface UserProgress {
   topicsCompleted: string[];
   currentLevel: string;
   goalLevel: string;
+  currentStreak: number;
+  longestStreak: number;
 }
 
 export interface ComparativeAnalytics {

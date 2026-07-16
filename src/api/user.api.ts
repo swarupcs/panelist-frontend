@@ -144,6 +144,11 @@ export const gamificationApi = {
     const res = await api.post('/gamification/daily-goal', { minutesStudied, questionsAnswered })
     return res.data.data
   },
+
+  getActivity: async (): Promise<{ activity: { date: string, count: number, level: number }[] }> => {
+    const res = await api.get('/gamification/activity')
+    return res.data.data
+  },
 }
 
 // ── File Upload ────────────────────────────────────────────────────────────

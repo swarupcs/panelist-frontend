@@ -18,6 +18,7 @@ import LoginPage from '@/pages/auth/LoginPage';
 import RegisterPage from '@/pages/auth/RegisterPage';
 import ForgotPasswordPage from '@/pages/auth/ForgotPasswordPage';
 
+const OnboardingPage = lazy(() => import('@/pages/onboarding/OnboardingPage'));
 const DashboardPage = lazy(() => import('@/pages/dashboard/DashboardPage'));
 const InterviewSetupPage = lazy(() => import('@/pages/interview/InterviewSetupPage'));
 const InterviewSessionPage = lazy(() => import('@/pages/interview/InterviewSessionPage'));
@@ -79,6 +80,7 @@ function AppRoutes() {
         <Route path="/groups/:id" element={<StudyGroupDetailPage />} />
 
         <Route element={<ProtectedRoute />}>
+          <Route path="/onboarding" element={<OnboardingPage />} />
           <Route element={<AppShell />}>
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/chat" element={<AIChatPage />} />

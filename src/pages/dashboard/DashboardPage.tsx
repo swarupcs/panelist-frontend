@@ -34,6 +34,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScoreRing } from '@/components/common';
+import { ActivityHeatmap } from '@/components/dashboard/ActivityHeatmap';
+import { StreakWidget } from '@/components/dashboard/StreakWidget';
 import {
   formatScore,
   formatPercent,
@@ -364,6 +366,16 @@ export default function DashboardPage() {
           {QUICK_ACTIONS.map((a) => (
             <QuickAction key={a.label} {...a} />
           ))}
+        </div>
+      </div>
+
+      {/* ── Gamification Heatmap & Streak ── */}
+      <div className='grid grid-cols-1 lg:grid-cols-4 gap-4'>
+        <div className='lg:col-span-3 h-[200px]'>
+          <ActivityHeatmap />
+        </div>
+        <div className='lg:col-span-1 h-[200px]'>
+          <StreakWidget />
         </div>
       </div>
 

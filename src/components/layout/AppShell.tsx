@@ -1,4 +1,4 @@
-import { Outlet } from 'react-router-dom'
+import { Outlet, Navigate } from 'react-router-dom'
 import { Sidebar, MobileNav } from './Sidebar'
 import { Bell, Search } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
@@ -37,6 +37,12 @@ function Header() {
 }
 
 export function AppShell() {
+  const { user } = useAuthStore()
+
+  if (user && user.hasOnboarded === false) {
+    return <Navigate to="/onboarding" replace />
+  }
+
   return (
     <div className="flex h-screen overflow-hidden bg-background">
       <div className="hidden md:flex">
