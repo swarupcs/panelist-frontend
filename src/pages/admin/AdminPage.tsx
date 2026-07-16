@@ -12,10 +12,12 @@ import { AdminSystemTab }       from '@/components/admin/AdminSystemTab'
 import { AdminAuditTab }        from '@/components/admin/AdminAuditTab'
 import { AdminReportsTab }      from '@/components/admin/AdminReportsTab'
 import { AdminAIQuestionsTab }  from '@/components/admin/AdminAIQuestionsTab'
+import { RealtimeDashboard }    from './RealtimeDashboard'
 import type { AdminTab }        from '@/types/admin'
 
 const TABS: { id: AdminTab; label: string; icon: React.ElementType }[] = [
   { id: 'overview',      label: 'Overview',     icon: BarChart3  },
+  { id: 'realtime',      label: 'Real-time',    icon: Activity   },
   { id: 'users',         label: 'Users',        icon: Users      },
   { id: 'analytics',     label: 'Analytics',    icon: Activity   },
   { id: 'system',        label: 'System',       icon: Settings   },
@@ -84,6 +86,7 @@ export default function AdminPage() {
 
       <div className="min-h-[400px]">
         {activeTab === 'overview'     && <AdminOverviewTab    />}
+        {activeTab === 'realtime'     && <RealtimeDashboard   />}
         {activeTab === 'users'        && <AdminUsersTab       />}
         {activeTab === 'analytics'    && <AdminAnalyticsTab   />}
         {activeTab === 'system'       && <AdminSystemTab      />}

@@ -402,6 +402,7 @@ export interface AdminAIQuestionStats {
 // ============================================================
 export type AdminTab =
   | 'overview'
+  | 'realtime'
   | 'users'
   | 'analytics'
   | 'system'
