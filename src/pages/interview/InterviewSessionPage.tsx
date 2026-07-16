@@ -38,11 +38,13 @@ import {
   AlignLeft,
   Keyboard,
   Zap,
+  PenTool,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   Timer,
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { Excalidraw } from '@excalidraw/excalidraw';
 import { useAppSelector } from '@/store/hooks';
 import {
   useSubmitAnswer,
@@ -67,7 +69,7 @@ import { Textarea } from '@/components/ui/textarea';
 // ── Types ──────────────────────────────────────────────────────────────────
 
 type PagePhase = 'answering' | 'feedback' | 'completed';
-type AnswerTab = 'text' | 'code';
+type AnswerTab = 'text' | 'code' | 'whiteboard';
 
 interface FeedbackState {
   score: number;
@@ -583,29 +585,36 @@ export default function InterviewSessionPage() {
                 {/* DSA and System Design tab switcher */}
                 {showTabs && (
                   <div className='flex items-center gap-1 rounded-lg border border-border bg-secondary/30 p-1 w-fit'>
-                    {(['text', 'code'] as AnswerTab[]).map((tab) => (
-                      <button
-                        key={tab}
-                        type='button'
-                        onClick={() => setAnswerTab(tab)}
-                        className={cn(
-                          'flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors',
-                          answerTab === tab
-                            ? 'bg-card text-foreground shadow-sm'
-                            : 'text-muted-foreground hover:text-foreground',
-                        )}
-                      >
-                        {tab === 'text' ? (
-                          <>
-                            <AlignLeft className='size-3.5' /> Text
-                          </>
-                        ) : (
-                          <>
-                            <Code2 className='size-3.5' /> {isSystemDesign ? 'Multi-File Editor' : 'Code'}
-                          </>
-                        )}
-                      </button>
-                    ))}
+                    {(['text', 'code', 'whiteboard'] as AnswerTab[]).map((tab) => {
+                      if (tab === 'whiteboard' && !isSystemDesign) return null;
+                      return (
+                        <button
+                          key={tab}
+                          type='button'
+                          onClick={() => setAnswerTab(tab)}
+                          className={cn(
+                            'flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors',
+                            answerTab === tab
+                              ? 'bg-card text-foreground shadow-sm'
+                              : 'text-muted-foreground hover:text-foreground',
+                          )}
+                        >
+                          {tab === 'text' ? (
+                            <>
+                              <AlignLeft className='size-3.5' /> Text
+                            </>
+                          ) : tab === 'code' ? (
+                            <>
+                              <Code2 className='size-3.5' /> {isSystemDesign ? 'Editor' : 'Code'}
+                            </>
+                          ) : (
+                            <>
+                              <PenTool className='size-3.5' /> Whiteboard
+                            </>
+                          )}
+                        </button>
+                      );
+                    })}
                   </div>
                 )}
 
@@ -654,6 +663,10 @@ export default function InterviewSessionPage() {
                       </TextButton>
                     </div>
                   </>
+                ) : answerTab === 'whiteboard' ? (
+                  <div className='w-full h-[500px] border border-border rounded-lg overflow-hidden relative'>
+                    <Excalidraw theme="dark" />
+                  </div>
                 ) : (
                   <>
                     <Textarea
