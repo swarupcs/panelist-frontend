@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useWebRTC } from '@/hooks/useWebRTC';
-import Editor from '@monaco-editor/react';
+import Editor, { useMonaco } from '@monaco-editor/react';
+import { initVimMode } from 'monaco-vim';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Mic, MicOff, Video, VideoOff, PhoneOff, Send, MessageSquare, RefreshCcw, FileText, Play, Bot, Loader2, Clock, CheckSquare, StopCircle, Disc, MonitorUp, MonitorOff, Plus, Trash2, Code2 } from 'lucide-react';
+import { Mic, MicOff, Video, VideoOff, PhoneOff, Send, MessageSquare, RefreshCcw, FileText, Play, Bot, Loader2, Clock, CheckSquare, StopCircle, Disc, MonitorUp, MonitorOff, Plus, Trash2, Code2, Signal, Keyboard, Download } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { toast } from 'sonner';
 import { cn } from '@/lib/cn';
@@ -49,6 +50,7 @@ export default function P2PRoomPage() {
     sendCodeUpdate,
     sendWhiteboardSync,
     setLanguage,
+    reportFocusLoss,
     executeCode,
     getHint,
     startTimer,
@@ -60,7 +62,8 @@ export default function P2PRoomPage() {
     toggleScreenShare,
     isAudioEnabled,
     isVideoEnabled,
-    isScreenSharing
+    isScreenSharing,
+    connectionQuality
   } = useWebRTC();
 
   const localVideoRef = useRef<HTMLVideoElement>(null);
@@ -74,8 +77,29 @@ export default function P2PRoomPage() {
   const [testCases, setTestCases] = useState<Array<{ id: number, input: string, expected: string }>>([
     { id: 1, input: 'twoSum([2,7,11,15], 9)', expected: '[0,1]' }
   ]);
+  const [isVimMode, setIsVimMode] = useState(false);
+  const editorRef = useRef<any>(null);
+  const vimRef = useRef<any>(null);
 
   const { isRecording, startRecording, stopRecording } = useScreenRecorder();
+
+  // Global Keyboard Shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ctrl+Enter or Cmd+Enter to Run Code
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        e.preventDefault();
+        handleRunCode();
+      }
+      // Ctrl+M or Cmd+M to toggle Mute
+      if ((e.ctrlKey || e.metaKey) && e.key === 'm') {
+        e.preventDefault();
+        toggleAudio();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [codeContent, testCases, toggleAudio]);
 
   useEffect(() => {
     if (interviewEndTime) {
@@ -100,6 +124,18 @@ export default function P2PRoomPage() {
       localVideoRef.current.srcObject = localStream;
     }
   }, [localStream]);
+
+  // Cheat Detection (Focus Tracking)
+  useEffect(() => {
+    if (role !== 'INTERVIEWEE') return;
+    
+    const handleBlur = () => {
+      reportFocusLoss();
+    };
+    
+    window.addEventListener('blur', handleBlur);
+    return () => window.removeEventListener('blur', handleBlur);
+  }, [role, reportFocusLoss]);
 
   useEffect(() => {
     if (remoteVideoRef.current && remoteStream) {
@@ -135,8 +171,74 @@ export default function P2PRoomPage() {
     }
   };
 
+  const handleEditorMount = (editor: any, monaco: any) => {
+    editorRef.current = editor;
+  };
+
+  // Handle VIM Mode Toggle
+  useEffect(() => {
+    if (editorRef.current) {
+      if (isVimMode) {
+        // Find a status node if you want to show VIM commands, otherwise null
+        let statusNode = document.getElementById('vim-status');
+        if (!statusNode) {
+          statusNode = document.createElement('div');
+          statusNode.id = 'vim-status';
+          statusNode.className = 'text-xs text-muted-foreground px-2 py-1';
+          const container = editorRef.current.getContainerDOMNode().parentElement;
+          if (container) container.appendChild(statusNode);
+        }
+        vimRef.current = initVimMode(editorRef.current, statusNode);
+      } else {
+        if (vimRef.current) {
+          vimRef.current.dispose();
+          vimRef.current = null;
+        }
+        const statusNode = document.getElementById('vim-status');
+        if (statusNode) statusNode.remove();
+      }
+    }
+  }, [isVimMode]);
+
   const handleRunCode = () => {
     executeCode(codeContent, testCases);
+  };
+
+  const handleExportSession = () => {
+    const mdLines = [
+      `# Interview Session Export`,
+      `Date: ${new Date().toLocaleString()}`,
+      `Role: ${role}`,
+      ``,
+      `## Code (${editorLanguage})`,
+      "```" + editorLanguage,
+      codeContent,
+      "```",
+      ``,
+      `## Terminal Output`,
+      "```",
+      codeOutput || "No output.",
+      "```",
+      ``,
+      `## Test Cases`,
+      ...testCases.map((tc, i) => `- Test ${i+1}: \`Input: ${tc.input}\` | \`Expected: ${tc.expected}\``),
+      ``,
+      `## Chat Log`,
+      ...chatMessages.map(msg => `**${msg.senderId === user?.id ? 'Me' : msg.senderId === 'SYSTEM' ? 'SYSTEM' : 'Peer'}**: ${msg.text}`),
+      ``,
+      `## Private Notes (Interviewer Only)`,
+      privateNotes || "No private notes taken.",
+      ``
+    ];
+    
+    const blob = new Blob([mdLines.join('\n')], { type: 'text/markdown' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `interview-export-${new Date().getTime()}.md`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success('Session exported to Markdown!');
   };
 
   const addTestCase = () => {
@@ -204,20 +306,31 @@ export default function P2PRoomPage() {
           <div className="bg-muted px-4 py-2 border-b text-sm font-medium flex items-center justify-between">
             <div className="flex items-center gap-3">
               <span>Collaborative Workspace</span>
-              <div className="flex items-center border rounded overflow-hidden">
-                <div className="bg-background px-2 py-1 text-[10px] text-muted-foreground flex items-center border-r">
-                  <Code2 className="h-3 w-3 mr-1" /> Lang
+              <div className="flex items-center gap-2">
+                <div className="flex items-center border rounded overflow-hidden">
+                  <div className="bg-background px-2 py-1 text-[10px] text-muted-foreground flex items-center border-r">
+                    <Code2 className="h-3 w-3 mr-1" /> Lang
+                  </div>
+                  <select 
+                    className="bg-background px-2 py-1 text-xs outline-none focus:ring-0 text-foreground w-28 cursor-pointer"
+                    value={editorLanguage}
+                    onChange={(e) => setLanguage(e.target.value)}
+                  >
+                    <option value="javascript">JavaScript</option>
+                    <option value="python">Python</option>
+                    <option value="java">Java</option>
+                    <option value="cpp">C++</option>
+                  </select>
                 </div>
-                <select 
-                  className="bg-background px-2 py-1 text-xs outline-none focus:ring-0 text-foreground w-28 cursor-pointer"
-                  value={editorLanguage}
-                  onChange={(e) => setLanguage(e.target.value)}
+                <Button 
+                  size="sm" 
+                  variant="outline" 
+                  className={cn("h-7 px-2 text-[10px]", isVimMode && "bg-green-500/20 text-green-500 border-green-500")}
+                  onClick={() => setIsVimMode(!isVimMode)}
+                  title="Toggle VIM Mode"
                 >
-                  <option value="javascript">JavaScript</option>
-                  <option value="python">Python</option>
-                  <option value="java">Java</option>
-                  <option value="cpp">C++</option>
-                </select>
+                  <Keyboard className="h-3 w-3 mr-1" /> VIM
+                </Button>
               </div>
             </div>
             {status === 'connected' ? (
@@ -245,13 +358,14 @@ export default function P2PRoomPage() {
                   <TabsTrigger value="whiteboard">Whiteboard</TabsTrigger>
                 </TabsList>
               </div>
-              <TabsContent value="editor" className="flex-1 mt-0 p-0 h-full">
+              <TabsContent value="editor" className="flex-1 mt-0 p-0 h-full relative flex flex-col">
                 <Editor
                   height="100%"
                   language={editorLanguage}
                   theme="vs-dark"
                   value={codeContent}
                   onChange={handleEditorChange}
+                  onMount={handleEditorMount}
                   options={{
                     minimap: { enabled: false },
                     fontSize: 14,
@@ -292,11 +406,14 @@ export default function P2PRoomPage() {
             ) : (
               chatMessages.map(msg => {
                 const isMe = msg.senderId === user?.id;
+                const isSystem = msg.senderId === 'SYSTEM';
                 return (
-                  <div key={msg.id} className={cn("flex flex-col max-w-[80%]", isMe ? "ml-auto items-end" : "items-start")}>
+                  <div key={msg.id} className={cn("flex flex-col max-w-[90%]", isMe ? "ml-auto items-end" : "items-start")}>
                     <div className={cn(
                       "px-3 py-1.5 rounded-lg text-sm",
-                      isMe ? "bg-primary text-primary-foreground" : "bg-muted text-foreground"
+                      isMe ? "bg-primary text-primary-foreground" : 
+                      isSystem ? "bg-red-500/20 text-red-500 border border-red-500/30 text-xs font-bold" : 
+                      "bg-muted text-foreground"
                     )}>
                       {msg.text}
                     </div>
@@ -327,14 +444,19 @@ export default function P2PRoomPage() {
         {/* Actions for Interviewer */}
         {role === 'INTERVIEWER' && (
           <div className="flex flex-col gap-2">
-            <Card className="p-3 border-border bg-primary/5 flex justify-between items-center">
-              <Button size="sm" variant="outline" onClick={() => setIsSidebarOpen(!isSidebarOpen)}>
-                <FileText className="h-4 w-4 mr-2" />
-                Interviewer Tools
-              </Button>
-              <Button size="sm" variant="outline" onClick={swapRoles}>
-                <RefreshCcw className="h-4 w-4 mr-2" />
-                Swap Roles
+            <Card className="p-3 border-border bg-primary/5 flex flex-col gap-2">
+              <div className="flex justify-between items-center gap-2">
+                <Button size="sm" variant="outline" className="flex-1" onClick={() => setIsSidebarOpen(!isSidebarOpen)}>
+                  <FileText className="h-4 w-4 mr-2" />
+                  Interviewer Tools
+                </Button>
+                <Button size="sm" variant="outline" className="flex-1" onClick={swapRoles}>
+                  <RefreshCcw className="h-4 w-4 mr-2" />
+                  Swap Roles
+                </Button>
+              </div>
+              <Button size="sm" variant="secondary" className="w-full text-xs" onClick={handleExportSession}>
+                <Download className="h-3 w-3 mr-2" /> Export Session (MD)
               </Button>
             </Card>
             
@@ -456,13 +578,25 @@ export default function P2PRoomPage() {
 
         {/* Remote Video */}
         <Card className="bg-black border-border overflow-hidden relative aspect-video flex-shrink-0">
-          {remoteStream ? (
-            <video 
-              ref={remoteVideoRef} 
-              autoPlay 
-              playsInline 
-              className="w-full h-full object-cover"
-            />
+          {status === 'connected' && remoteStream ? (
+            <>
+              <video
+                ref={remoteVideoRef}
+                autoPlay
+                playsInline
+                className="w-full h-full object-cover"
+              />
+              <div className="absolute top-2 right-2 bg-black/60 px-2 py-1 rounded text-xs text-white flex items-center gap-2">
+                <span>{role === 'INTERVIEWEE' ? 'Interviewer' : 'Interviewee'}</span>
+                {connectionQuality && (
+                  <Signal className={cn("h-3 w-3", {
+                    'text-green-500': connectionQuality === 'good',
+                    'text-yellow-500': connectionQuality === 'fair',
+                    'text-red-500': connectionQuality === 'poor',
+                  })} />
+                )}
+              </div>
+            </>
           ) : (
             <div className="absolute inset-0 flex items-center justify-center text-muted-foreground text-sm">
               {status === 'searching' || status === 'matched' ? 'Connecting to peer...' : 'Peer disconnected'}
@@ -514,6 +648,15 @@ export default function P2PRoomPage() {
               className={cn("rounded-full h-12 w-12", isScreenSharing && "bg-blue-100 text-blue-600")}
             >
               {isScreenSharing ? <MonitorUp className="h-5 w-5" /> : <MonitorOff className="h-5 w-5" />}
+            </Button>
+            <Button 
+              variant="outline" 
+              size="icon" 
+              title="Export Session"
+              onClick={handleExportSession}
+              className="rounded-full h-12 w-12"
+            >
+              <Download className="h-5 w-5" />
             </Button>
             <Button 
               variant="destructive" 

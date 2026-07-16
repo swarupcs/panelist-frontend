@@ -25,6 +25,7 @@ interface UseWebRTCReturn {
   sendCodeUpdate: (code: string) => void;
   sendWhiteboardSync: (patch: any) => void;
   setLanguage: (lang: string) => void;
+  reportFocusLoss: () => void;
   executeCode: (code: string, testCases?: any[]) => void;
   getHint: () => void;
   startTimer: (durationMinutes: number) => void;
@@ -37,6 +38,7 @@ interface UseWebRTCReturn {
   isAudioEnabled: boolean;
   isVideoEnabled: boolean;
   isScreenSharing: boolean;
+  connectionQuality: 'good' | 'fair' | 'poor' | null;
 }
 
 const ICE_SERVERS = {
@@ -67,6 +69,7 @@ export function useWebRTC(): UseWebRTCReturn {
   const [isAudioEnabled, setIsAudioEnabled] = useState(true);
   const [isVideoEnabled, setIsVideoEnabled] = useState(true);
   const [isScreenSharing, setIsScreenSharing] = useState(false);
+  const [connectionQuality, setConnectionQuality] = useState<'good' | 'fair' | 'poor' | null>(null);
   const originalVideoTrack = useRef<MediaStreamTrack | null>(null);
 
   const wsRef = useRef<WebSocket | null>(null);
@@ -146,6 +149,14 @@ export function useWebRTC(): UseWebRTCReturn {
         case 'LANGUAGE_SYNC':
           setEditorLanguage(msg.payload.language);
           break;
+        case 'TAB_FOCUS_LOST':
+          setChatMessages(prev => [...prev, {
+            id: Math.random().toString(),
+            senderId: 'SYSTEM',
+            text: `⚠️ PROCTOR ALERT: Candidate switched tabs or lost window focus at ${new Date().toLocaleTimeString()}`,
+            timestamp: new Date().toISOString()
+          }]);
+          break;
       }
     };
 
@@ -154,6 +165,47 @@ export function useWebRTC(): UseWebRTCReturn {
       if (rtcRef.current) rtcRef.current.close();
     };
   }, [token]);
+
+  // Monitor WebRTC Stats
+  useEffect(() => {
+    let interval: ReturnType<typeof setInterval>;
+    if (status === 'connected' && rtcRef.current) {
+      interval = setInterval(async () => {
+        if (!rtcRef.current) return;
+        try {
+          const stats = await rtcRef.current.getStats();
+          let rtt = 0;
+          let packetLoss = 0;
+          
+          stats.forEach(report => {
+            if (report.type === 'candidate-pair' && report.state === 'succeeded') {
+              rtt = report.currentRoundTripTime || 0;
+            }
+            if (report.type === 'inbound-rtp' && report.kind === 'video') {
+              const packetsLost = report.packetsLost || 0;
+              const packetsReceived = report.packetsReceived || 1;
+              packetLoss = packetsLost / (packetsLost + packetsReceived);
+            }
+          });
+
+          // rtt is in seconds in some browsers, others in ms. Usually it's in seconds for currentRoundTripTime.
+          // Let's assume rtt > 0.3s (300ms) or packetLoss > 0.05 (5%) is poor.
+          if (rtt > 0.3 || packetLoss > 0.05) {
+            setConnectionQuality('poor');
+          } else if (rtt > 0.15 || packetLoss > 0.02) {
+            setConnectionQuality('fair');
+          } else {
+            setConnectionQuality('good');
+          }
+        } catch (err) {
+          // Ignore
+        }
+      }, 2000);
+    } else {
+      setConnectionQuality(null);
+    }
+    return () => clearInterval(interval);
+  }, [status]);
 
   // Request Media Permissions
   const getMediaStream = async () => {
@@ -288,6 +340,10 @@ export function useWebRTC(): UseWebRTCReturn {
     sendWsMessage({ type: 'LANGUAGE_SYNC', payload: { language } });
   }, []);
 
+  const reportFocusLoss = useCallback(() => {
+    sendWsMessage({ type: 'TAB_FOCUS_LOST', payload: {} });
+  }, []);
+
   const executeCode = useCallback((code: string, testCases?: any[]) => {
     setIsCodeRunning(true);
     sendWsMessage({ type: 'EXECUTE_CODE', payload: { roomId, code, testCases } });
@@ -411,6 +467,7 @@ export function useWebRTC(): UseWebRTCReturn {
     sendCodeUpdate,
     sendWhiteboardSync,
     setLanguage,
+    reportFocusLoss,
     executeCode,
     getHint,
     startTimer,
@@ -423,5 +480,6 @@ export function useWebRTC(): UseWebRTCReturn {
     isAudioEnabled,
     isVideoEnabled,
     isScreenSharing,
+    connectionQuality,
   };
 }

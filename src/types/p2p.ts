@@ -25,6 +25,7 @@ export type P2PMessageType =
   | 'START_TIMER'
   | 'TIMER_SYNC'
   | 'LANGUAGE_SYNC'
+  | 'TAB_FOCUS_LOST'
   | 'ERROR';
 
 export interface P2PMessage {
