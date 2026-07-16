@@ -1,16 +1,15 @@
 // src/pages/interview/InterviewResultsPage.tsx
 //
-// EXTENSIONS on top of existing page
+// NEW FEATURE
 // ─────────────────────────────────────────────────────────────────────────────
-// EXT-1  Each question row now shows a <QuestionRating> star widget so users
-//        can rate difficulty inline — wired to POST /interview/questions/:id/rate
-//
-// EXT-2  "View Replay" button added — navigates to /interview/replay/:sessionId
-//
-// EXT-3  Session metadata (start time, duration) shown in the hero card
+// FEAT-6  "Practice this topic" deep link on failed/skipped question rows.
+//         Links to /interview?type=dsa&topic=CATEGORY for DSA questions,
+//         or /interview?type=<sessionType> for others.
+//         Also adds a "Weak Areas" quick-practice section at the bottom of the
+//         results page when 2+ questions failed.
 
 import { useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import {
   Trophy,
@@ -25,6 +24,8 @@ import {
   AlertTriangle,
   Loader2,
   Play,
+  ArrowRight,
+  Target,
 } from 'lucide-react';
 import { useInterviewStore } from '@/store/interviewStore';
 import { useSessionResults } from '@/hooks/useInterview';
@@ -39,11 +40,12 @@ import {
   getDifficultyBadge,
   formatDate,
   formatDuration,
+  formatCategory,
 } from '@/utils/formatters';
 import { cn } from '@/lib/cn';
 import type { QuestionResult } from '@/types';
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+// ── Helpers ────────────────────────────────────────────────────────────────
 
 function getMessage(score: number) {
   if (score >= 90)
@@ -71,11 +73,30 @@ function formatSeconds(s: number | null): string {
   return m > 0 ? `${m}m ${sec}s` : `${sec}s`;
 }
 
-// ── Question row ──────────────────────────────────────────────────────────────
+/** Build a deep-link URL that starts a new session pre-filtered to a topic */
+function practiceUrl(sessionType: string, category: string): string {
+  const dsaTypes = ['dsa', 'DSA'];
+  const type = dsaTypes.includes(sessionType)
+    ? 'dsa'
+    : sessionType.toLowerCase();
+  return `/interview?type=${type}&topic=${encodeURIComponent(category)}`;
+}
 
-function QuestionRow({ q, index }: { q: QuestionResult; index: number }) {
+// ── Question row ───────────────────────────────────────────────────────────
+
+function QuestionRow({
+  q,
+  index,
+  sessionType,
+}: {
+  q: QuestionResult;
+  index: number;
+  sessionType: string;
+}) {
+  const navigate = useNavigate();
   const passed = (q.score ?? 0) >= 60;
   const skipped = q.skipped;
+  const needsPractice = skipped || !passed;
 
   return (
     <div
@@ -88,7 +109,7 @@ function QuestionRow({ q, index }: { q: QuestionResult; index: number }) {
             : 'border-red-500/20 bg-red-500/5',
       )}
     >
-      {/* Row header */}
+      {/* Header */}
       <div className='flex items-start justify-between gap-3'>
         <div className='flex items-start gap-2 min-w-0'>
           {skipped ? (
@@ -148,7 +169,7 @@ function QuestionRow({ q, index }: { q: QuestionResult; index: number }) {
         </div>
       </div>
 
-      {/* Meta row */}
+      {/* Meta */}
       <div className='flex flex-wrap gap-4 pl-6 text-xs text-muted-foreground'>
         <span className='flex items-center gap-1'>
           <Clock className='size-3' />
@@ -173,11 +194,33 @@ function QuestionRow({ q, index }: { q: QuestionResult; index: number }) {
         </div>
       )}
 
-      {/* EXT-1: Question rating — only for non-skipped questions */}
+      {/* FEAT-6: Practice deep link for failed / skipped questions */}
+      {needsPractice && (
+        <div className='pl-6 pt-1 border-t border-border/30 flex items-center justify-between gap-3'>
+          <p className='text-xs text-muted-foreground'>
+            {skipped
+              ? 'You skipped this.'
+              : 'Score below 60 — more practice recommended.'}
+          </p>
+          <button
+            type='button'
+            onClick={() => navigate(practiceUrl(sessionType, q.category))}
+            className={cn(
+              'flex items-center gap-1 rounded-md border border-border px-2.5 py-1',
+              'text-xs font-medium text-muted-foreground transition-colors',
+              'hover:bg-secondary hover:text-foreground whitespace-nowrap',
+            )}
+          >
+            <Target className='size-3 text-primary' />
+            Practice {formatCategory(q.category)}
+            <ArrowRight className='size-3' />
+          </button>
+        </div>
+      )}
+
+      {/* Question rating — only for QuestionBank questions */}
       {!skipped && (
         <div className='pl-6 pt-1 border-t border-border/30'>
-          {/* fromQuestionBank={false} — session questions are LLM-generated,
-              they have no QuestionBank row so rating is not applicable */}
           <QuestionRating questionId={q.id} compact fromQuestionBank={false} />
         </div>
       )}
@@ -185,7 +228,56 @@ function QuestionRow({ q, index }: { q: QuestionResult; index: number }) {
   );
 }
 
-// ── Main page ─────────────────────────────────────────────────────────────────
+// ── Weak areas quick-practice panel ───────────────────────────────────────
+
+function WeakAreaPanel({
+  failedQuestions,
+  sessionType,
+}: {
+  failedQuestions: QuestionResult[];
+  sessionType: string;
+}) {
+  const navigate = useNavigate();
+
+  // Deduplicate by category
+  const categories = [...new Set(failedQuestions.map((q) => q.category))];
+  if (categories.length < 2) return null; // not enough to show a panel
+
+  return (
+    <Card className='border-yellow-500/20 bg-yellow-500/5'>
+      <CardHeader>
+        <CardTitle className='text-base flex items-center gap-2'>
+          <Target className='size-4 text-yellow-400' />
+          Recommended Practice
+        </CardTitle>
+      </CardHeader>
+      <CardContent className='space-y-2'>
+        <p className='text-xs text-muted-foreground mb-3'>
+          You struggled with these topics. Click to start a focused session.
+        </p>
+        <div className='flex flex-wrap gap-2'>
+          {categories.map((cat) => (
+            <button
+              key={cat}
+              type='button'
+              onClick={() => navigate(practiceUrl(sessionType, cat))}
+              className={cn(
+                'flex items-center gap-1.5 rounded-lg border border-yellow-500/30',
+                'bg-yellow-500/10 px-3 py-1.5 text-xs font-medium text-yellow-400',
+                'hover:bg-yellow-500/20 transition-colors',
+              )}
+            >
+              {formatCategory(cat)}
+              <ArrowRight className='size-3' />
+            </button>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+// ── Main page ──────────────────────────────────────────────────────────────
 
 export default function InterviewResultsPage() {
   const { sessionId } = useParams<{ sessionId: string }>();
@@ -247,12 +339,14 @@ export default function InterviewResultsPage() {
   const failedCount = results.questions.filter(
     (q) => !q.skipped && (q.score ?? 0) < 60,
   ).length;
+  const failedQs = results.questions.filter(
+    (q) => q.skipped || (q.score ?? 0) < 60,
+  );
 
   const avgScore = results.stats?.avgScore ?? 0;
   const maxScore = results.stats?.maxScore ?? 0;
   const minScore = results.stats?.minScore ?? 0;
 
-  // EXT-3: compute duration
   const durationSecs =
     results.endTime && results.startTime
       ? Math.round(
@@ -261,6 +355,8 @@ export default function InterviewResultsPage() {
             1000,
         )
       : null;
+
+  const sessionType = results.type ?? 'dsa';
 
   return (
     <div className='max-w-2xl mx-auto space-y-6 animate-fade-in'>
@@ -284,7 +380,6 @@ export default function InterviewResultsPage() {
                 {formatInterviewType(results.type)} Interview
               </p>
             )}
-            {/* EXT-3: session metadata */}
             <div className='flex justify-center gap-4 mt-2 text-xs text-muted-foreground'>
               {results.startTime && (
                 <span>{formatDate(results.startTime)}</span>
@@ -295,7 +390,7 @@ export default function InterviewResultsPage() {
             </div>
           </div>
 
-          {/* Stats row */}
+          {/* Stats */}
           <div className='flex justify-center gap-8 text-center'>
             <div>
               <p className='text-2xl font-bold text-foreground'>{totalQ}</p>
@@ -352,8 +447,7 @@ export default function InterviewResultsPage() {
                               prose-headings:text-foreground prose-headings:font-semibold
                               prose-p:text-foreground prose-p:leading-relaxed
                               prose-strong:text-foreground prose-strong:font-semibold
-                              prose-li:text-foreground prose-ol:text-foreground
-                              prose-ul:text-foreground'
+                              prose-li:text-foreground prose-ol:text-foreground prose-ul:text-foreground'
               >
                 <ReactMarkdown>{results.feedback}</ReactMarkdown>
               </div>
@@ -367,29 +461,23 @@ export default function InterviewResultsPage() {
               className='gap-2'
               onClick={() => navigate('/interview')}
             >
-              <RotateCcw className='size-4' />
-              Practice Again
+              <RotateCcw className='size-4' /> Practice Again
             </Button>
-
-            {/* EXT-2: Replay button */}
             <Button
               variant='outline'
               size='lg'
               className='gap-2'
               onClick={() => navigate(`/interview/replay/${sessionId}`)}
             >
-              <Play className='size-4' />
-              Replay Session
+              <Play className='size-4' /> Replay Session
             </Button>
-
             <Button
               variant='outline'
               size='lg'
               className='gap-2'
               onClick={() => navigate('/analytics')}
             >
-              <BarChart3 className='size-4' />
-              Analytics
+              <BarChart3 className='size-4' /> Analytics
             </Button>
             <Button
               variant='ghost'
@@ -397,12 +485,16 @@ export default function InterviewResultsPage() {
               className='gap-2'
               onClick={() => navigate('/dashboard')}
             >
-              <Home className='size-4' />
-              Dashboard
+              <Home className='size-4' /> Dashboard
             </Button>
           </div>
         </CardContent>
       </Card>
+
+      {/* FEAT-6: Weak areas quick-practice panel */}
+      {failedQs.length >= 2 && (
+        <WeakAreaPanel failedQuestions={failedQs} sessionType={sessionType} />
+      )}
 
       {/* Per-question breakdown */}
       {results.questions.length > 0 && (
@@ -412,7 +504,12 @@ export default function InterviewResultsPage() {
           </CardHeader>
           <CardContent className='space-y-3'>
             {results.questions.map((q, i) => (
-              <QuestionRow key={q.id} q={q} index={i} />
+              <QuestionRow
+                key={q.id}
+                q={q}
+                index={i}
+                sessionType={sessionType}
+              />
             ))}
           </CardContent>
         </Card>
