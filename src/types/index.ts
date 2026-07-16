@@ -421,6 +421,34 @@ export interface LeaderboardEntry {
   problemsSolved: number;
   averageScore: number;
   currentStreak: number;
+  xp: number;
+  level: number;
+}
+
+export interface DailyQuest {
+  type: string;
+  title: string;
+  description: string;
+  icon: string;
+  xpReward: number;
+  target: number;
+  progress: number;
+  isCompleted: boolean;
+  xpClaimed: boolean;
+  date: string;
+}
+
+export interface GamificationStats {
+  xp: number;
+  level: number;
+  xpToNextLevel: number;
+  xpThisLevel: number;
+  xpNeededForNextLevel: number;
+  currentStreak: number;
+  longestStreak: number;
+  achievementsUnlocked: number;
+  problemsSolved: number;
+  totalInterviews: number;
 }
 
 // ============================================================

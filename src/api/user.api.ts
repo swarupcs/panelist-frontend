@@ -3,7 +3,7 @@ import type {
   LearningPath, SpacedRepetitionStats, ReviewSchedule,
   SpacedRepetitionItem, Recommendation,
   UserProgressData, UserPreferences, LoginHistoryItem,
-  UserAchievement, LeaderboardEntry,
+  UserAchievement, LeaderboardEntry, DailyQuest, GamificationStats,
   FileUpload,
 } from '@/types'
 
@@ -186,6 +186,21 @@ export const gamificationApi = {
 
   getActivity: async (): Promise<{ activity: { date: string, count: number, level: number }[] }> => {
     const res = await api.get('/gamification/activity')
+    return res.data.data
+  },
+
+  getDailyQuests: async (): Promise<{ quests: DailyQuest[] }> => {
+    const res = await api.get('/gamification/quests')
+    return res.data.data
+  },
+
+  claimQuestXP: async (questType: string): Promise<{ xpAwarded: number; xp: number; level: number; xpToNextLevel: number }> => {
+    const res = await api.post(`/gamification/quests/${questType}/claim`)
+    return res.data.data
+  },
+
+  getStats: async (): Promise<{ stats: GamificationStats }> => {
+    const res = await api.get('/gamification/stats')
     return res.data.data
   },
 }

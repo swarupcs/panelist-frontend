@@ -30,8 +30,9 @@ import { useAuthStore } from '@/store/authStore';
 import { useStartInterview } from '@/hooks/useInterview';
 import { useAnalyticsDashboard } from '@/hooks/useAnalytics';
 import { useUserProgress } from '@/hooks/useProgress';
-import { useAchievements } from '@/hooks/useGamification';
+import { useAchievements, useGamificationStats } from '@/hooks/useGamification';
 import { useDueReviews } from '@/hooks/useLearning';
+import { DailyQuestsWidget } from '@/components/dashboard/DailyQuestsWidget';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -138,6 +139,7 @@ export default function DashboardPage() {
   const { data: progress } = useUserProgress();
   const { data: achievements } = useAchievements();
   const { data: reviews } = useDueReviews(5);
+  const { data: gamStats } = useGamificationStats();
 
   const stats = analytics?.statistics;
   const weakAreas = analytics?.weakAreas ?? [];
@@ -472,6 +474,9 @@ export default function DashboardPage() {
               </CardContent>
             </Card>
           )}
+
+          {/* Daily Quests */}
+          <DailyQuestsWidget />
 
           {/* History shortcut */}
           <Card>
