@@ -44,7 +44,7 @@ import {
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { Tldraw } from 'tldraw';
+import { Tldraw, Editor } from 'tldraw';
 import 'tldraw/tldraw.css';
 import { useAppSelector } from '@/store/hooks';
 import {
@@ -213,6 +213,8 @@ export default function InterviewSessionPage() {
   const [showShortcuts, setShowShortcuts] = useState(false);
   // FEAT-5: timer expiry state
   const [timerExpired, setTimerExpired] = useState(false);
+  const [editor, setEditor] = useState<Editor | null>(null);
+
   const autoSubmittedRef = useRef(false);
 
   const {
@@ -255,13 +257,31 @@ export default function InterviewSessionPage() {
   // ── Handlers ──────────────────────────────────────────────────────────
 
   const handleSubmit = useCallback(
-    (codeOverride?: string) => {
+    async (codeOverride?: string) => {
+      let imageUrl: string | undefined = undefined;
+
+      if (editor) {
+        try {
+          const shapeIds = Array.from(editor.getCurrentPageShapeIds());
+          if (shapeIds.length > 0) {
+            const { blob } = await editor.toImage(shapeIds, { format: 'png', background: true });
+            const reader = new FileReader();
+            imageUrl = await new Promise<string>((resolve) => {
+              reader.onloadend = () => resolve(reader.result as string);
+              reader.readAsDataURL(blob);
+            });
+          }
+        } catch (e) {
+          console.error('Failed to export whiteboard image', e);
+        }
+      }
+
       const finalAnswer = codeOverride ?? answer;
       if (!sessionId) return;
-      // Allow empty submit for auto-expiry path
-      const payload = finalAnswer.trim() || '[TIME_EXPIRED]';
+      // Allow empty submit for auto-expiry path or whiteboard
+      const payload = finalAnswer.trim() || (imageUrl ? '[WHITEBOARD_SUBMISSION]' : '[TIME_EXPIRED]');
       submitAnswer.mutate(
-        { sessionId, answer: payload, timeSpent },
+        { sessionId, answer: payload, timeSpent, imageUrl },
         {
           onSuccess: (data) => {
             setPendingFeedback({ score: data.score, feedback: data.feedback });
@@ -270,7 +290,7 @@ export default function InterviewSessionPage() {
         },
       );
     },
-    [answer, sessionId, timeSpent, submitAnswer],
+    [answer, sessionId, timeSpent, submitAnswer, editor],
   );
 
   const handleNextQuestion = () => {
@@ -667,7 +687,7 @@ export default function InterviewSessionPage() {
                 ) : answerTab === 'whiteboard' ? (
                   <>
                     <div style={{ height: '500px', width: '100%', position: 'relative', display: 'flex' }} className='border border-border rounded-lg overflow-hidden bg-background'>
-                      <Tldraw />
+                      <Tldraw onMount={(editor) => setEditor(editor)} />
                     </div>
                     <div className='flex justify-between items-center mt-4'>
                       <p className='text-xs text-muted-foreground'>

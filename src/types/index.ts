@@ -104,6 +104,7 @@ export interface SubmitAnswerRequest {
   sessionId: string;
   answer: string;
   timeSpent?: number;
+  imageUrl?: string;
 }
 
 export interface SubmitAnswerResponse {
