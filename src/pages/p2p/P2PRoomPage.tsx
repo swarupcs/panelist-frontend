@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Mic, MicOff, Video, VideoOff, PhoneOff, Send, MessageSquare, RefreshCcw, FileText, Play, Bot, Loader2, Clock, CheckSquare, StopCircle, Disc, MonitorUp, MonitorOff, Plus, Trash2, Code2, Signal, Keyboard, Download } from 'lucide-react';
+import { Mic, MicOff, Video, VideoOff, PhoneOff, Send, MessageSquare, RefreshCcw, FileText, Play, Bot, Loader2, Clock, CheckSquare, StopCircle, Disc, MonitorUp, MonitorOff, Plus, Trash2, Code2, Signal, Keyboard, Download, Brain, Zap, TrendingUp, AlertTriangle, Trophy, ChevronDown, ChevronUp } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { toast } from 'sonner';
 import { cn } from '@/lib/cn';
@@ -64,6 +64,9 @@ export default function P2PRoomPage() {
     executeCode,
     getHint,
     getSocraticDebug,
+    getComplexityAnalysis,
+    getOptimizationChallenge,
+    complexityResult,
     startTimer,
     selectQuestion,
     swapRoles,
@@ -96,6 +99,10 @@ export default function P2PRoomPage() {
   const [tldrawEditor, setTldrawEditor] = useState<any>(null);
   const editorRef = useRef<any>(null);
   const vimRef = useRef<any>(null);
+  const monacoDecorationsRef = useRef<any[]>([]);
+  const [socraticLog, setSocraticLog] = useState<Array<{ id: string; text: string; timestamp: string }>>([]);
+  const [showComplexityPanel, setShowComplexityPanel] = useState(false);
+  const [autoDebugEnabled, setAutoDebugEnabled] = useState(true);
 
   const { isRecording, startRecording, stopRecording } = useScreenRecorder();
 
@@ -204,6 +211,49 @@ export default function P2PRoomPage() {
       }
     }
   }, [incomingWhiteboardCamera, whiteboardEngine, tldrawEditor, excalidrawAPI, followMode]);
+
+  // --- Auto Socratic Debug on test failure ---
+  useEffect(() => {
+    if (!autoDebugEnabled || !codeOutput || !currentQuestion) return;
+    const lowerOutput = codeOutput.toLowerCase();
+    const isFail = lowerOutput.includes('error') || lowerOutput.includes('failed') || lowerOutput.includes('exception') || lowerOutput.includes('traceback');
+    if (isFail) {
+      const delay = setTimeout(() => {
+        getSocraticDebug(codeOutput);
+        toast.info('🧠 Socratic Debugger triggered automatically on test failure.');
+      }, 1500);
+      return () => clearTimeout(delay);
+    }
+  }, [codeOutput]);
+
+  // --- Capture Socratic messages into the log ---
+  useEffect(() => {
+    const socraticMessages = chatMessages.filter(m => m.senderId === 'SYSTEM_SOCRATIC');
+    if (socraticMessages.length > 0) {
+      setSocraticLog(socraticMessages.map(m => ({ id: m.id, text: m.text, timestamp: m.timestamp })));
+    }
+  }, [chatMessages]);
+
+  // --- Monaco line highlighting from complexityResult ---
+  useEffect(() => {
+    if (!editorRef.current || complexityResult.status !== 'success' || !complexityResult.data) return;
+    const { problemLines } = complexityResult.data;
+    if (!problemLines || problemLines.length === 0) {
+      // Clear decorations
+      monacoDecorationsRef.current = editorRef.current.deltaDecorations(monacoDecorationsRef.current, []);
+      return;
+    }
+    const decorations = problemLines.map((lineNum: number) => ({
+      range: { startLineNumber: lineNum, startColumn: 1, endLineNumber: lineNum, endColumn: 9999 },
+      options: {
+        isWholeLine: true,
+        className: 'bg-yellow-500/20',
+        glyphMarginClassName: 'bg-yellow-500',
+        hoverMessage: { value: '⚠️ Potential bottleneck or issue identified by Socratic AI' }
+      }
+    }));
+    monacoDecorationsRef.current = editorRef.current.deltaDecorations(monacoDecorationsRef.current, decorations);
+  }, [complexityResult]);
 
   const handleEndInterview = async () => {
     toast.success('Interview ended!');
@@ -346,6 +396,10 @@ export default function P2PRoomPage() {
 
   const handleRunCode = () => {
     executeCode(codeContent, testCases);
+    // Clear decorations on new run
+    if (editorRef.current) {
+      monacoDecorationsRef.current = editorRef.current.deltaDecorations(monacoDecorationsRef.current, []);
+    }
   };
 
   const handleExportSession = () => {
@@ -483,9 +537,22 @@ export default function P2PRoomPage() {
                   <Button size="sm" variant="outline" onClick={handleRunCode} disabled={isCodeRunning} className="h-7 text-xs">
                     <Play className="h-3 w-3 mr-1" /> Run Code
                   </Button>
-                  <Button size="sm" variant="secondary" onClick={() => getSocraticDebug(codeOutput || '')} className="h-7 text-xs bg-purple-600 hover:bg-purple-700 text-white border-purple-500">
-                    <Bot className="h-3 w-3 mr-1" /> Socratic Debug
+                  <Button size="sm" onClick={() => getSocraticDebug(codeOutput || '')} className="h-7 text-xs bg-purple-600 hover:bg-purple-700 text-white">
+                    <Brain className="h-3 w-3 mr-1" /> Socratic Debug
                   </Button>
+                  <Button size="sm" variant="outline" onClick={() => { getComplexityAnalysis(); setShowComplexityPanel(true); }} className="h-7 text-xs border-orange-500/50 text-orange-400 hover:bg-orange-500/10">
+                    <TrendingUp className="h-3 w-3 mr-1" /> Big-O
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={getOptimizationChallenge} className="h-7 text-xs border-green-500/50 text-green-400 hover:bg-green-500/10">
+                    <Trophy className="h-3 w-3 mr-1" /> Challenge
+                  </Button>
+                  <button
+                    title={autoDebugEnabled ? 'Auto-Socratic is ON (auto-triggers on test fail)' : 'Auto-Socratic is OFF'}
+                    onClick={() => setAutoDebugEnabled(p => !p)}
+                    className={cn('h-7 w-7 rounded flex items-center justify-center border transition-colors', autoDebugEnabled ? 'border-purple-500 bg-purple-500/10 text-purple-400' : 'border-border text-muted-foreground')}
+                  >
+                    <Zap className="h-3 w-3" />
+                  </button>
                 </div>
                 <span className="text-green-500 text-xs flex items-center gap-1">
                   <span className="relative flex h-2 w-2">
@@ -506,6 +573,10 @@ export default function P2PRoomPage() {
                   <TabsList>
                     <TabsTrigger value="editor">Code Editor</TabsTrigger>
                     <TabsTrigger value="whiteboard">Whiteboard</TabsTrigger>
+                    <TabsTrigger value="socratic-log" className="text-purple-400 data-[state=active]:bg-purple-500/20">
+                      <Brain className="h-3 w-3 mr-1" />
+                      AI Log {socraticLog.length > 0 && <span className="ml-1 bg-purple-500 text-white rounded-full text-[9px] px-1">{socraticLog.length}</span>}
+                    </TabsTrigger>
                   </TabsList>
                 </div>
               )}
@@ -521,8 +592,53 @@ export default function P2PRoomPage() {
                     minimap: { enabled: false },
                     fontSize: 14,
                     wordWrap: 'on',
+                    glyphMargin: true,
                   }}
                 />
+                {/* Big-O Complexity Panel */}
+                {showComplexityPanel && (
+                  <div className="border-t bg-background/95 backdrop-blur-sm">
+                    <div className="flex items-center justify-between px-4 py-2">
+                      <span className="text-xs font-semibold flex items-center gap-1.5"><TrendingUp className="h-3 w-3 text-orange-400" /> Complexity Analysis</span>
+                      <button onClick={() => setShowComplexityPanel(false)} className="text-muted-foreground hover:text-foreground"><ChevronDown className="h-4 w-4" /></button>
+                    </div>
+                    {complexityResult.status === 'loading' && (
+                      <div className="flex items-center gap-2 px-4 pb-3 text-xs text-muted-foreground">
+                        <Loader2 className="h-3 w-3 animate-spin" /> Analyzing complexity...
+                      </div>
+                    )}
+                    {complexityResult.status === 'success' && complexityResult.data && (
+                      <div className="px-4 pb-3 space-y-2">
+                        <div className="flex items-center gap-3 flex-wrap">
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 text-xs font-mono font-bold">
+                            ⏱ Time: {complexityResult.data.timeComplexity}
+                          </span>
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-500/20 text-green-300 text-xs font-mono font-bold">
+                            💾 Space: {complexityResult.data.spaceComplexity}
+                          </span>
+                          {complexityResult.data.canBeOptimized && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-orange-500/20 text-orange-300 text-xs">
+                              <AlertTriangle className="h-3 w-3" /> Optimal: {complexityResult.data.optimalTimeComplexity}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs text-muted-foreground">{complexityResult.data.explanation}</p>
+                        {complexityResult.data.canBeOptimized && complexityResult.data.optimizationHint && (
+                          <div className="p-2 rounded bg-purple-500/10 border border-purple-500/20 text-xs text-purple-200">
+                            <Brain className="h-3 w-3 inline mr-1" />
+                            {complexityResult.data.optimizationHint}
+                          </div>
+                        )}
+                        {complexityResult.data.problemLines?.length > 0 && (
+                          <p className="text-xs text-yellow-400 flex items-center gap-1">
+                            <AlertTriangle className="h-3 w-3" />
+                            Lines {complexityResult.data.problemLines.join(', ')} highlighted as potential bottlenecks.
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
               </TabsContent>
               <TabsContent value="whiteboard" className="flex-1 mt-0 p-0 h-full border-t flex flex-col">
                 <div className="flex items-center gap-2 px-4 py-2 border-b bg-muted/30">
@@ -581,6 +697,32 @@ export default function P2PRoomPage() {
                   )}
                 </div>
               </TabsContent>
+              <TabsContent value="socratic-log" className="flex-1 mt-0 p-4 h-full border-t overflow-y-auto bg-muted/10">
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 mb-4 pb-2 border-b">
+                    <Brain className="h-5 w-5 text-purple-500" />
+                    <div>
+                      <h3 className="font-semibold text-sm">Socratic Debug History</h3>
+                      <p className="text-xs text-muted-foreground">A log of all AI hints and challenges from this session.</p>
+                    </div>
+                  </div>
+                  {socraticLog.length === 0 ? (
+                    <div className="text-center text-muted-foreground text-xs mt-10">
+                      No AI insights yet. Run "Socratic Debug" to get started!
+                    </div>
+                  ) : (
+                    socraticLog.map(log => (
+                      <div key={log.id} className="p-3 rounded-lg border border-purple-500/30 bg-purple-500/10 space-y-2">
+                        <div className="flex justify-between items-center text-[10px] text-purple-300">
+                          <span className="font-bold flex items-center gap-1"><Bot className="h-3 w-3" /> AI Mentor</span>
+                          <span>{new Date(log.timestamp).toLocaleTimeString()}</span>
+                        </div>
+                        <div className="text-sm prose prose-sm prose-invert prose-p:my-1 prose-pre:bg-black/50 prose-pre:border max-w-none" dangerouslySetInnerHTML={{ __html: log.text }} />
+                      </div>
+                    ))
+                  )}
+                </div>
+              </TabsContent>
             </Tabs>
           </div>
           {/* Terminal Output */}
@@ -611,16 +753,35 @@ export default function P2PRoomPage() {
                 const isMe = msg.senderId === user?.id;
                 const isSystem = msg.senderId === 'SYSTEM';
                 const isSocratic = msg.senderId === 'SYSTEM_SOCRATIC';
+                const isChallenge = msg.senderId === 'SYSTEM_CHALLENGE';
                 return (
-                  <div key={msg.id} className={cn("flex flex-col max-w-[90%]", isMe ? "ml-auto items-end" : "items-start", isSocratic && "max-w-[100%]")}>
+                  <div key={msg.id} className={cn("flex flex-col max-w-[85%]", isMe ? "ml-auto" : "")}>
+                    <span className="text-[10px] text-muted-foreground mb-1 px-1">
+                      {isMe ? 'You' : isSystem ? 'System' : isSocratic ? 'AI Mentor' : isChallenge ? 'AI Challenge' : 'Peer'} • {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </span>
                     <div className={cn(
-                      "px-3 py-1.5 rounded-lg text-sm",
-                      isMe ? "bg-primary text-primary-foreground" : 
-                      isSocratic ? "bg-purple-500/10 border border-purple-500/30 text-purple-100 font-medium" :
-                      isSystem ? "bg-red-500/20 text-red-500 border border-red-500/30 text-xs font-bold" : 
-                      "bg-muted text-foreground"
+                      "p-3 rounded-2xl text-sm",
+                      isMe 
+                        ? "bg-primary text-primary-foreground rounded-tr-sm" 
+                        : isSystem 
+                          ? "bg-red-500/20 text-red-200 border border-red-500/30 rounded-tl-sm text-xs font-mono"
+                          : isSocratic
+                            ? "bg-purple-900/40 text-purple-100 border border-purple-500/50 rounded-tl-sm"
+                            : isChallenge
+                              ? "bg-green-900/40 text-green-100 border border-green-500/50 rounded-tl-sm shadow-[0_0_15px_rgba(34,197,94,0.2)]"
+                              : "bg-muted rounded-tl-sm"
                     )}>
-                      {msg.text.startsWith('[IMAGE:') ? (
+                      {isSocratic ? (
+                        <div className="flex gap-2">
+                          <Brain className="h-4 w-4 mt-1 flex-shrink-0 text-purple-400" />
+                          <div className="prose prose-sm prose-invert max-w-none prose-p:my-1 prose-pre:bg-black/50 prose-pre:border" dangerouslySetInnerHTML={{ __html: msg.text }} />
+                        </div>
+                      ) : isChallenge ? (
+                        <div className="flex gap-2">
+                          <Trophy className="h-4 w-4 mt-1 flex-shrink-0 text-green-400" />
+                          <div className="prose prose-sm prose-invert max-w-none prose-p:my-1 prose-pre:bg-black/50 prose-pre:border" dangerouslySetInnerHTML={{ __html: msg.text }} />
+                        </div>
+                      ) : msg.text.startsWith('[IMAGE:') ? (
                         <div className="space-y-1">
                           <span className="text-xs font-semibold opacity-70">📸 Whiteboard Snapshot</span>
                           <img src={msg.text.replace('[IMAGE:', '').replace(']$', '').replace(/\]$/, '')} alt="Whiteboard Snapshot" className="max-w-full rounded-md border mt-1" />

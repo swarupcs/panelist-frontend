@@ -19,6 +19,18 @@ interface UseWebRTCReturn {
   incomingExcalidrawPointer: any | null;
   incomingWhiteboardCamera: any | null;
   aiHint: { status: 'idle' | 'loading' | 'success' | 'error', text: string | null } | null;
+  complexityResult: {
+    status: 'idle' | 'loading' | 'success' | 'error';
+    data?: {
+      timeComplexity: string;
+      spaceComplexity: string;
+      explanation: string;
+      canBeOptimized: boolean;
+      optimalTimeComplexity: string;
+      problemLines: number[];
+      optimizationHint: string | null;
+    };
+  };
   interviewEndTime: number | null;
   joinQueue: (role: string, difficulty: string, language: string) => void;
   leaveQueue: () => void;
@@ -37,6 +49,8 @@ interface UseWebRTCReturn {
   executeCode: (code: string, testCases?: any[]) => void;
   getHint: () => void;
   getSocraticDebug: (output: string) => void;
+  getComplexityAnalysis: () => void;
+  getOptimizationChallenge: () => void;
   startTimer: (durationMinutes?: number) => void;
   selectQuestion: (question: any) => void;
   swapRoles: () => void;
@@ -77,6 +91,10 @@ export function useWebRTC(): UseWebRTCReturn {
   const [incomingExcalidrawPointer, setIncomingExcalidrawPointer] = useState<any>(null);
   const [incomingWhiteboardCamera, setIncomingWhiteboardCamera] = useState<any>(null);
   const [aiHint, setAiHint] = useState<{ status: 'idle' | 'loading' | 'success' | 'error', text: string | null }>({ status: 'idle', text: null });
+  const [complexityResult, setComplexityResult] = useState<{
+    status: 'idle' | 'loading' | 'success' | 'error';
+    data?: any;
+  }>({ status: 'idle' });
   const [interviewEndTime, setInterviewEndTime] = useState<number | null>(null);
   const [isAudioEnabled, setIsAudioEnabled] = useState(true);
   const [isVideoEnabled, setIsVideoEnabled] = useState(true);
@@ -157,6 +175,12 @@ export function useWebRTC(): UseWebRTCReturn {
           break;
         case 'WHITEBOARD_CAMERA_SYNC':
           setIncomingWhiteboardCamera(msg.payload.camera);
+          break;
+        case 'COMPLEXITY_RESULT':
+          setComplexityResult({
+            status: msg.payload.status,
+            data: msg.payload.data
+          });
           break;
         case 'HINT_RECEIVED':
           setAiHint({
@@ -402,6 +426,19 @@ export function useWebRTC(): UseWebRTCReturn {
     }
   }, [currentQuestion, codeContent]);
 
+  const getComplexityAnalysis = useCallback(() => {
+    if (currentQuestion) {
+      setComplexityResult({ status: 'loading' });
+      sendWsMessage({ type: 'GET_COMPLEXITY_ANALYSIS', payload: { question: currentQuestion.description, code: codeContent } });
+    }
+  }, [currentQuestion, codeContent]);
+
+  const getOptimizationChallenge = useCallback(() => {
+    if (currentQuestion) {
+      sendWsMessage({ type: 'GET_OPTIMIZATION_CHALLENGE', payload: { question: currentQuestion.description, code: codeContent } });
+    }
+  }, [currentQuestion, codeContent]);
+
   const startTimer = useCallback((durationMinutes: number = 45) => {
     sendWsMessage({ type: 'START_TIMER', payload: { durationMinutes } });
   }, []);
@@ -508,6 +545,7 @@ export function useWebRTC(): UseWebRTCReturn {
     incomingExcalidrawPointer,
     incomingWhiteboardCamera,
     aiHint,
+    complexityResult,
     interviewEndTime,
     joinQueue,
     leaveQueue,
@@ -526,6 +564,8 @@ export function useWebRTC(): UseWebRTCReturn {
     executeCode,
     getHint,
     getSocraticDebug,
+    getComplexityAnalysis,
+    getOptimizationChallenge,
     startTimer,
     selectQuestion,
     swapRoles,
