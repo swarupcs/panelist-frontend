@@ -1,157 +1,42 @@
+// src/pages/admin/AdminPage.tsx
 import { useState } from 'react'
-import { useQuery, useMutation } from '@tanstack/react-query'
-import { Users, Shield, Ban, AlertTriangle, BarChart3, Activity, Search, MoreVertical } from 'lucide-react'
-import api from '@/api/axios'
-import { PageHeader, StatCard, LoadingScreen, ErrorState } from '@/components/common'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
-import { Button } from '@/components/ui/Button'
-
-import { Badge } from '@/components/ui/Badge'
-
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/Avatar'
-
-import { queryClient } from '@/lib/queryClient'
-
+import {
+  Users,
+  BarChart3,
+  Activity,
+  Shield,
+  FileText,
+  Settings,
+} from 'lucide-react'
+import { PageHeader, LoadingScreen } from '@/components/common'
+import { useAuthStore } from '@/store/authStore'
 import { cn } from '@/lib/cn'
-import type { AdminDashboardStats, AdminUserListItem, Pagination } from '@/types'
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
-import { formatRelative } from '@/utils/formatters';
+import { useAdminStats } from '@/hooks/useAdmin'
+import { AdminOverviewTab }  from '@/components/admin/AdminOverviewTab'
+import { AdminUsersTab }     from '@/components/admin/AdminUsersTab'
+import { AdminAnalyticsTab } from '@/components/admin/AdminAnalyticsTab'
+import { AdminSystemTab }    from '@/components/admin/AdminSystemTab'
+import { AdminAuditTab }     from '@/components/admin/AdminAuditTab'
+import { AdminReportsTab }   from '@/components/admin/AdminReportsTab'
+import type { AdminTab }     from '@/types/admin'
 
-// ── API calls ──────────────────────────────────────────────────────────────
+// ── Tab config ─────────────────────────────────────────────────────────────
 
-const adminApi = {
-  getDashboardStats: async (): Promise<AdminDashboardStats> => {
-    const res = await api.get('/admin/users/stats')
-    return res.data.data
-  },
-  getUsers: async (params: { search?: string; page?: number; limit?: number }): Promise<{ users: AdminUserListItem[]; pagination: Pagination }> => {
-    const q = new URLSearchParams()
-    if (params.search) q.set('search', params.search)
-    if (params.page) q.set('page', String(params.page))
-    if (params.limit) q.set('limit', String(params.limit))
-    const res = await api.get(`/admin/users?${q}`)
-    return res.data.data
-  },
-  banUser: async (userId: string, reason: string) => {
-    const res = await api.post(`/admin/users/${userId}/ban`, { reason, isPermanent: true })
-    return res.data.data
-  },
-  unbanUser: async (userId: string) => {
-    const res = await api.post(`/admin/users/${userId}/unban`)
-    return res.data.data
-  },
-  changeRole: async (userId: string, role: string) => {
-    const res = await api.patch(`/admin/users/${userId}/role`, { role })
-    return res.data.data
-  },
-}
+const TABS: { id: AdminTab; label: string; icon: React.ElementType }[] = [
+  { id: 'overview',  label: 'Overview',  icon: BarChart3 },
+  { id: 'users',     label: 'Users',     icon: Users     },
+  { id: 'analytics', label: 'Analytics', icon: Activity  },
+  { id: 'system',    label: 'System',    icon: Settings  },
+  { id: 'audit',     label: 'Audit Log', icon: Shield    },
+  { id: 'reports',   label: 'Reports',   icon: FileText  },
+]
 
-// ── User row component ─────────────────────────────────────────────────────
-
-function UserRow({ user, onBan, onUnban, onChangeRole }: {
-  user: AdminUserListItem
-  onBan: (id: string) => void
-  onUnban: (id: string) => void
-  onChangeRole: (id: string, role: string) => void
-}) {
-  const initials = user.name?.slice(0, 2).toUpperCase() || '??'
-
-  return (
-    <div className="flex items-center gap-3 py-3 border-b border-border last:border-0">
-      <Avatar className="size-8 shrink-0">
-        <AvatarFallback className="text-xs">{initials}</AvatarFallback>
-      </Avatar>
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 flex-wrap">
-          <p className="text-sm font-medium text-foreground truncate">{user.name}</p>
-          <Badge
-            variant={user.role === 'ADMIN' ? 'accent' : user.role === 'PREMIUM' ? 'info' : 'secondary'}
-            className="text-xs shrink-0"
-          >
-            {user.role}
-          </Badge>
-          {user.isBanned && <Badge variant="destructive" className="text-xs shrink-0">Banned</Badge>}
-          {user.isSuspended && <Badge variant="warning" className="text-xs shrink-0">Suspended</Badge>}
-          {user.isSuspicious && <Badge className="text-xs shrink-0 bg-orange-500/10 text-orange-400 border-orange-500/20">Suspicious</Badge>}
-        </div>
-        <p className="text-xs text-muted-foreground truncate">{user.email}</p>
-      </div>
-      <div className="text-right hidden sm:block shrink-0">
-        <p className="text-xs text-muted-foreground">{user._count.interviewSessions} sessions</p>
-        {user.lastLogin && <p className="text-xs text-muted-foreground">{formatRelative(user.lastLogin)}</p>}
-      </div>
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="icon" className="size-7 shrink-0">
-            <MoreVertical className="size-3.5" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          {user.isBanned ? (
-            <DropdownMenuItem onClick={() => onUnban(user.id)} className="text-green-400">
-              Unban User
-            </DropdownMenuItem>
-          ) : (
-            <DropdownMenuItem onClick={() => onBan(user.id)} className="text-destructive">
-              <Ban className="size-4" /> Ban User
-            </DropdownMenuItem>
-          )}
-          <DropdownMenuSeparator />
-          {['FREE', 'PREMIUM', 'ADMIN'].filter(r => r !== user.role).map(role => (
-            <DropdownMenuItem key={role} onClick={() => onChangeRole(user.id, role)}>
-              Make {role}
-            </DropdownMenuItem>
-          ))}
-        </DropdownMenuContent>
-      </DropdownMenu>
-    </div>
-  )
-}
-
-// ── Main Admin Page ────────────────────────────────────────────────────────
+// ── Main Page ──────────────────────────────────────────────────────────────
 
 export default function AdminPage() {
-  const [search, setSearch] = useState('')
-  const [debouncedSearch, setDebouncedSearch] = useState('')
-  const [page, setPage] = useState(1)
-  const [banTarget, setBanTarget] = useState<string | null>(null)
-  const [banReason, setBanReason] = useState('')
-
-  // Debounce search
-  const handleSearch = (val: string) => {
-    setSearch(val)
-    clearTimeout((window as any).__searchTimer)
-    ;(window as any).__searchTimer = setTimeout(() => {
-      setDebouncedSearch(val)
-      setPage(1)
-    }, 400)
-  }
-
-  const { data: stats, isLoading: statsLoading } = useQuery({
-    queryKey: ['admin', 'stats'],
-    queryFn: adminApi.getDashboardStats,
-  })
-
-  const { data: usersData, isLoading: usersLoading, isError } = useQuery({
-    queryKey: ['admin', 'users', debouncedSearch, page],
-    queryFn: () => adminApi.getUsers({ search: debouncedSearch, page, limit: 20 }),
-  })
-
-  const banMutation = useMutation({
-    mutationFn: ({ id, reason }: { id: string; reason: string }) => adminApi.banUser(id, reason),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['admin', 'users'] }); setBanTarget(null); setBanReason('') },
-  })
-
-  const unbanMutation = useMutation({
-    mutationFn: (id: string) => adminApi.unbanUser(id),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin', 'users'] }),
-  })
-
-  const roleMutation = useMutation({
-    mutationFn: ({ id, role }: { id: string; role: string }) => adminApi.changeRole(id, role),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin', 'users'] }),
-  })
+  const { user }      = useAuthStore()
+  const [activeTab, setActiveTab] = useState<AdminTab>('overview')
+  const { data: stats, isLoading: statsLoading } = useAdminStats()
 
   if (statsLoading) return <LoadingScreen message="Loading admin panel..." />
 
@@ -159,131 +44,65 @@ export default function AdminPage() {
     <div className="space-y-6 animate-fade-in">
       <PageHeader
         title="Admin Panel"
-        description="Manage users, monitor system health, and view analytics"
+        description={`Signed in as ${user?.name} · ${user?.email}`}
       />
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard title="Total Users" value={stats?.totalUsers ?? 0} icon={Users} />
-        <StatCard title="Active Users" value={stats?.activeUsers ?? 0} icon={Activity} trend="up" trendValue={`${stats?.newUsersToday ?? 0} today`} />
-        <StatCard title="Banned" value={stats?.bannedUsers ?? 0} icon={Ban} iconClassName="bg-destructive/10 text-destructive" />
-        <StatCard title="Suspended" value={stats?.suspendedUsers ?? 0} icon={Shield} iconClassName="bg-yellow-500/10 text-yellow-400" />
-      </div>
-
-      {/* Role breakdown */}
+      {/* Quick-stat strip */}
       {stats && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm text-muted-foreground font-medium">Users by Role</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex gap-6">
-              {[
-                { label: 'Free', value: stats.byRole.free, color: 'text-muted-foreground' },
-                { label: 'Premium', value: stats.byRole.premium, color: 'text-blue-400' },
-                { label: 'Admin', value: stats.byRole.admin, color: 'text-purple-400' },
-              ].map(item => (
-                <div key={item.label}>
-                  <p className={cn('text-2xl font-bold', item.color)}>{item.value}</p>
-                  <p className="text-xs text-muted-foreground">{item.label}</p>
-                </div>
-              ))}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+          {[
+            { label: 'Total Users',   value: stats.totalUsers,          color: 'text-foreground'  },
+            { label: 'Active',        value: stats.activeUsers,         color: 'text-green-400'   },
+            { label: 'New Today',     value: stats.newUsersToday,       color: 'text-blue-400'    },
+            { label: 'This Week',     value: stats.newUsersThisWeek,    color: 'text-blue-300'    },
+            { label: 'Banned',        value: stats.bannedUsers,         color: 'text-destructive' },
+            { label: 'Suspended',     value: stats.suspendedUsers,      color: 'text-yellow-400'  },
+          ].map((item) => (
+            <div
+              key={item.label}
+              className="rounded-xl border border-border bg-card px-4 py-3 text-center"
+            >
+              <p className={cn('text-2xl font-bold tabular-nums', item.color)}>
+                {item.value}
+              </p>
+              <p className="text-xs text-muted-foreground mt-0.5">{item.label}</p>
             </div>
-          </CardContent>
-        </Card>
+          ))}
+        </div>
       )}
 
-      {/* Users management */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between gap-3 flex-wrap">
-            <CardTitle className="text-base flex items-center gap-2">
-              <Users className="size-4" /> User Management
-            </CardTitle>
-            <div className="relative w-full sm:w-64">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
-              <input
-                type="text"
-                placeholder="Search users..."
-                value={search}
-                onChange={e => handleSearch(e.target.value)}
-                className="flex h-8 w-full rounded-lg border border-border bg-input pl-8 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              />
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {usersLoading ? (
-            <LoadingScreen />
-          ) : isError ? (
-            <ErrorState message="Failed to load users" />
-          ) : (
-            <>
-              <div>
-                {usersData?.users?.map(user => (
-                  <UserRow
-                    key={user.id}
-                    user={user}
-                    onBan={(id) => setBanTarget(id)}
-                    onUnban={(id) => unbanMutation.mutate(id)}
-                    onChangeRole={(id, role) => roleMutation.mutate({ id, role })}
-                  />
-                ))}
-                {!usersData?.users?.length && (
-                  <p className="text-center text-sm text-muted-foreground py-8">No users found</p>
-                )}
-              </div>
-
-              {/* Pagination */}
-              {usersData?.pagination && usersData.pagination.totalPages > 1 && (
-                <div className="flex items-center justify-between mt-4 pt-4 border-t border-border">
-                  <p className="text-xs text-muted-foreground">
-                    {usersData.pagination.total} users · Page {page} of {usersData.pagination.totalPages}
-                  </p>
-                  <div className="flex gap-2">
-                    <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>
-                      Previous
-                    </Button>
-                    <Button variant="outline" size="sm" disabled={page >= usersData.pagination.totalPages} onClick={() => setPage(p => p + 1)}>
-                      Next
-                    </Button>
-                  </div>
-                </div>
+      {/* Tab bar */}
+      <div className="flex gap-1 border-b border-border overflow-x-auto scrollbar-none">
+        {TABS.map((tab) => {
+          const Icon = tab.icon
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={cn(
+                'flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium whitespace-nowrap',
+                'border-b-2 -mb-px transition-colors',
+                activeTab === tab.id
+                  ? 'border-primary text-foreground'
+                  : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border',
               )}
-            </>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Ban confirmation dialog */}
-      <AlertDialog open={!!banTarget} onOpenChange={() => { setBanTarget(null); setBanReason('') }}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Ban User?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will immediately revoke all sessions and prevent the user from logging in.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <div className="space-y-1.5">
-            <label className="text-sm font-medium text-foreground">Reason</label>
-            <input
-              value={banReason}
-              onChange={e => setBanReason(e.target.value)}
-              placeholder="Violation reason..."
-              className="flex h-9 w-full rounded-lg border border-border bg-input px-3 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            />
-          </div>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              disabled={!banReason.trim() || banMutation.isPending}
-              onClick={() => banTarget && banMutation.mutate({ id: banTarget, reason: banReason })}
             >
-              {banMutation.isPending ? 'Banning...' : 'Ban User'}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+              <Icon className="size-3.5 shrink-0" />
+              {tab.label}
+            </button>
+          )
+        })}
+      </div>
+
+      {/* Tab content */}
+      <div className="min-h-[400px]">
+        {activeTab === 'overview'  && <AdminOverviewTab  />}
+        {activeTab === 'users'     && <AdminUsersTab     />}
+        {activeTab === 'analytics' && <AdminAnalyticsTab />}
+        {activeTab === 'system'    && <AdminSystemTab    />}
+        {activeTab === 'audit'     && <AdminAuditTab     />}
+        {activeTab === 'reports'   && <AdminReportsTab   />}
+      </div>
     </div>
   )
 }
