@@ -34,6 +34,7 @@ const AchievementsPage = lazy(() => import('@/pages/profile/AchievementsPage'));
 const AIChatPage = lazy(() => import('@/pages/chat/AIChatPage'));
 const AdminPage = lazy(() => import('@/pages/admin/AdminPage'));
 const NotFoundPage = lazy(() => import('@/pages/NotFoundPage'));
+const PublicScorecardPage = lazy(() => import('@/pages/public/PublicScorecardPage'));
 
 function AppRoutes() {
   return (
@@ -44,6 +45,9 @@ function AppRoutes() {
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         </Route>
+
+        {/* Public Scorecard - viewable by anyone */}
+        <Route path="/scorecard/:token" element={<PublicScorecardPage />} />
 
         <Route element={<ProtectedRoute />}>
           <Route element={<AppShell />}>

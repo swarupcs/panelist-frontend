@@ -29,12 +29,16 @@ import {
   ArrowRight,
   Target,
   HelpCircle,
+  Share2,
+  FileText,
+  Download,
 } from 'lucide-react';
 import { useInterviewStore } from '@/store/interviewStore';
 import { useSessionResults } from '@/hooks/useInterview';
 import { interviewApi } from '@/api/interview.api';
 import { ScoreRing } from '@/components/common';
 import { QuestionRating } from '@/components/interview/QuestionRating';
+import { ShareScorecardModal } from '@/components/interview/ShareScorecardModal';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
@@ -308,6 +312,7 @@ export default function InterviewResultsPage() {
   // show overallScore only, without misleading "pending" UI.
   const MAX_POLLS = 3;
   const [pollCount, setPollCount] = useState(0);
+  const [showShareModal, setShowShareModal] = useState(false);
 
   const { data: results, isLoading, isError, refetch } = useQuery({
     queryKey: ['interview', 'results', sessionId],
@@ -516,12 +521,21 @@ export default function InterviewResultsPage() {
             </div>
           )}
 
-          <div className='flex flex-wrap justify-center gap-3'>
+          <div className='flex flex-wrap justify-center gap-3 print:hidden'>
             <Button variant='gradient' size='lg' className='gap-2' onClick={() => navigate('/interview')}>
               <RotateCcw className='size-4' /> Practice Again
             </Button>
             <Button variant='outline' size='lg' className='gap-2' onClick={() => navigate(`/interview/replay/${sessionId}`)}>
-              <Play className='size-4' /> Replay Session
+              <Play className='size-4' /> Replay
+            </Button>
+            <Button variant='outline' size='lg' className='gap-2' onClick={() => setShowShareModal(true)}>
+              <Share2 className='size-4' /> Share
+            </Button>
+            <Button variant='outline' size='lg' className='gap-2' onClick={() => window.print()}>
+              <FileText className='size-4' /> PDF
+            </Button>
+            <Button variant='outline' size='lg' className='gap-2' onClick={() => window.location.href = `/api/share/${sessionId}/export/csv`}>
+              <Download className='size-4' /> CSV
             </Button>
             <Button variant='outline' size='lg' className='gap-2' onClick={() => navigate('/analytics')}>
               <BarChart3 className='size-4' /> Analytics
@@ -587,6 +601,12 @@ export default function InterviewResultsPage() {
           </CardContent>
         </Card>
       )}
+
+      <ShareScorecardModal
+        isOpen={showShareModal}
+        onClose={() => setShowShareModal(false)}
+        sessionId={sessionId!}
+      />
     </div>
   );
 }
