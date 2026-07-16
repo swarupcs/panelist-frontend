@@ -1,8 +1,15 @@
+// src/pages/InterviewSetupPage.tsx
+//
+// FIXES
+// ─────────────────────────────────────────────────────────────────────────────
+// PAGE-1  Removed dead imports: useForm, zodResolver, z, Select/SelectContent/
+//         SelectItem/SelectTrigger/SelectValue, Target — none were used.
+//
+// PAGE-2  handleStart no longer passes userId — StartInterviewRequest no longer
+//         has a userId field (removed in types/index.ts, AUTH-1 fix).
+
 import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
 import {
   Brain,
   Code2,
@@ -11,7 +18,6 @@ import {
   Shuffle,
   Clock,
   Gauge,
-  Target,
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import {
@@ -21,13 +27,6 @@ import {
   CardTitle,
   CardDescription,
 } from '@/components/ui/Card';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/Select';
 import { PageHeader } from '@/components/common';
 import { useStartInterview } from '@/hooks/useInterview';
 import type { InterviewType, Difficulty } from '@/types';
@@ -94,13 +93,6 @@ const difficulties = [
 
 const durations = [15, 30, 45, 60, 90];
 
-const schema = z.object({
-  type: z.enum(['dsa', 'system_design', 'behavioral', 'mixed'] as const),
-  difficulty: z.enum(['easy', 'medium', 'hard'] as const),
-  duration: z.number().min(15).max(120),
-});
-type FormData = z.infer<typeof schema>;
-
 export default function InterviewSetupPage() {
   const [searchParams] = useSearchParams();
   const initialType = (searchParams.get('type') as InterviewType) || 'dsa';
@@ -108,8 +100,10 @@ export default function InterviewSetupPage() {
   const [selectedDifficulty, setSelectedDifficulty] =
     useState<Difficulty>('medium');
   const [selectedDuration, setSelectedDuration] = useState(30);
+
   const startInterview = useStartInterview();
 
+  // PAGE-2 FIX: no userId — removed from StartInterviewRequest type
   const handleStart = () => {
     startInterview.mutate({
       type: selectedType,
@@ -208,7 +202,7 @@ export default function InterviewSetupPage() {
             Duration
           </CardTitle>
           <CardDescription>
-            How long do you want to practice? (
+            How long do you want to practice? (~
             {Math.floor(selectedDuration / 15)} questions)
           </CardDescription>
         </CardHeader>
