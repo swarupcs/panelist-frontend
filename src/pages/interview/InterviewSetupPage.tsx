@@ -4,16 +4,22 @@
 
 import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import {
+import { 
+  Code2, 
+  Layers, 
+  Users, 
+  Shuffle, 
+  Clock, 
+  Target, 
+  Play, 
   Brain,
-  Code2,
-  Layers,
-  Users,
-  Shuffle,
-  Clock,
-  Gauge,
-  Zap,
-  Timer,
+  Monitor,
+  Server,
+  Cloud,
+  Smartphone,
+  ChevronRight,
+  TrendingUp,
+  AlertCircle,
   ChevronDown,
   ChevronUp,
 } from 'lucide-react';
@@ -48,6 +54,38 @@ const INTERVIEW_TYPES = [
     icon: Layers,
     color: 'text-purple-400',
     bg: 'bg-purple-500/10 border-purple-500/20',
+  },
+  {
+    value: 'frontend',
+    label: 'Frontend',
+    description: 'React, CSS & Browser APIs',
+    icon: Monitor,
+    color: 'text-pink-400',
+    bg: 'bg-pink-500/10 border-pink-500/20',
+  },
+  {
+    value: 'backend',
+    label: 'Backend',
+    description: 'APIs, DBs & Architecture',
+    icon: Server,
+    color: 'text-teal-400',
+    bg: 'bg-teal-500/10 border-teal-500/20',
+  },
+  {
+    value: 'devops',
+    label: 'DevOps',
+    description: 'CI/CD, Docker & Cloud',
+    icon: Cloud,
+    color: 'text-orange-400',
+    bg: 'bg-orange-500/10 border-orange-500/20',
+  },
+  {
+    value: 'mobile',
+    label: 'Mobile',
+    description: 'iOS, Android & React Native',
+    icon: Smartphone,
+    color: 'text-indigo-400',
+    bg: 'bg-indigo-500/10 border-indigo-500/20',
   },
   {
     value: 'behavioral',
@@ -133,6 +171,31 @@ const FOCUS_AREAS: Record<string, { value: string; label: string }[]> = {
     { value: 'TEAMWORK', label: 'Teamwork' },
     { value: 'CONFLICT_RESOLUTION', label: 'Conflict Resolution' },
     { value: 'COMMUNICATION', label: 'Communication' },
+  ],
+  frontend: [
+    { value: 'HTML_CSS', label: 'HTML/CSS' },
+    { value: 'JAVASCRIPT_ES6', label: 'JavaScript' },
+    { value: 'REACT', label: 'React' },
+    { value: 'WEB_PERFORMANCE', label: 'Web Performance' },
+    { value: 'ACCESSIBILITY', label: 'Accessibility' },
+    { value: 'BROWSER_APIS', label: 'Browser APIs' },
+  ],
+  backend: [
+    { value: 'REST_API_DESIGN', label: 'REST API Design' },
+    { value: 'DATABASE_DESIGN', label: 'Database Design' },
+    { value: 'AUTHENTICATION', label: 'Authentication' },
+    { value: 'CACHING', label: 'Caching' },
+    { value: 'MICROSERVICES', label: 'Microservices' },
+    { value: 'SQL', label: 'SQL' },
+  ],
+  devops: [
+    { value: 'CI_CD', label: 'CI/CD' },
+    { value: 'DOCKER', label: 'Docker' },
+    { value: 'KUBERNETES', label: 'Kubernetes' },
+    { value: 'SECURITY', label: 'Security' },
+  ],
+  mobile: [
+    { value: 'REACT', label: 'React Native' }, // Assuming React works for RN
   ],
 };
 

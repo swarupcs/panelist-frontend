@@ -46,7 +46,7 @@ export interface RegisterResponse {
 // ============================================================
 // Interview Types
 // ============================================================
-export type InterviewType = 'dsa' | 'system_design' | 'behavioral' | 'mixed';
+export type InterviewType = 'dsa' | 'system_design' | 'behavioral' | 'mixed' | 'frontend' | 'backend' | 'devops' | 'mobile';
 export type Difficulty = 'easy' | 'medium' | 'hard';
 
 // FIX: added 'abandoned' to match backend DB status
