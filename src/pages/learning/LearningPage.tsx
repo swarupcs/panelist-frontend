@@ -596,14 +596,31 @@ export default function LearningPage() {
                           ` · ~${path.estimatedWeeks} weeks`}
                       </p>
                     </div>
-                    <div className='text-right'>
-                      <p className='text-2xl font-bold text-primary tabular-nums'>
-                        {Math.round(
-                          (path.currentPhase / path.totalPhases) * 100,
-                        )}
-                        %
-                      </p>
-                      <p className='text-xs text-muted-foreground'>complete</p>
+                    <div className='flex items-center gap-6 text-right'>
+                      {path.readinessScore !== undefined && (
+                        <div>
+                          <div className='flex items-center justify-end gap-1'>
+                            <p className={cn('text-2xl font-bold tabular-nums', 
+                              path.readinessScore >= 80 ? 'text-green-500' :
+                              path.readinessScore >= 60 ? 'text-yellow-500' :
+                              'text-red-500'
+                            )}>
+                              {path.readinessScore}
+                            </p>
+                            <span className='text-sm text-muted-foreground'>/100</span>
+                          </div>
+                          <p className='text-xs text-muted-foreground'>Readiness Score</p>
+                        </div>
+                      )}
+                      <div>
+                        <p className='text-2xl font-bold text-primary tabular-nums'>
+                          {Math.round(
+                            (path.currentPhase / path.totalPhases) * 100,
+                          )}
+                          %
+                        </p>
+                        <p className='text-xs text-muted-foreground'>complete</p>
+                      </div>
                     </div>
                   </div>
                   {/* Overall progress bar */}

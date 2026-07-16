@@ -296,6 +296,7 @@ export interface LearningPath {
   targetDate?: string;
   createdAt: string;
   phases: LearningPhase[];
+  readinessScore?: number;
 }
 
 export interface SpacedRepetitionItem {
