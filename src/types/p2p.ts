@@ -22,6 +22,8 @@ export type P2PMessageType =
   | 'CODE_OUTPUT'
   | 'GET_HINT'
   | 'HINT_RECEIVED'
+  | 'START_TIMER'
+  | 'TIMER_SYNC'
   | 'ERROR';
 
 export interface P2PMessage {

@@ -15,6 +15,7 @@ interface UseWebRTCReturn {
   currentQuestion: any | null;
   incomingWhiteboardPatch: any | null;
   aiHint: { status: 'idle' | 'loading' | 'success' | 'error', text: string | null };
+  interviewEndTime: number | null;
   joinQueue: (role: string, difficulty: string, language: string) => void;
   leaveQueue: () => void;
   joinRoom: (roomId: string) => void;
@@ -24,6 +25,7 @@ interface UseWebRTCReturn {
   sendWhiteboardSync: (patch: any) => void;
   executeCode: (code: string) => void;
   getHint: () => void;
+  startTimer: (durationMinutes: number) => void;
   selectQuestion: (question: any) => void;
   swapRoles: () => void;
   submitFeedback: (technicalRating: number, communicationRating: number, feedback: string) => void;
@@ -56,6 +58,7 @@ export function useWebRTC(): UseWebRTCReturn {
   const [currentQuestion, setCurrentQuestion] = useState<any | null>(null);
   const [incomingWhiteboardPatch, setIncomingWhiteboardPatch] = useState<any | null>(null);
   const [aiHint, setAiHint] = useState<{ status: 'idle' | 'loading' | 'success' | 'error', text: string | null }>({ status: 'idle', text: null });
+  const [interviewEndTime, setInterviewEndTime] = useState<number | null>(null);
   const [isAudioEnabled, setIsAudioEnabled] = useState(true);
   const [isVideoEnabled, setIsVideoEnabled] = useState(true);
 
@@ -129,6 +132,9 @@ export function useWebRTC(): UseWebRTCReturn {
             status: msg.payload.status,
             text: msg.payload.hint || null
           });
+          break;
+        case 'TIMER_SYNC':
+          setInterviewEndTime(msg.payload.endTime);
           break;
       }
     };
@@ -278,6 +284,10 @@ export function useWebRTC(): UseWebRTCReturn {
     }
   }, [currentQuestion, codeContent]);
 
+  const startTimer = useCallback((durationMinutes: number = 45) => {
+    sendWsMessage({ type: 'START_TIMER', payload: { durationMinutes } });
+  }, []);
+
   const selectQuestion = useCallback((question: any) => {
     setCurrentQuestion(question);
     sendWsMessage({ type: 'SELECT_QUESTION', payload: { question } });
@@ -325,6 +335,7 @@ export function useWebRTC(): UseWebRTCReturn {
     currentQuestion,
     incomingWhiteboardPatch,
     aiHint,
+    interviewEndTime,
     joinQueue,
     leaveQueue,
     joinRoom,
@@ -334,6 +345,7 @@ export function useWebRTC(): UseWebRTCReturn {
     sendWhiteboardSync,
     executeCode,
     getHint,
+    startTimer,
     selectQuestion,
     swapRoles,
     submitFeedback,
