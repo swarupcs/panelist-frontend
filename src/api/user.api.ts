@@ -84,8 +84,13 @@ export const progressApi = {
 // ── User ───────────────────────────────────────────────────────────────────
 
 export const userApi = {
-  updateProfile: async (data: { name?: string; profilePicture?: string }) => {
+  updateProfile: async (data: { name?: string; profilePicture?: string; username?: string; bio?: string }) => {
     const res = await api.patch('/user/profile', data)
+    return res.data.data
+  },
+
+  getPublicProfile: async (username: string) => {
+    const res = await api.get(`/users/public/${username}`)
     return res.data.data
   },
 

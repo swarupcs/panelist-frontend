@@ -36,6 +36,7 @@ const AIChatPage = lazy(() => import('@/pages/chat/AIChatPage'));
 const AdminPage = lazy(() => import('@/pages/admin/AdminPage'));
 const NotFoundPage = lazy(() => import('@/pages/NotFoundPage'));
 const PublicScorecardPage = lazy(() => import('@/pages/public/PublicScorecardPage'));
+const PublicProfilePage = lazy(() => import('@/pages/profile/PublicProfilePage'));
 const LandingPage = lazy(() => import('@/pages/public/LandingPage'));
 const BlogListPage = lazy(() => import('@/pages/blog/BlogListPage'));
 const BlogPostPage = lazy(() => import('@/pages/blog/BlogPostPage'));
@@ -65,6 +66,7 @@ function AppRoutes() {
 
         {/* Public pages - viewable by anyone */}
         <Route path="/scorecard/:token" element={<PublicScorecardPage />} />
+        <Route path="/u/:username" element={<PublicProfilePage />} />
         <Route path="/blog" element={<BlogListPage />} />
         <Route path="/blog/:slug" element={<BlogPostPage />} />
         

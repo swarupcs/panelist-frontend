@@ -13,6 +13,7 @@ import {
   AlertTriangle,
   Loader2,
   Shield,
+  Share2,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { userApi } from '@/api/user.api';
@@ -45,6 +46,104 @@ function Avatar({ name, picture }: { name: string; picture?: string | null }) {
       <span className='text-2xl font-bold text-primary'>
         {getInitials(name)}
       </span>
+    </div>
+  );
+}
+
+// ── Public Profile form ───────────────────────────────────────────────────
+
+function PublicProfileForm() {
+  const { user } = useAuthStore();
+  const qc = useQueryClient();
+  const [form, setForm] = useState({
+    username: user?.username || '',
+    bio: user?.bio || '',
+  });
+  const [saved, setSaved] = useState(false);
+
+  const update = useMutation({
+    mutationFn: userApi.updateProfile,
+    onSuccess: (data) => {
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+      // Ensure the store is updated with the new user info if needed,
+      // or invalidate query
+      useAuthStore.setState({ user: { ...user, ...data.user } });
+    },
+  });
+
+  const publicUrl = user?.username ? `${window.location.origin}/u/${user.username}` : '';
+
+  return (
+    <div className='space-y-4'>
+      <div className='space-y-1.5'>
+        <label className='text-xs text-muted-foreground'>Username</label>
+        <div className='flex items-center gap-2'>
+          <span className='text-sm text-muted-foreground'>domain.com/u/</span>
+          <input
+            type='text'
+            value={form.username}
+            onChange={(e) => setForm((f) => ({ ...f, username: e.target.value.toLowerCase() }))}
+            className='flex-1 rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary/50'
+            placeholder='johndoe'
+            maxLength={20}
+          />
+        </div>
+        <p className='text-xs text-muted-foreground'>
+          Letters, numbers, and underscores only. Max 20 characters.
+        </p>
+      </div>
+
+      <div className='space-y-1.5'>
+        <label className='text-xs text-muted-foreground'>Bio (Public)</label>
+        <textarea
+          value={form.bio}
+          onChange={(e) => setForm((f) => ({ ...f, bio: e.target.value }))}
+          className='w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary/50 resize-none'
+          placeholder='Tell the community about yourself...'
+          rows={3}
+          maxLength={200}
+        />
+      </div>
+
+      {update.isError && (
+        <p className='text-xs text-destructive'>
+          {(update.error as any)?.response?.data?.error?.message ?? 'Failed to update public profile'}
+        </p>
+      )}
+
+      <div className='flex items-center justify-between pt-2'>
+        <div className='flex items-center gap-3'>
+          <Button
+            variant='gradient'
+            size='sm'
+            onClick={() => update.mutate(form)}
+            loading={update.isPending}
+            disabled={!form.username || update.isPending}
+          >
+            Save Public Profile
+          </Button>
+          {saved && (
+            <span className='flex items-center gap-1 text-xs text-green-400'>
+              <CheckCircle2 className='size-3.5' /> Saved
+            </span>
+          )}
+        </div>
+        {publicUrl && (
+          <Button
+            variant='outline'
+            size='sm'
+            className='gap-2'
+            onClick={() => {
+              navigator.clipboard.writeText(publicUrl);
+              alert('Public profile link copied to clipboard!');
+            }}
+          >
+            <Share2 className='size-3.5' />
+            Share Profile
+          </Button>
+        )}
+      </div>
     </div>
   );
 }
@@ -354,7 +453,7 @@ function DeleteAccountSection() {
 export default function ProfilePage() {
   const { user } = useAuthStore();
   const [activeSection, setActiveSection] = useState<
-    'password' | 'preferences' | 'history' | null
+    'password' | 'preferences' | 'history' | 'publicProfile' | null
   >(null);
 
   const { data: historyData, isLoading: histLoading } = useQuery({
@@ -381,6 +480,7 @@ export default function ProfilePage() {
   if (!user) return null;
 
   const SECTIONS = [
+    { key: 'publicProfile', label: 'Public Profile', icon: User },
     { key: 'preferences', label: 'Preferences', icon: Bell },
     { key: 'password', label: 'Change Password', icon: Lock },
     { key: 'history', label: 'Login History', icon: History },
@@ -479,6 +579,7 @@ export default function ProfilePage() {
 
             {activeSection === key && (
               <CardContent className='pt-0 pb-4 border-t border-border'>
+                {key === 'publicProfile' && <PublicProfileForm />}
                 {key === 'preferences' && <PreferencesForm />}
                 {key === 'password' && <ChangePasswordForm />}
                 {key === 'history' && (

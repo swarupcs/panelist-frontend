@@ -5,6 +5,8 @@ export interface User {
   id: string;
   email: string;
   name: string;
+  username?: string | null;
+  bio?: string | null;
   role: 'FREE' | 'PREMIUM' | 'ADMIN';
   emailVerified: boolean;
   isActive: boolean;
