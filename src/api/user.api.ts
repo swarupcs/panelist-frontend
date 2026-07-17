@@ -15,6 +15,8 @@ export const learningApi = {
     currentLevel: string
     targetDate?: string
     weeklyHours?: number
+    targetCompanies?: string
+    weaknesses?: string
   }): Promise<{ learningPath: LearningPath }> => {
     const res = await api.post('/learning-path/generate', data)
     return res.data.data

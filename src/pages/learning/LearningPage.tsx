@@ -57,6 +57,8 @@ function PathGenerator() {
   const [role, setRole] = useState('FULLSTACK_DEVELOPER');
   const [level, setLevel] = useState('BEGINNER');
   const [hours, setHours] = useState(10);
+  const [targetCompanies, setTargetCompanies] = useState('');
+  const [weaknesses, setWeaknesses] = useState('');
   const generate = useGeneratePath();
 
   return (
@@ -105,6 +107,32 @@ function PathGenerator() {
 
         <div className='space-y-1.5'>
           <label className='text-xs font-semibold text-muted-foreground uppercase tracking-wider'>
+            Target Companies (Optional)
+          </label>
+          <input
+            type='text'
+            placeholder='e.g., Google, Stripe, Startups'
+            value={targetCompanies}
+            onChange={(e) => setTargetCompanies(e.target.value)}
+            className='w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary/50'
+          />
+        </div>
+
+        <div className='space-y-1.5'>
+          <label className='text-xs font-semibold text-muted-foreground uppercase tracking-wider'>
+            Known Weaknesses (Optional)
+          </label>
+          <input
+            type='text'
+            placeholder='e.g., Dynamic Programming, System Design'
+            value={weaknesses}
+            onChange={(e) => setWeaknesses(e.target.value)}
+            className='w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary/50'
+          />
+        </div>
+
+        <div className='space-y-1.5'>
+          <label className='text-xs font-semibold text-muted-foreground uppercase tracking-wider'>
             Weekly Study Hours: {hours}h
           </label>
           <input
@@ -129,6 +157,8 @@ function PathGenerator() {
               targetRole: role,
               currentLevel: level,
               weeklyHours: hours,
+              targetCompanies: targetCompanies || undefined,
+              weaknesses: weaknesses || undefined,
             })
           }
           loading={generate.isPending}
