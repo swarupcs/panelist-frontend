@@ -3,6 +3,7 @@ import { Sidebar, MobileNav } from './Sidebar'
 import { Bell, Search } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { ThemeToggle } from './ThemeToggle'
 
 function Header() {
   const { user } = useAuthStore()
@@ -21,6 +22,7 @@ function Header() {
       </div>
 
       <div className="flex items-center gap-2">
+        <ThemeToggle />
         <button className="flex size-8 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors relative">
           <Bell className="size-4" />
           <span className="absolute top-1.5 right-1.5 size-1.5 rounded-full bg-primary" />
