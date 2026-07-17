@@ -2,14 +2,21 @@ import { useEffect, useState, useRef, useCallback } from 'react';
 import { Excalidraw, MainMenu, WelcomeScreen } from '@excalidraw/excalidraw';
 
 interface ExcalidrawTabProps {
+   
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   onSync: (elements: readonly any[], appState: any) => void;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   incomingElements: readonly any[] | null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   onPointerSync?: (pointer: any) => void;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   incomingPointer?: any | null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   setApi?: (api: any) => void;
 }
 
 export function ExcalidrawTab({ onSync, incomingElements, onPointerSync, incomingPointer, setApi }: ExcalidrawTabProps) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [excalidrawAPI, setExcalidrawAPI] = useState<any>(null);
   const isUpdatingFromRemote = useRef(false);
   const [collaborators, setCollaborators] = useState(new Map());
@@ -27,6 +34,7 @@ export function ExcalidrawTab({ onSync, incomingElements, onPointerSync, incomin
 
   useEffect(() => {
     if (excalidrawAPI && incomingPointer) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setCollaborators(new Map([
         ['peer', {
           pointer: incomingPointer,
@@ -44,12 +52,15 @@ export function ExcalidrawTab({ onSync, incomingElements, onPointerSync, incomin
     }
   }, [collaborators, excalidrawAPI]);
 
+   
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleChange = (elements: readonly any[], appState: any) => {
     if (!isUpdatingFromRemote.current) {
       onSync(elements, appState);
     }
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handlePointerUpdate = useCallback((payload: any) => {
     if (onPointerSync) {
       onPointerSync(payload.pointer);

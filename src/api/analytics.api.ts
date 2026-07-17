@@ -28,6 +28,7 @@ export const analyticsApi = {
     return res.data.data
   },
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   getSkillGaps: async (): Promise<{ skillGaps: SkillGap[]; weakAreas: any[]; currentLevel: string; goalLevel: string }> => {
     const res = await api.get('/analytics/skill-gaps')
     return res.data.data

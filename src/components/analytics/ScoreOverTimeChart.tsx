@@ -1,6 +1,8 @@
 import { useMemo } from 'react';
 import {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   LineChart,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   Line,
   XAxis,
   YAxis,

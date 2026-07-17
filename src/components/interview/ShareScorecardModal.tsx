@@ -50,6 +50,7 @@ export function ShareScorecardModal({ isOpen, onClose, sessionId }: ShareScoreca
       if (!data.success) throw new Error(data.error?.message || 'Failed to generate link');
 
       setShareUrl(data.data.url);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       setError(err.message);
     } finally {

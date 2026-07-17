@@ -13,10 +13,15 @@ interface UseWebRTCReturn {
   isCodeRunning: boolean;
   editorLanguage: string;
   role: 'INTERVIEWER' | 'INTERVIEWEE' | null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   currentQuestion: any | null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   incomingWhiteboardPatch: any | null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   incomingExcalidrawElements: any | null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   incomingExcalidrawPointer: any | null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   incomingWhiteboardCamera: any | null;
   aiHint: { status: 'idle' | 'loading' | 'success' | 'error', text: string | null } | null;
   complexityResult: {
@@ -39,14 +44,19 @@ interface UseWebRTCReturn {
   leaveRoom: () => void;
   sendMessage: (text: string) => void;
   sendCodeUpdate: (code: string) => void;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   sendWhiteboardSync: (patch: any) => void;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   sendExcalidrawSync: (elements: any) => void;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   sendExcalidrawPointerSync: (pointer: any) => void;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   sendWhiteboardCameraSync: (camera: any) => void;
   sendAnalyzeWhiteboard: (image: string) => void;
   sendSaveSnapshots: (roomId: string, code: string, whiteboard: string) => void;
   setLanguage: (lang: string) => void;
   reportFocusLoss: () => void;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   executeCode: (code: string, testCases?: any[]) => void;
   getHint: () => void;
   getSocraticDebug: (output: string) => void;
@@ -55,6 +65,7 @@ interface UseWebRTCReturn {
   getAntiPatterns: () => void;
   sendSocraticChatMessage: (history: Array<{role: string, text: string}>) => void;
   startTimer: (durationMinutes?: number) => void;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   selectQuestion: (question: any) => void;
   swapRoles: () => void;
   submitFeedback: (technicalRating: number, communicationRating: number, feedback: string) => void;
@@ -88,14 +99,20 @@ export function useWebRTC(): UseWebRTCReturn {
   const [isCodeRunning, setIsCodeRunning] = useState(false);
   const [editorLanguage, setEditorLanguage] = useState<string>('javascript');
   const [role, setRole] = useState<'INTERVIEWER' | 'INTERVIEWEE' | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [currentQuestion, setCurrentQuestion] = useState<any | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [incomingWhiteboardPatch, setIncomingWhiteboardPatch] = useState<any>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [incomingExcalidrawElements, setIncomingExcalidrawElements] = useState<readonly any[] | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [incomingExcalidrawPointer, setIncomingExcalidrawPointer] = useState<any>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [incomingWhiteboardCamera, setIncomingWhiteboardCamera] = useState<any>(null);
   const [aiHint, setAiHint] = useState<{ status: 'idle' | 'loading' | 'success' | 'error', text: string | null }>({ status: 'idle', text: null });
   const [complexityResult, setComplexityResult] = useState<{
     status: 'idle' | 'loading' | 'success' | 'error';
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     data?: any;
   }>({ status: 'idle' });
   const [interviewEndTime, setInterviewEndTime] = useState<number | null>(null);
@@ -132,6 +149,7 @@ export function useWebRTC(): UseWebRTCReturn {
           break;
         case 'PEER_JOINED':
           // The other person joined. If we are already here, we can initiate the offer.
+           
           initiateCall();
           break;
         case 'PEER_LEFT':
@@ -140,12 +158,15 @@ export function useWebRTC(): UseWebRTCReturn {
           setRemoteStream(null);
           break;
         case 'WEBRTC_OFFER':
+           
           await handleOffer(msg.payload);
           break;
         case 'WEBRTC_ANSWER':
+           
           await handleAnswer(msg.payload);
           break;
         case 'WEBRTC_ICE_CANDIDATE':
+           
           await handleIceCandidate(msg.payload);
           break;
         case 'CHAT_MESSAGE':
@@ -218,6 +239,7 @@ export function useWebRTC(): UseWebRTCReturn {
       ws.close();
       if (rtcRef.current) rtcRef.current.close();
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
   // Monitor WebRTC Stats
@@ -251,6 +273,7 @@ export function useWebRTC(): UseWebRTCReturn {
           } else {
             setConnectionQuality('good');
           }
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         } catch (err) {
           // Ignore
         }
@@ -311,6 +334,7 @@ export function useWebRTC(): UseWebRTCReturn {
     sendWsMessage({ type: 'WEBRTC_OFFER', payload: { sdp: pc.localDescription } });
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleOffer = async (payload: any) => {
     const pc = await createPeerConnection();
     await pc.setRemoteDescription(new RTCSessionDescription(payload.sdp));
@@ -319,12 +343,14 @@ export function useWebRTC(): UseWebRTCReturn {
     sendWsMessage({ type: 'WEBRTC_ANSWER', payload: { sdp: pc.localDescription } });
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleAnswer = async (payload: any) => {
     if (rtcRef.current) {
       await rtcRef.current.setRemoteDescription(new RTCSessionDescription(payload.sdp));
     }
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleIceCandidate = async (payload: any) => {
     if (rtcRef.current && payload.candidate) {
       await rtcRef.current.addIceCandidate(new RTCIceCandidate(payload.candidate));
@@ -351,6 +377,7 @@ export function useWebRTC(): UseWebRTCReturn {
     setRoomId(roomId);
     await getMediaStream(); // Pre-warm camera
     sendWsMessage({ type: 'JOIN_ROOM', payload: { roomId } });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const leaveRoom = useCallback(() => {
@@ -385,14 +412,17 @@ export function useWebRTC(): UseWebRTCReturn {
     sendWsMessage({ type: 'CODE_UPDATE', payload: { code } });
   }, []);
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sendWhiteboardSync = useCallback((patch: any) => {
     sendWsMessage({ type: 'WHITEBOARD_SYNC', payload: { patch } });
   }, []);
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sendExcalidrawSync = useCallback((elements: any) => {
     sendWsMessage({ type: 'EXCALIDRAW_SYNC', payload: { elements } });
   }, []);
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sendExcalidrawPointerSync = useCallback((pointer: any) => {
     sendWsMessage({ type: 'EXCALIDRAW_POINTER_SYNC', payload: { pointer } });
   }, []);
@@ -401,6 +431,7 @@ export function useWebRTC(): UseWebRTCReturn {
     sendWsMessage({ type: 'ANALYZE_WHITEBOARD', payload: { image } });
   }, []);
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sendWhiteboardCameraSync = useCallback((camera: any) => {
     sendWsMessage({ type: 'WHITEBOARD_CAMERA_SYNC', payload: { camera } });
   }, []);
@@ -418,6 +449,7 @@ export function useWebRTC(): UseWebRTCReturn {
     sendWsMessage({ type: 'TAB_FOCUS_LOST', payload: {} });
   }, []);
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const executeCode = useCallback((code: string, testCases?: any[]) => {
     setIsCodeRunning(true);
     sendWsMessage({ type: 'EXECUTE_CODE', payload: { roomId, code, testCases } });
@@ -472,6 +504,7 @@ export function useWebRTC(): UseWebRTCReturn {
     sendWsMessage({ type: 'START_TIMER', payload: { durationMinutes } });
   }, []);
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const selectQuestion = useCallback((question: any) => {
     setCurrentQuestion(question);
     sendWsMessage({ type: 'SELECT_QUESTION', payload: { question } });

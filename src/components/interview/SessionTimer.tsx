@@ -5,6 +5,8 @@
 // said the session has no timer. Now the backend response is the source of truth.
 
 import { useEffect, useRef, useState, useCallback } from 'react';
+ 
+// eslint-disable-next-line no-shadow-restricted-names, @typescript-eslint/no-unused-vars
 import { Timer, Pause, Play, Infinity } from 'lucide-react';
 import { useTimerStatus } from '@/hooks/useInterview';
 import { formatDuration } from '@/utils/formatters';

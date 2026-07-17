@@ -29,10 +29,12 @@ interface IVoiceSessionEvents {
 // ── Duplicate of backend type (keep in sync) ─────────────────────────────────
 // We define it here again to avoid importing from the backend
 type WsServerEvent =
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   | { type: 'SESSION_READY';    sessionId: string; question: any; questionIndex: number; totalQuestions: number }
   | { type: 'AI_THINKING' }
   | { type: 'AI_RESPONSE';      text: string; isQuestion: boolean }
   | { type: 'HINT';             text: string; hintsUsed: number }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   | { type: 'ANSWER_EVALUATED'; score: number; feedback: string; nextQuestion: any | null; sessionCompleted: boolean; questionIndex: number }
   | { type: 'SESSION_PAUSED' }
   | { type: 'SESSION_RESUMED' }
@@ -332,6 +334,7 @@ export class VoiceAgentClient {
         this.state.currentTranscript = this.accumulatedTranscript.trim() + ' ' + result.text;
         this.emit();
       },
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       onStatusChange: (_status) => { /* phase controlled at this level */ },
       onError: (err) => {
         this.updatePhase('error', err);

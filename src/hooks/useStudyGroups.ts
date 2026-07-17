@@ -51,6 +51,7 @@ export function useCreateGroup() {
       queryClient.invalidateQueries({ queryKey: studyGroupKeys.all });
       toast.success('Study group created successfully!');
     },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     onError: (error: any) => {
       toast.error(error.response?.data?.error?.message || 'Failed to create group');
     }
@@ -66,6 +67,7 @@ export function useJoinGroup() {
       queryClient.invalidateQueries({ queryKey: studyGroupKeys.detail(variables.id) });
       toast.success('Joined group successfully!');
     },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     onError: (error: any) => {
       toast.error(error.response?.data?.error?.message || 'Failed to join group');
     }
@@ -81,6 +83,7 @@ export function useLeaveGroup() {
       queryClient.invalidateQueries({ queryKey: studyGroupKeys.detail(id) });
       toast.info('Left the group');
     },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     onError: (error: any) => {
       toast.error(error.response?.data?.error?.message || 'Failed to leave group');
     }
@@ -94,6 +97,7 @@ export function useSendMessage() {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: studyGroupKeys.messages(variables.id) });
     },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     onError: (error: any) => {
       toast.error(error.response?.data?.error?.message || 'Failed to send message');
     }

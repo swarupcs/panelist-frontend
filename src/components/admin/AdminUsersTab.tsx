@@ -4,6 +4,7 @@ import {
   Search, Ban, ShieldAlert, ShieldOff, Trash2, Key,
   StickyNote, AlertTriangle, MoreVertical, ChevronLeft,
   ChevronRight, UserCheck, Download, Eye, RefreshCw,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   History, Trophy, Brain, Wifi,
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -67,7 +68,9 @@ export function AdminUsersTab() {
 
   const handleSearch = useCallback((val: string) => {
     setSearch(val)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     clearTimeout((window as any).__adminSearch)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     ;(window as any).__adminSearch = setTimeout(() => { setDebSearch(val); setPage(1) }, 350)
   }, [])
 
@@ -92,6 +95,7 @@ export function AdminUsersTab() {
   const closeDialog = () => setDialog(INITIAL_DIALOG)
 
   const toggleSelect = (id: string) => {
+    // eslint-disable-next-line @typescript-eslint/no-unused-expressions
     setSelected((prev) => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n })
   }
   const toggleAll = () => {

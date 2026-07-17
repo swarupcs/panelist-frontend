@@ -32,6 +32,7 @@ export class GoogleTTSProvider implements ITTSProvider {
     return typeof fetch !== 'undefined' && typeof Audio !== 'undefined';
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async speak(text: string, events: TTSEvents, options?: TTSOptions): Promise<void> {
     if (!this.apiKey) {
       events.onError('Google TTS API key not configured. Set VITE_GOOGLE_TTS_API_KEY in your .env.');

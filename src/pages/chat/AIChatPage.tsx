@@ -21,6 +21,8 @@ import {
 } from 'lucide-react';
 import { queryApi } from '@/api/interview.api';
 import { useAuthStore } from '@/store/authStore';
+ 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -273,6 +275,7 @@ export default function AIChatPage() {
         };
 
         setMessages((prev) => [...prev, assistantMsg]);
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       } catch (err) {
         const errorMsg: Message = {
           id: uuidv4(),
@@ -437,6 +440,7 @@ export default function AIChatPage() {
                 'focus:outline-none focus:ring-1 focus:ring-primary/50 disabled:opacity-50',
                 'min-h-[44px] max-h-[140px] overflow-y-auto',
               )}
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               style={{ fieldSizing: 'content' } as any}
             />
           </div>

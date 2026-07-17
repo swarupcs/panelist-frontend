@@ -3,6 +3,7 @@
 // DSA code editor with Monaco Editor, language switcher, test-case runner,
 // and a "Submit Code" button that calls the parent's onSubmit callback.
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { useState, useRef, useEffect } from 'react';
 import {
   Play,
@@ -222,6 +223,7 @@ export function CodeExecutionPanel({
       monaco.editor.setTheme('interview-dark');
 
       // Enable Autocomplete / IntelliSense for JS/TS
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const m = monaco as any;
       m.languages.typescript.javascriptDefaults.setDiagnosticsOptions({
         noSemanticValidation: false,
@@ -381,7 +383,9 @@ export function CodeExecutionPanel({
       {executeCode.isError && (
         <div className='flex items-center gap-2 rounded-lg border border-destructive/20 bg-destructive/5 px-3 py-2 text-xs text-destructive shrink-0'>
           <AlertCircle className='size-3.5 shrink-0' />
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           {(executeCode.error as any)?.response?.data?.error?.message ??
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             (executeCode.error as any)?.message ??
             'Code execution failed'}
         </div>

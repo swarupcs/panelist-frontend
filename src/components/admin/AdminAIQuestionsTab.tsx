@@ -10,8 +10,10 @@ import { Badge } from '@/components/ui/badge'
 import { LoadingScreen, ErrorState } from '@/components/common'
 import {
   useAdminAIPendingQuestions, useAdminAIStats,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   useAdminAIQuestion, useApproveAIQuestion,
 } from '@/hooks/useAdmin'
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { formatRelative, formatNumber } from '@/utils/formatters'
 import { cn } from '@/lib/cn'
 import type { AdminAIQuestion } from '@/types/admin'

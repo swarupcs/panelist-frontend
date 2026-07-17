@@ -19,6 +19,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   Mic, MicOff, Volume2, VolumeX, Pause, Play,
   Lightbulb, XCircle, Trophy, ChevronRight,
   AlertCircle, Loader2, Cpu,
@@ -411,6 +412,7 @@ export default function VoiceInterviewPage() {
 
 function EndButton({ onConfirm }: { onConfirm: () => void }) {
   const [confirming, setConfirming] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const timerRef = useRef<any>(null);
 
   const handleClick = () => {

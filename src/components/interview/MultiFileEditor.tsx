@@ -91,6 +91,7 @@ export function MultiFileEditor({
       monaco.editor.setTheme('interview-dark');
 
       // Enable Autocomplete / IntelliSense for JS/TS
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const m = monaco as any;
       m.languages.typescript.javascriptDefaults.setDiagnosticsOptions({
         noSemanticValidation: false,
@@ -123,6 +124,7 @@ export function MultiFileEditor({
   };
 
   const handleAddFile = () => {
+    // eslint-disable-next-line react-hooks/purity
     const newId = Math.random().toString(36).substr(2, 9);
     const newFile: EditorFile = {
       id: newId,

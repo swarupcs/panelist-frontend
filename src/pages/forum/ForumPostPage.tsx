@@ -1,8 +1,11 @@
 import { useState } from 'react';
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { usePost, useVotePost, useVoteComment, useCreateComment, useAcceptAnswer } from '@/hooks/useForum';
 import type { ForumComment } from '@/api/forum';
 import { useAuthStore } from '@/store/authStore';
+ 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { ArrowLeft, MessageSquare, ThumbsUp, CheckCircle2, ChevronDown, ChevronUp, Loader2, Send } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 

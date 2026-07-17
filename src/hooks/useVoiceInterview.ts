@@ -97,7 +97,15 @@ export function useVoiceInterview(sessionId: string | undefined) {
   const clearErrors = useCallback(() => setErrors([]), []);
 
   // ── Provider info for UI ──────────────────────────────────────────────────
+   
+   
+   
+  // eslint-disable-next-line react-hooks/refs
   const sttProviderName = clientRef.current?.getSTTProviderName() ?? 'Web Speech API (STT)';
+   
+   
+   
+  // eslint-disable-next-line react-hooks/refs
   const ttsProviderName = clientRef.current?.getTTSProviderName() ?? 'Web Speech API (TTS)';
 
   return {

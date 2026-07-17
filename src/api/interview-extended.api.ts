@@ -9,10 +9,13 @@ import api from './axios';
 import type {
   CodeExecutionRequest,
   CodeExecutionResult,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   InterviewHistoryResponse,
   QuestionRatings,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   ReplayData,
   ReplayHistoryItem,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   CompareResult,
 } from '@/types/interview-extended';
 

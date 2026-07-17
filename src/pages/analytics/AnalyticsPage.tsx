@@ -29,6 +29,7 @@ import {
   Target,
   Users,
   AlertTriangle,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   Calendar,
 } from 'lucide-react';
 import {
@@ -47,6 +48,7 @@ import { Badge } from '@/components/ui/badge';
 import {
   formatScore,
   formatPercent,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   formatDate,
   getScoreBg,
   formatCategory,

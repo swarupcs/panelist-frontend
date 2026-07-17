@@ -78,6 +78,7 @@ export default function ForumListPage() {
             {categories.map((c) => (
               <button
                 key={c.id || 'all'}
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 onClick={() => setOptions({ ...options, category: c.id as any, page: 1 })}
                 className={`whitespace-nowrap px-4 py-1.5 rounded-full text-sm font-medium border transition-colors ${
                   options.category === c.id
@@ -106,6 +107,7 @@ export default function ForumListPage() {
               {sortOptions.map((s) => (
                 <button
                   key={s.id}
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
                   onClick={() => setOptions({ ...options, sortBy: s.id as any, page: 1 })}
                   className={`px-4 py-1.5 text-sm font-medium rounded-md transition-colors ${
                     options.sortBy === s.id
@@ -260,6 +262,7 @@ export default function ForumListPage() {
               {categories.map((c) => (
                 <li key={c.id || 'all'}>
                   <button
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     onClick={() => setOptions({ ...options, category: c.id as any, page: 1 })}
                     className={`w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                       options.category === c.id

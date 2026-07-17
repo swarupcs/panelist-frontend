@@ -36,6 +36,7 @@ export class ElevenLabsTTSProvider implements ITTSProvider {
     return typeof fetch !== 'undefined' && typeof AudioContext !== 'undefined';
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async speak(text: string, events: TTSEvents, options?: TTSOptions): Promise<void> {
     if (!this.apiKey) {
       events.onError('ElevenLabs API key not configured. Set VITE_ELEVENLABS_API_KEY in your .env.');

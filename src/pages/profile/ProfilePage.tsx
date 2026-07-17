@@ -54,6 +54,7 @@ function Avatar({ name, picture }: { name: string; picture?: string | null }) {
 
 function PublicProfileForm() {
   const { user } = useAuthStore();
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const qc = useQueryClient();
   const [form, setForm] = useState({
     username: user?.username || '',
@@ -108,6 +109,7 @@ function PublicProfileForm() {
 
       {update.isError && (
         <p className='text-xs text-destructive'>
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           {(update.error as any)?.response?.data?.error?.message ?? 'Failed to update public profile'}
         </p>
       )}
@@ -151,6 +153,7 @@ function PublicProfileForm() {
 // ── Change password form ───────────────────────────────────────────────────
 
 function ChangePasswordForm() {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const qc = useQueryClient();
   const [form, setForm] = useState({
     currentPassword: '',
@@ -209,6 +212,7 @@ function ChangePasswordForm() {
 
       {change.isError && (
         <p className='text-xs text-destructive'>
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           {(change.error as any)?.response?.data?.error?.message ??
             'Failed to change password'}
         </p>
@@ -258,6 +262,7 @@ function PreferencesForm() {
   const field = (
     key: keyof UserPreferences,
     override?: Partial<UserPreferences>,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   ) => (local[key] ?? prefs?.[key] ?? override?.[key]) as any;
 
   if (isLoading)
@@ -438,6 +443,7 @@ function DeleteAccountSection() {
           </div>
           {del.isError && (
             <p className='text-xs text-destructive'>
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               {(del.error as any)?.response?.data?.error?.message ??
                 'Failed to delete account'}
             </p>

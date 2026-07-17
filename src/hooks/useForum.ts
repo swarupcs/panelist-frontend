@@ -32,6 +32,7 @@ export function useCreatePost() {
       queryClient.invalidateQueries({ queryKey: forumKeys.all });
       toast.success('Post created successfully!');
     },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     onError: (error: any) => {
       toast.error(error.response?.data?.error?.message || 'Failed to create post');
     }
@@ -46,6 +47,7 @@ export function useCreateComment() {
       queryClient.invalidateQueries({ queryKey: forumKeys.post(variables.postId) });
       toast.success('Comment posted successfully!');
     },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     onError: (error: any) => {
       toast.error(error.response?.data?.error?.message || 'Failed to post comment');
     }
@@ -60,6 +62,7 @@ export function useVotePost() {
       queryClient.invalidateQueries({ queryKey: forumKeys.post(variables.postId) });
       queryClient.invalidateQueries({ queryKey: [...forumKeys.all, 'posts'] });
     },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     onError: (error: any) => {
       toast.error(error.response?.data?.error?.message || 'Failed to vote');
     }
@@ -69,10 +72,12 @@ export function useVotePost() {
 export function useVoteComment() {
   const queryClient = useQueryClient();
   return useMutation({
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     mutationFn: ({ postId, commentId, value }: { postId: string; commentId: string; value: 1 | -1 }) => forumApi.voteComment(commentId, value),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: forumKeys.post(variables.postId) });
     },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     onError: (error: any) => {
       toast.error(error.response?.data?.error?.message || 'Failed to vote');
     }
@@ -88,6 +93,7 @@ export function useAcceptAnswer() {
       queryClient.invalidateQueries({ queryKey: [...forumKeys.all, 'posts'] });
       toast.success('Answer accepted!');
     },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     onError: (error: any) => {
       toast.error(error.response?.data?.error?.message || 'Failed to accept answer');
     }

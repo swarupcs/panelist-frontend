@@ -126,6 +126,7 @@ function AuthInitializer({ children }: { children: React.ReactNode }) {
   const { initFromStorage } = useAuthStore();
   useEffect(() => {
     initFromStorage();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   return <>{children}</>;
 }

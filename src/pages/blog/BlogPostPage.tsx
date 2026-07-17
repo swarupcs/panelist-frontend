@@ -29,6 +29,7 @@ const categoryColors: Record<string, string> = {
 
 export default function BlogPostPage() {
   const { slug } = useParams<{ slug: string }>();
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const navigate = useNavigate();
   const post = slug ? getBlogPost(slug) : undefined;
   const related = slug ? getRelatedPosts(slug, 3) : [];

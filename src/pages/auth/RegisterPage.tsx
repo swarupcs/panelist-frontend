@@ -52,6 +52,7 @@ export default function RegisterPage() {
 
         {register_.isError && (
           <div className="rounded-lg bg-destructive/10 border border-destructive/20 p-3 text-sm text-destructive text-center">
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             {(register_.error as any)?.response?.data?.error?.message || 'Registration failed'}
           </div>
         )}

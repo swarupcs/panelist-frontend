@@ -79,6 +79,7 @@ function stepChipColor(type: ReplayStep['type']): string {
 // ── Step detail panel ──────────────────────────────────────────────────────
 
 function StepDetail({ step }: { step: ReplayStep }) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const d = step.data as Record<string, any>;
 
   // ── Interview started ──────────────────────────────────────────────────

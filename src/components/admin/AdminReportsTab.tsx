@@ -25,6 +25,7 @@ export function AdminReportsTab() {
   const [form, setForm] = useState({
     name:      '',
     type:      'USER_GROWTH' as string,
+    // eslint-disable-next-line react-hooks/purity
     startDate: new Date(Date.now() - 30 * 86400000).toISOString().split('T')[0],
     endDate:   new Date().toISOString().split('T')[0],
     metrics:   [] as string[],

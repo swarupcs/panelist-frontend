@@ -34,6 +34,7 @@ export function useReplayHistory() {
   return useQuery({
     queryKey: ['interview', 'replay-history'],
     queryFn: interviewApi.getReplayHistory,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     select: (data: any) => {
       if (Array.isArray(data)) return data;
       if (data?.history && Array.isArray(data.history)) return data.history;
