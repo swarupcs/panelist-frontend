@@ -13,18 +13,24 @@
 //         response has all of these; we now show them.
 //
 // DOM-1   <Link><Button> caused the nested-button error. Fixed by using
-//         useNavigate() + plain onClick, or by rendering <a> styled as a button.
+//         useNavigate() + plain onClick.
 //
 // UX-1    Added loading + error states so the page is usable on hard refresh.
 //
 // UX-2    Added per-question detail: time spent, hints used, skipped badge,
 //         and the full feedback (not line-clamped on desktop).
 //
-// UX-3    resetSession() is now called once on mount so the store is clean
-//         for the next session, not scattered across multiple Link onClick handlers.
+// UX-3    resetSession() is now called once on mount.
+//
+// MD-1    feedback contains raw markdown (**bold**, \n\n etc).
+//         Rendered with react-markdown so it displays correctly.
+//
+// STATS-1 When questions array is empty (DB flush race), stats show null/0.
+//         Guarded with ?? 0 and hidden entirely when no questions exist.
 
 import { useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
+import ReactMarkdown from 'react-markdown'
 import {
   Trophy, RotateCcw, BarChart3, Home,
   CheckCircle, XCircle, Clock, Lightbulb,
@@ -137,11 +143,13 @@ function QuestionRow({ q, index }: { q: QuestionResult; index: number }) {
         )}
       </div>
 
-      {/* Feedback */}
+      {/* Feedback — MD-1: rendered as markdown */}
       {q.feedback && !skipped && (
-        <p className='text-sm text-foreground leading-relaxed pl-6'>
-          {q.feedback}
-        </p>
+        <div className='prose prose-sm prose-invert max-w-none pl-6
+                        prose-p:text-foreground prose-p:leading-relaxed prose-p:my-0
+                        prose-strong:text-foreground prose-li:text-foreground'>
+          <ReactMarkdown>{q.feedback}</ReactMarkdown>
+        </div>
       )}
     </div>
   )
@@ -195,12 +203,23 @@ export default function InterviewResultsPage() {
     )
   }
 
-  // ── Data ───────────────────────────────────────────────────────────────────
-  const finalScore   = Math.round(results.overallScore)
+  // ── Data — all numeric fields nullable-safe ────────────────────────────────
+  const finalScore    = Math.round(results.overallScore ?? 0)
   const { text, sub } = getMessage(finalScore)
+
+  // STATS-1: when DB flush hasn't committed, questions array may be empty.
+  // Fall back to stats.totalQuestions for display counts.
+  const totalQ       = results.questions.length > 0
+    ? results.questions.length
+    : (results.stats?.totalQuestions ?? 0)
   const passedCount  = results.questions.filter(q => !q.skipped && (q.score ?? 0) >= 60).length
   const skippedCount = results.questions.filter(q => q.skipped).length
   const failedCount  = results.questions.filter(q => !q.skipped && (q.score ?? 0) < 60).length
+
+  // Defensive: stats fields can be null when all questions were skipped
+  const avgScore = results.stats?.avgScore ?? 0
+  const maxScore = results.stats?.maxScore ?? 0
+  const minScore = results.stats?.minScore ?? 0
 
   return (
     <div className='max-w-2xl mx-auto space-y-6 animate-fade-in'>
@@ -232,9 +251,7 @@ export default function InterviewResultsPage() {
           {/* Stats row */}
           <div className='flex justify-center gap-8 text-center'>
             <div>
-              <p className='text-2xl font-bold text-foreground'>
-                {results.questions.length}
-              </p>
+              <p className='text-2xl font-bold text-foreground'>{totalQ}</p>
               <p className='text-xs text-muted-foreground'>Questions</p>
             </div>
             <div>
@@ -255,37 +272,44 @@ export default function InterviewResultsPage() {
             )}
           </div>
 
-          {/* Additional stats */}
-          <div className='flex justify-center gap-6 text-center border-t border-border/50 pt-4'>
-            <div>
-              <p className='text-sm font-semibold text-foreground'>
-                {results.stats.avgScore.toFixed(0)}
-              </p>
-              <p className='text-xs text-muted-foreground'>Avg Score</p>
+          {/* Additional stats — only shown when we have question data */}
+          {results.questions.length > 0 && (
+            <div className='flex justify-center gap-6 text-center border-t border-border/50 pt-4'>
+              <div>
+                <p className='text-sm font-semibold text-foreground'>
+                  {avgScore.toFixed(0)}
+                </p>
+                <p className='text-xs text-muted-foreground'>Avg Score</p>
+              </div>
+              <div>
+                <p className='text-sm font-semibold text-foreground'>
+                  {maxScore}
+                </p>
+                <p className='text-xs text-muted-foreground'>Best</p>
+              </div>
+              <div>
+                <p className='text-sm font-semibold text-foreground'>
+                  {minScore}
+                </p>
+                <p className='text-xs text-muted-foreground'>Lowest</p>
+              </div>
             </div>
-            <div>
-              <p className='text-sm font-semibold text-foreground'>
-                {results.stats.maxScore}
-              </p>
-              <p className='text-xs text-muted-foreground'>Best</p>
-            </div>
-            <div>
-              <p className='text-sm font-semibold text-foreground'>
-                {results.stats.minScore}
-              </p>
-              <p className='text-xs text-muted-foreground'>Lowest</p>
-            </div>
-          </div>
+          )}
 
-          {/* Overall feedback */}
+          {/* Overall feedback — MD-1: rendered as markdown */}
           {results.feedback && (
             <div className='rounded-xl border border-border bg-background/50 p-4 text-left'>
-              <p className='text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2'>
+              <p className='text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3'>
                 Overall Feedback
               </p>
-              <p className='text-sm text-foreground leading-relaxed'>
-                {results.feedback}
-              </p>
+              <div className='prose prose-sm prose-invert max-w-none
+                              prose-headings:text-foreground prose-headings:font-semibold
+                              prose-p:text-foreground prose-p:leading-relaxed
+                              prose-strong:text-foreground prose-strong:font-semibold
+                              prose-li:text-foreground prose-ol:text-foreground
+                              prose-ul:text-foreground'>
+                <ReactMarkdown>{results.feedback}</ReactMarkdown>
+              </div>
             </div>
           )}
 

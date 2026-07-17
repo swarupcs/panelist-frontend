@@ -140,9 +140,9 @@ export interface QuestionResult {
 }
 
 export interface SessionResultStats {
-  avgScore: number;
-  maxScore: number;
-  minScore: number;
+  avgScore: number | null;
+  maxScore: number | null;
+  minScore: number | null;
   totalQuestions: number;
 }
 
