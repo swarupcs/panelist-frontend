@@ -20,6 +20,10 @@ import {
 } from 'lucide-react';
 import {
   useLearningPath,
+  useAllPaths,
+  useSavePath,
+  useSetActivePath,
+  useDeletePath,
   useGeneratePath,
   useCompleteTopic,
   useRecommendations,
@@ -475,13 +479,19 @@ function RecommendationsPanel() {
 
 export default function LearningPage() {
   const { data: pathData, isLoading: pathLoading } = useLearningPath();
+  const { data: allPathsData } = useAllPaths();
   const { data: reviewData, isLoading: reviewLoading } = useDueReviews(10);
   const [expandedPhases, setExpandedPhases] = useState<Set<string>>(new Set());
   const [activeTab, setActiveTab] = useState<
     'path' | 'reviews' | 'recommendations'
   >('path');
+  const [showGenerator, setShowGenerator] = useState(false);
+
+  const setActivePath = useSetActivePath();
+  const deletePath = useDeletePath();
 
   const path = pathData?.learningPath;
+  const allPaths = allPathsData?.paths || [];
   const reviews = reviewData?.reviews ?? [];
   const stats = reviewData?.stats;
   const dueCount = stats?.dueForReview ?? 0;
@@ -539,18 +549,45 @@ export default function LearningPage() {
             </div>
           )}
 
-          {!pathLoading && !path && <PathGenerator />}
+          {!pathLoading && (!path || showGenerator) && (
+            <div className='space-y-4'>
+              {showGenerator && path && (
+                <button
+                  type='button'
+                  onClick={() => setShowGenerator(false)}
+                  className='text-xs text-muted-foreground hover:text-foreground flex items-center gap-1'
+                >
+                  &larr; Cancel and return to path
+                </button>
+              )}
+              <PathGenerator />
+            </div>
+          )}
 
-          {!pathLoading && path && (
+          {!pathLoading && path && !showGenerator && (
             <>
-              {/* Path header */}
+              {/* Path Switcher Header */}
               <Card className='border-primary/20 bg-primary/5'>
                 <CardContent className='pt-5 pb-5'>
                   <div className='flex items-center justify-between gap-4'>
-                    <div>
-                      <p className='font-semibold text-foreground capitalize'>
-                        {path.targetRole.replace(/_/g, ' ').toLowerCase()}
-                      </p>
+                    <div className='flex-1 min-w-0 flex flex-col gap-1'>
+                      {allPaths.length > 1 ? (
+                        <select
+                          value={path.id}
+                          onChange={(e) => setActivePath.mutate(e.target.value)}
+                          className='w-full max-w-[250px] bg-card border border-border rounded px-2 py-1 text-sm font-semibold text-foreground capitalize'
+                        >
+                          {allPaths.map(p => (
+                            <option key={p.id} value={p.id}>
+                              {p.title || p.targetRole.replace(/_/g, ' ').toLowerCase()} {p.isActive ? '' : '(Saved)'}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        <p className='font-semibold text-foreground capitalize'>
+                          {path.title || path.targetRole.replace(/_/g, ' ').toLowerCase()}
+                        </p>
+                      )}
                       <p className='text-xs text-muted-foreground mt-0.5'>
                         Phase {path.currentPhase} of {path.totalPhases}
                         {path.estimatedWeeks &&
@@ -672,17 +709,28 @@ export default function LearningPage() {
                 );
               })}
 
-              {/* Regenerate */}
-              <div className='flex justify-center pt-2'>
+              {/* Regenerate and Delete */}
+              <div className='flex justify-center pt-2 gap-6'>
                 <button
                   type='button'
-                  onClick={() => {
-                    /* show generator — in a real app would toggle a modal */
-                  }}
+                  onClick={() => setShowGenerator(true)}
                   className='flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors'
                 >
-                  <RotateCcw className='size-3' /> Regenerate path
+                  <RotateCcw className='size-3' /> Generate new path
                 </button>
+                {allPaths.length > 1 && (
+                  <button
+                    type='button'
+                    onClick={() => {
+                      if (confirm('Are you sure you want to delete this learning path?')) {
+                        deletePath.mutate(path.id);
+                      }
+                    }}
+                    className='flex items-center gap-1 text-xs text-red-400 hover:text-red-500 transition-colors'
+                  >
+                    Delete this path
+                  </button>
+                )}
               </div>
             </>
           )}

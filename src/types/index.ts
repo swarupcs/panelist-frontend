@@ -241,11 +241,24 @@ export interface AnalyticsDashboard {
 // ============================================================
 // Learning Path Types
 // ============================================================
+export interface LearningTopicQuestion {
+  id: string;
+  topicId: string;
+  questionId: string;
+  question: {
+    id: string;
+    question: string;
+    difficulty: string;
+    category: string;
+  };
+}
+
 export interface LearningTopic {
   id: string;
   category: string;
   title: string;
   description?: string;
+  subtopics?: string[];
   orderIndex: number;
   questionsToSolve: number;
   questionsSolved: number;
@@ -254,6 +267,7 @@ export interface LearningTopic {
   averageScore?: number;
   prerequisites: string[];
   resources?: LearningResource[];
+  topicQuestions?: LearningTopicQuestion[];
 }
 
 export interface LearningPhase {
@@ -270,11 +284,15 @@ export interface LearningPhase {
 export interface LearningPath {
   id: string;
   userId: string;
+  title: string;
+  isSaved: boolean;
+  isActive: boolean;
   targetRole: string;
   currentPhase: number;
   totalPhases: number;
   estimatedWeeks?: number;
   targetDate?: string;
+  createdAt: string;
   phases: LearningPhase[];
 }
 

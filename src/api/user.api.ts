@@ -22,8 +22,29 @@ export const learningApi = {
     return res.data.data
   },
 
-  getPath: async (): Promise<{ learningPath: LearningPath }> => {
-    const res = await api.get('/learning-path')
+  getPath: async (pathId?: string): Promise<{ learningPath: LearningPath }> => {
+    const url = pathId ? `/learning-path?pathId=${pathId}` : '/learning-path'
+    const res = await api.get(url)
+    return res.data.data
+  },
+
+  getAllPaths: async (): Promise<{ paths: LearningPath[] }> => {
+    const res = await api.get('/learning-path/all')
+    return res.data.data
+  },
+
+  savePath: async (pathId: string, isSaved: boolean = true) => {
+    const res = await api.put(`/learning-path/${pathId}/save`, { isSaved })
+    return res.data.data
+  },
+
+  setActivePath: async (pathId: string) => {
+    const res = await api.put(`/learning-path/${pathId}/activate`)
+    return res.data.data
+  },
+
+  deletePath: async (pathId: string) => {
+    const res = await api.delete(`/learning-path/${pathId}`)
     return res.data.data
   },
 

@@ -1,11 +1,12 @@
 // src/hooks/useLearning.ts
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { learningApi } from '@/api/user.api';
+import type { LearningPath } from '@/types';
 
 export function useLearningPath() {
-  return useQuery({
+  return useQuery<{ learningPath: LearningPath }>({
     queryKey: ['learning', 'path'],
-    queryFn: learningApi.getPath,
+    queryFn: () => learningApi.getPath(),
     staleTime: 1000 * 60 * 5,
     retry: false,
   });
@@ -15,7 +16,52 @@ export function useGeneratePath() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: learningApi.generatePath,
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['learning', 'path'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['learning', 'path'] });
+      qc.invalidateQueries({ queryKey: ['learning', 'allPaths'] });
+    },
+  });
+}
+
+export function useAllPaths() {
+  return useQuery<{ paths: LearningPath[] }>({
+    queryKey: ['learning', 'allPaths'],
+    queryFn: () => learningApi.getAllPaths(),
+    staleTime: 1000 * 60 * 5,
+  });
+}
+
+export function useSavePath() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ pathId, isSaved }: { pathId: string; isSaved: boolean }) =>
+      learningApi.savePath(pathId, isSaved),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['learning', 'path'] });
+      qc.invalidateQueries({ queryKey: ['learning', 'allPaths'] });
+    },
+  });
+}
+
+export function useSetActivePath() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (pathId: string) => learningApi.setActivePath(pathId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['learning', 'path'] });
+      qc.invalidateQueries({ queryKey: ['learning', 'allPaths'] });
+    },
+  });
+}
+
+export function useDeletePath() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (pathId: string) => learningApi.deletePath(pathId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['learning', 'path'] });
+      qc.invalidateQueries({ queryKey: ['learning', 'allPaths'] });
+    },
   });
 }
 
