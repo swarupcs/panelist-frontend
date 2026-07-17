@@ -28,8 +28,10 @@ export type P2PMessageType =
   | 'TAB_FOCUS_LOST'
   | 'EXCALIDRAW_SYNC'
   | 'EXCALIDRAW_POINTER_SYNC'
+  | 'WHITEBOARD_CAMERA_SYNC'
   | 'ANALYZE_WHITEBOARD'
   | 'WHITEBOARD_SNAPSHOT'
+  | 'SAVE_SNAPSHOTS'
   | 'ERROR';
 
 export interface P2PMessage {

@@ -17,7 +17,8 @@ interface UseWebRTCReturn {
   incomingWhiteboardPatch: any | null;
   incomingExcalidrawElements: any | null;
   incomingExcalidrawPointer: any | null;
-  aiHint: { status: 'idle' | 'loading' | 'success' | 'error', text: string | null };
+  incomingWhiteboardCamera: any | null;
+  aiHint: { status: 'idle' | 'loading' | 'success' | 'error', text: string | null } | null;
   interviewEndTime: number | null;
   joinQueue: (role: string, difficulty: string, language: string) => void;
   leaveQueue: () => void;
@@ -28,7 +29,9 @@ interface UseWebRTCReturn {
   sendWhiteboardSync: (patch: any) => void;
   sendExcalidrawSync: (elements: any) => void;
   sendExcalidrawPointerSync: (pointer: any) => void;
+  sendWhiteboardCameraSync: (camera: any) => void;
   sendAnalyzeWhiteboard: (image: string) => void;
+  sendSaveSnapshots: (roomId: string, code: string, whiteboard: string) => void;
   setLanguage: (lang: string) => void;
   reportFocusLoss: () => void;
   executeCode: (code: string, testCases?: any[]) => void;
@@ -68,9 +71,10 @@ export function useWebRTC(): UseWebRTCReturn {
   const [editorLanguage, setEditorLanguage] = useState<string>('javascript');
   const [role, setRole] = useState<'INTERVIEWER' | 'INTERVIEWEE' | null>(null);
   const [currentQuestion, setCurrentQuestion] = useState<any | null>(null);
-  const [incomingWhiteboardPatch, setIncomingWhiteboardPatch] = useState<any | null>(null);
-  const [incomingExcalidrawElements, setIncomingExcalidrawElements] = useState<any | null>(null);
-  const [incomingExcalidrawPointer, setIncomingExcalidrawPointer] = useState<any | null>(null);
+  const [incomingWhiteboardPatch, setIncomingWhiteboardPatch] = useState<any>(null);
+  const [incomingExcalidrawElements, setIncomingExcalidrawElements] = useState<readonly any[] | null>(null);
+  const [incomingExcalidrawPointer, setIncomingExcalidrawPointer] = useState<any>(null);
+  const [incomingWhiteboardCamera, setIncomingWhiteboardCamera] = useState<any>(null);
   const [aiHint, setAiHint] = useState<{ status: 'idle' | 'loading' | 'success' | 'error', text: string | null }>({ status: 'idle', text: null });
   const [interviewEndTime, setInterviewEndTime] = useState<number | null>(null);
   const [isAudioEnabled, setIsAudioEnabled] = useState(true);
@@ -149,6 +153,9 @@ export function useWebRTC(): UseWebRTCReturn {
           break;
         case 'EXCALIDRAW_POINTER_SYNC':
           setIncomingExcalidrawPointer(msg.payload.pointer);
+          break;
+        case 'WHITEBOARD_CAMERA_SYNC':
+          setIncomingWhiteboardCamera(msg.payload.camera);
           break;
         case 'HINT_RECEIVED':
           setAiHint({
@@ -360,6 +367,14 @@ export function useWebRTC(): UseWebRTCReturn {
     sendWsMessage({ type: 'ANALYZE_WHITEBOARD', payload: { image } });
   }, []);
 
+  const sendWhiteboardCameraSync = useCallback((camera: any) => {
+    sendWsMessage({ type: 'WHITEBOARD_CAMERA_SYNC', payload: { camera } });
+  }, []);
+
+  const sendSaveSnapshots = useCallback((roomId: string, code: string, whiteboard: string) => {
+    sendWsMessage({ type: 'SAVE_SNAPSHOTS', payload: { roomId, code, whiteboard } });
+  }, []);
+
   const setLanguage = useCallback((language: string) => {
     setEditorLanguage(language);
     sendWsMessage({ type: 'LANGUAGE_SYNC', payload: { language } });
@@ -484,6 +499,7 @@ export function useWebRTC(): UseWebRTCReturn {
     incomingWhiteboardPatch,
     incomingExcalidrawElements,
     incomingExcalidrawPointer,
+    incomingWhiteboardCamera,
     aiHint,
     interviewEndTime,
     joinQueue,
@@ -495,7 +511,9 @@ export function useWebRTC(): UseWebRTCReturn {
     sendWhiteboardSync,
     sendExcalidrawSync,
     sendExcalidrawPointerSync,
+    sendWhiteboardCameraSync,
     sendAnalyzeWhiteboard,
+    sendSaveSnapshots,
     setLanguage,
     reportFocusLoss,
     executeCode,

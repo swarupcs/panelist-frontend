@@ -46,6 +46,7 @@ export default function P2PRoomPage() {
     incomingWhiteboardPatch,
     incomingExcalidrawElements,
     incomingExcalidrawPointer,
+    incomingWhiteboardCamera,
     aiHint,
     interviewEndTime,
     joinRoom,
@@ -55,7 +56,9 @@ export default function P2PRoomPage() {
     sendWhiteboardSync,
     sendExcalidrawSync,
     sendExcalidrawPointerSync,
+    sendWhiteboardCameraSync,
     sendAnalyzeWhiteboard,
+    sendSaveSnapshots,
     setLanguage,
     reportFocusLoss,
     executeCode,
@@ -658,16 +661,14 @@ export default function P2PRoomPage() {
             )}
 
             <Card className="p-3 border-border bg-blue-500/5">
-              <div className="flex justify-between items-center mb-2">
-                <span className="text-xs font-semibold text-blue-500 flex items-center">
-                  <Bot className="h-3 w-3 mr-1" /> AI Co-Pilot
-                </span>
-                <Button size="sm" variant="secondary" className="h-6 text-[10px]" onClick={getHint} disabled={aiHint.status === 'loading' || !currentQuestion}>
-                  {aiHint.status === 'loading' ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : 'Get Hint'}
+              <div className="flex justify-between items-center mb-1">
+                <span className="text-xs text-muted-foreground font-semibold">AI Co-Pilot</span>
+                <Button size="sm" variant="secondary" className="h-6 text-[10px]" onClick={getHint} disabled={aiHint?.status === 'loading' || !currentQuestion}>
+                  {aiHint?.status === 'loading' ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : 'Get Hint'}
                 </Button>
               </div>
-              {aiHint.text && (
-                <div className="text-xs text-muted-foreground p-2 bg-background rounded border">
+              {aiHint?.text && (
+                <div className={cn("p-2 rounded text-xs", aiHint.status === 'error' ? "bg-red-500/20 text-red-500" : "bg-primary/20 text-primary-foreground")}>
                   {aiHint.text}
                 </div>
               )}
