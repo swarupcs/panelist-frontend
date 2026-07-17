@@ -91,6 +91,8 @@ export interface StartInterviewRequest {
   duration?: number;
   focusAreas?: string[];
   resumeText?: string;
+  aiPersona?: 'supportive' | 'strict' | 'default';
+  stressMode?: boolean;
 }
 
 export interface StartInterviewResponse {
@@ -113,6 +115,7 @@ export interface SubmitAnswerRequest {
 export interface SubmitAnswerResponse {
   feedback: string;
   score: number;
+  communicationScore?: number;
   nextQuestion: InterviewQuestion | null;
   sessionCompleted: boolean;
 }
@@ -141,6 +144,7 @@ export interface QuestionResult {
   difficulty: string;
   userAnswer: string | null;
   score: number | null;
+  communicationScore?: number | null;
   feedback: string | null;
   timeSpent: number | null;
   hintsUsed: number;
@@ -150,6 +154,7 @@ export interface QuestionResult {
 
 export interface SessionResultStats {
   avgScore: number | null;
+  avgCommunicationScore?: number | null;
   maxScore: number | null;
   minScore: number | null;
   totalQuestions: number;

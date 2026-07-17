@@ -189,6 +189,12 @@ function QuestionRow({
           ) : (
             <span className='text-xs text-muted-foreground'>—</span>
           )}
+          {q.communicationScore != null && (
+            <div className='mt-1 text-[10px] text-muted-foreground flex justify-end gap-1 items-center'>
+              <span title="Communication Score" className='font-semibold text-primary'>{q.communicationScore}</span>
+              <span>Comm</span>
+            </div>
+          )}
         </div>
       </div>
 
@@ -450,6 +456,9 @@ export default function InterviewResultsPage() {
   const displayMax = statsAreEmpty && finalScore > 0 ? finalScore : (results.stats?.maxScore ?? 0);
   const displayMin = statsAreEmpty && finalScore > 0 ? finalScore : (results.stats?.minScore ?? 0);
 
+  const commScores = results.questions.map(q => q.communicationScore).filter((s): s is number => s != null && s > 0);
+  const displayCommScore = commScores.length > 0 ? Math.round(commScores.reduce((a, b) => a + b, 0) / commScores.length) : null;
+
   // For pass/fail hero counts — permanentMiss means we trust overallScore >= 60 = passed
   const sessionPassed = finalScore >= 60;
 
@@ -547,6 +556,12 @@ export default function InterviewResultsPage() {
                 <p className='text-sm font-semibold text-foreground'>{displayMin}</p>
                 <p className='text-xs text-muted-foreground'>Lowest</p>
               </div>
+              {displayCommScore != null && (
+                <div>
+                  <p className='text-sm font-semibold text-primary'>{displayCommScore.toFixed(0)}</p>
+                  <p className='text-xs text-muted-foreground'>Comm</p>
+                </div>
+              )}
             </div>
           )}
 

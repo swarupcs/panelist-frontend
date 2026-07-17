@@ -328,6 +328,8 @@ export default function InterviewSetupPage() {
   const [showFocusAreas, setShowFocusAreas] = useState(false);
   const [isTimed, setIsTimed] = useState(false);
   const [adaptiveMode, setAdaptiveMode] = useState(false);
+  const [stressMode, setStressMode] = useState(false);
+  const [aiPersona, setAiPersona] = useState<'supportive' | 'strict' | 'default'>('default');
   const [resumeText, setResumeText] = useState('');
 
   const startInterview = useStartInterview();
@@ -371,6 +373,8 @@ export default function InterviewSetupPage() {
       duration: selectedDuration,
       focusAreas: focusAreas.length > 0 ? focusAreas : undefined,
       resumeText: selectedType === 'resume_deep_dive' ? resumeText : undefined,
+      aiPersona: aiPersona,
+      stressMode: stressMode,
     });
   };
 
@@ -598,6 +602,53 @@ export default function InterviewSetupPage() {
         </Card>
       )}
 
+      {/* ── AI Settings ── */}
+      <Card>
+        <CardHeader>
+          <CardTitle className='text-base flex items-center gap-2'>
+            <Brain className='size-4 text-primary' /> AI Interviewer Settings
+          </CardTitle>
+          <CardDescription>
+            Customize the personality and behavior of the AI interviewer.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className='space-y-6'>
+          <div>
+            <label className='text-sm font-semibold text-foreground mb-3 block'>
+              Interviewer Persona
+            </label>
+            <div className='flex flex-wrap gap-2'>
+              {(['default', 'supportive', 'strict'] as const).map((persona) => (
+                <button
+                  key={persona}
+                  onClick={() => setAiPersona(persona)}
+                  className={cn(
+                    'rounded-lg border px-4 py-2 text-sm font-medium transition-all duration-200 capitalize',
+                    aiPersona === persona
+                      ? 'border-primary bg-primary/10 text-primary'
+                      : 'border-border text-muted-foreground hover:bg-secondary hover:text-foreground',
+                  )}
+                >
+                  {persona === 'default' ? 'Balanced (Default)' : persona === 'strict' ? 'FAANG Manager (Strict)' : 'Supportive Mentor'}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className='border-t border-border/50' />
+
+          <AdvancedOption
+            id='stress-toggle'
+            icon={AlertCircle}
+            iconColor='text-destructive'
+            title='Stress Mode'
+            description='The AI may introduce changing requirements or unexpected constraints mid-problem to test your adaptability under pressure.'
+            checked={stressMode}
+            onChange={setStressMode}
+          />
+        </CardContent>
+      </Card>
+
       {/* ── Advanced Options ── */}
       <Card>
         <CardHeader>
@@ -656,6 +707,18 @@ export default function InterviewSetupPage() {
                   <>
                     <span>·</span>
                     <span className='text-yellow-400'>Adaptive</span>
+                  </>
+                )}
+                {stressMode && (
+                  <>
+                    <span>·</span>
+                    <span className='text-destructive'>Stress Mode</span>
+                  </>
+                )}
+                {aiPersona !== 'default' && (
+                  <>
+                    <span>·</span>
+                    <span className='text-primary capitalize'>{aiPersona} Persona</span>
                   </>
                 )}
                 {focusAreas.length > 0 && (

@@ -79,6 +79,7 @@ interface FeedbackState {
   timeComplexity?: string;
   spaceComplexity?: string;
   optimizationSuggestions?: string[];
+  communicationScore?: number;
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -294,13 +295,14 @@ export default function InterviewSessionPage() {
                 timeComplexity: data.nextQuestion?.timeComplexity || currentQuestion?.timeComplexity || undefined,
                 spaceComplexity: data.nextQuestion?.spaceComplexity || currentQuestion?.spaceComplexity || undefined,
                 optimizationSuggestions: data.nextQuestion?.optimizationSuggestions || currentQuestion?.optimizationSuggestions || undefined,
+                communicationScore: data.communicationScore,
               });
               setPhase(data.sessionCompleted ? 'completed' : 'feedback');
             },
           },
         );
     },
-    [answer, sessionId, timeSpent, submitAnswer, editor],
+    [answer, sessionId, timeSpent, submitAnswer, editor, currentQuestion],
   );
 
   const handleNextQuestion = () => {
