@@ -45,6 +45,8 @@ const ForumPostPage = lazy(() => import('@/pages/forum/ForumPostPage'));
 const CreatePostPage = lazy(() => import('@/pages/forum/CreatePostPage'));
 const StudyGroupListPage = lazy(() => import('@/pages/study-group/StudyGroupListPage'));
 const StudyGroupDetailPage = lazy(() => import('@/pages/study-group/StudyGroupDetailPage'));
+const P2PLobbyPage = lazy(() => import('@/pages/p2p/P2PLobbyPage'));
+const P2PRoomPage = lazy(() => import('@/pages/p2p/P2PRoomPage'));
 
 /** Show landing page for guests, redirect to dashboard for logged-in users */
 function LandingOrDashboard() {
@@ -80,6 +82,10 @@ function AppRoutes() {
           <Route element={<AppShell />}>
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/chat" element={<AIChatPage />} />
+            
+            {/* P2P Mock Interviews */}
+            <Route path="/p2p" element={<P2PLobbyPage />} />
+            <Route path="/p2p/room/:roomId" element={<P2PRoomPage />} />
 
             {/* Interview routes — static before dynamic */}
             <Route path="/interview" element={<InterviewSetupPage />} />
