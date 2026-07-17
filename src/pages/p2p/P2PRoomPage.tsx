@@ -13,6 +13,7 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/cn';
 import { FeedbackModal } from '@/components/p2p/FeedbackModal';
 import { WhiteboardTab } from '@/components/p2p/WhiteboardTab';
+import { ExcalidrawTab } from '@/components/p2p/ExcalidrawTab';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { useScreenRecorder } from '@/hooks/useScreenRecorder';
@@ -42,6 +43,7 @@ export default function P2PRoomPage() {
     role,
     currentQuestion,
     incomingWhiteboardPatch,
+    incomingExcalidrawElements,
     aiHint,
     interviewEndTime,
     joinRoom,
@@ -49,6 +51,7 @@ export default function P2PRoomPage() {
     sendMessage,
     sendCodeUpdate,
     sendWhiteboardSync,
+    sendExcalidrawSync,
     setLanguage,
     reportFocusLoss,
     executeCode,
@@ -78,6 +81,7 @@ export default function P2PRoomPage() {
     { id: 1, input: 'twoSum([2,7,11,15], 9)', expected: '[0,1]' }
   ]);
   const [isVimMode, setIsVimMode] = useState(false);
+  const [whiteboardEngine, setWhiteboardEngine] = useState<'tldraw' | 'excalidraw'>('tldraw');
   const editorRef = useRef<any>(null);
   const vimRef = useRef<any>(null);
 
@@ -373,11 +377,31 @@ export default function P2PRoomPage() {
                   }}
                 />
               </TabsContent>
-              <TabsContent value="whiteboard" className="flex-1 mt-0 p-0 h-full border-t">
-                <WhiteboardTab 
-                  onSync={sendWhiteboardSync} 
-                  incomingPatch={incomingWhiteboardPatch} 
-                />
+              <TabsContent value="whiteboard" className="flex-1 mt-0 p-0 h-full border-t flex flex-col">
+                <div className="flex items-center gap-2 px-4 py-2 border-b bg-muted/30">
+                  <span className="text-xs text-muted-foreground font-semibold">Engine:</span>
+                  <select 
+                    className="bg-background px-2 py-1 text-xs outline-none focus:ring-0 text-foreground w-32 cursor-pointer border rounded"
+                    value={whiteboardEngine}
+                    onChange={(e) => setWhiteboardEngine(e.target.value as 'tldraw' | 'excalidraw')}
+                  >
+                    <option value="tldraw">TLDraw (Basic)</option>
+                    <option value="excalidraw">Excalidraw (Advanced)</option>
+                  </select>
+                </div>
+                <div className="flex-1 relative">
+                  {whiteboardEngine === 'tldraw' ? (
+                    <WhiteboardTab 
+                      onSync={sendWhiteboardSync} 
+                      incomingPatch={incomingWhiteboardPatch} 
+                    />
+                  ) : (
+                    <ExcalidrawTab 
+                      onSync={sendExcalidrawSync} 
+                      incomingElements={incomingExcalidrawElements} 
+                    />
+                  )}
+                </div>
               </TabsContent>
             </Tabs>
           </div>

@@ -15,6 +15,7 @@ interface UseWebRTCReturn {
   role: 'INTERVIEWER' | 'INTERVIEWEE' | null;
   currentQuestion: any | null;
   incomingWhiteboardPatch: any | null;
+  incomingExcalidrawElements: any | null;
   aiHint: { status: 'idle' | 'loading' | 'success' | 'error', text: string | null };
   interviewEndTime: number | null;
   joinQueue: (role: string, difficulty: string, language: string) => void;
@@ -24,6 +25,7 @@ interface UseWebRTCReturn {
   sendMessage: (text: string) => void;
   sendCodeUpdate: (code: string) => void;
   sendWhiteboardSync: (patch: any) => void;
+  sendExcalidrawSync: (elements: any) => void;
   setLanguage: (lang: string) => void;
   reportFocusLoss: () => void;
   executeCode: (code: string, testCases?: any[]) => void;
@@ -64,6 +66,7 @@ export function useWebRTC(): UseWebRTCReturn {
   const [role, setRole] = useState<'INTERVIEWER' | 'INTERVIEWEE' | null>(null);
   const [currentQuestion, setCurrentQuestion] = useState<any | null>(null);
   const [incomingWhiteboardPatch, setIncomingWhiteboardPatch] = useState<any | null>(null);
+  const [incomingExcalidrawElements, setIncomingExcalidrawElements] = useState<any | null>(null);
   const [aiHint, setAiHint] = useState<{ status: 'idle' | 'loading' | 'success' | 'error', text: string | null }>({ status: 'idle', text: null });
   const [interviewEndTime, setInterviewEndTime] = useState<number | null>(null);
   const [isAudioEnabled, setIsAudioEnabled] = useState(true);
@@ -136,6 +139,9 @@ export function useWebRTC(): UseWebRTCReturn {
           break;
         case 'WHITEBOARD_SYNC':
           setIncomingWhiteboardPatch(msg.payload.patch);
+          break;
+        case 'EXCALIDRAW_SYNC':
+          setIncomingExcalidrawElements(msg.payload.elements);
           break;
         case 'HINT_RECEIVED':
           setAiHint({
@@ -335,6 +341,10 @@ export function useWebRTC(): UseWebRTCReturn {
     sendWsMessage({ type: 'WHITEBOARD_SYNC', payload: { patch } });
   }, []);
 
+  const sendExcalidrawSync = useCallback((elements: any) => {
+    sendWsMessage({ type: 'EXCALIDRAW_SYNC', payload: { elements } });
+  }, []);
+
   const setLanguage = useCallback((language: string) => {
     setEditorLanguage(language);
     sendWsMessage({ type: 'LANGUAGE_SYNC', payload: { language } });
@@ -457,6 +467,7 @@ export function useWebRTC(): UseWebRTCReturn {
     role,
     currentQuestion,
     incomingWhiteboardPatch,
+    incomingExcalidrawElements,
     aiHint,
     interviewEndTime,
     joinQueue,
@@ -466,6 +477,7 @@ export function useWebRTC(): UseWebRTCReturn {
     sendMessage,
     sendCodeUpdate,
     sendWhiteboardSync,
+    sendExcalidrawSync,
     setLanguage,
     reportFocusLoss,
     executeCode,
