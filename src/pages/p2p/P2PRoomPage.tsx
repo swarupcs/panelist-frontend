@@ -6,11 +6,13 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Mic, MicOff, Video, VideoOff, PhoneOff, Send, MessageSquare, RefreshCcw, FileText } from 'lucide-react';
+import { Mic, MicOff, Video, VideoOff, PhoneOff, Send, MessageSquare, RefreshCcw, FileText, Play, Bot, Loader2 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { toast } from 'sonner';
 import { cn } from '@/lib/cn';
 import { FeedbackModal } from '@/components/p2p/FeedbackModal';
+import { WhiteboardTab } from '@/components/p2p/WhiteboardTab';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 export default function P2PRoomPage() {
   const { roomId } = useParams<{ roomId: string }>();
@@ -23,12 +25,19 @@ export default function P2PRoomPage() {
     remoteStream,
     chatMessages,
     codeContent,
+    codeOutput,
+    isCodeRunning,
     role,
     currentQuestion,
+    incomingWhiteboardPatch,
+    aiHint,
     joinRoom,
     leaveRoom,
     sendMessage,
     sendCodeUpdate,
+    sendWhiteboardSync,
+    executeCode,
+    getHint,
     selectQuestion,
     swapRoles,
     submitFeedback,
@@ -92,6 +101,10 @@ export default function P2PRoomPage() {
     }
   };
 
+  const handleRunCode = () => {
+    executeCode(codeContent);
+  };
+
   return (
     <div className="h-[calc(100vh-4rem)] flex gap-4 p-4 animate-fade-in bg-background">
       
@@ -114,31 +127,62 @@ export default function P2PRoomPage() {
               )}
             </div>
             {status === 'connected' ? (
-              <span className="text-green-500 text-xs flex items-center gap-1">
-                <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+              <div className="flex items-center gap-4">
+                <Button size="sm" variant="outline" onClick={handleRunCode} disabled={isCodeRunning} className="h-7 text-xs">
+                  <Play className="h-3 w-3 mr-1" /> Run Code
+                </Button>
+                <span className="text-green-500 text-xs flex items-center gap-1">
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                  </span>
+                  Connected
                 </span>
-                Connected
-              </span>
+              </div>
             ) : (
               <span className="text-yellow-500 text-xs">Waiting for peer...</span>
             )}
           </div>
           <div className="flex-1">
-            <Editor
-              height="100%"
-              defaultLanguage="javascript"
-              theme="vs-dark"
-              value={codeContent}
-              onChange={handleEditorChange}
-              options={{
-                minimap: { enabled: false },
-                fontSize: 14,
-                wordWrap: 'on',
-              }}
-            />
+            <Tabs defaultValue="editor" className="h-full flex flex-col">
+              <div className="px-4 py-2 border-b">
+                <TabsList>
+                  <TabsTrigger value="editor">Code Editor</TabsTrigger>
+                  <TabsTrigger value="whiteboard">Whiteboard</TabsTrigger>
+                </TabsList>
+              </div>
+              <TabsContent value="editor" className="flex-1 mt-0 p-0 h-full">
+                <Editor
+                  height="100%"
+                  defaultLanguage="javascript"
+                  theme="vs-dark"
+                  value={codeContent}
+                  onChange={handleEditorChange}
+                  options={{
+                    minimap: { enabled: false },
+                    fontSize: 14,
+                    wordWrap: 'on',
+                  }}
+                />
+              </TabsContent>
+              <TabsContent value="whiteboard" className="flex-1 mt-0 p-0 h-full border-t">
+                <WhiteboardTab 
+                  onSync={sendWhiteboardSync} 
+                  incomingPatch={incomingWhiteboardPatch} 
+                />
+              </TabsContent>
+            </Tabs>
           </div>
+          {/* Terminal Output */}
+          {codeOutput !== null && (
+            <div className="h-48 border-t bg-black text-green-400 p-3 font-mono text-xs overflow-y-auto">
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-muted-foreground uppercase tracking-widest text-[10px]">Terminal Output</span>
+                <Button variant="ghost" size="sm" className="h-4 text-[10px] text-muted-foreground" onClick={() => executeCode('console.clear()')}>Clear</Button>
+              </div>
+              <pre className="whitespace-pre-wrap">{codeOutput}</pre>
+            </div>
+          )}
         </Card>
 
         {/* Chat Panel */}
@@ -188,16 +232,34 @@ export default function P2PRoomPage() {
         
         {/* Actions for Interviewer */}
         {role === 'INTERVIEWER' && (
-          <Card className="p-3 border-border bg-primary/5 flex justify-between items-center">
-            <Button size="sm" variant="outline" onClick={() => setIsSidebarOpen(!isSidebarOpen)}>
-              <FileText className="h-4 w-4 mr-2" />
-              Question Bank
-            </Button>
-            <Button size="sm" variant="outline" onClick={swapRoles}>
-              <RefreshCcw className="h-4 w-4 mr-2" />
-              Swap Roles
-            </Button>
-          </Card>
+          <div className="flex flex-col gap-2">
+            <Card className="p-3 border-border bg-primary/5 flex justify-between items-center">
+              <Button size="sm" variant="outline" onClick={() => setIsSidebarOpen(!isSidebarOpen)}>
+                <FileText className="h-4 w-4 mr-2" />
+                Question Bank
+              </Button>
+              <Button size="sm" variant="outline" onClick={swapRoles}>
+                <RefreshCcw className="h-4 w-4 mr-2" />
+                Swap Roles
+              </Button>
+            </Card>
+            
+            <Card className="p-3 border-border bg-blue-500/5">
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-xs font-semibold text-blue-500 flex items-center">
+                  <Bot className="h-3 w-3 mr-1" /> AI Co-Pilot
+                </span>
+                <Button size="sm" variant="secondary" className="h-6 text-[10px]" onClick={getHint} disabled={aiHint.status === 'loading' || !currentQuestion}>
+                  {aiHint.status === 'loading' ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : 'Get Hint'}
+                </Button>
+              </div>
+              {aiHint.text && (
+                <div className="text-xs text-muted-foreground p-2 bg-background rounded border">
+                  {aiHint.text}
+                </div>
+              )}
+            </Card>
+          </div>
         )}
 
         {/* Remote Video */}

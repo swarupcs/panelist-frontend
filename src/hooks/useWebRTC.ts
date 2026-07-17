@@ -9,14 +9,21 @@ interface UseWebRTCReturn {
   roomId: string | null;
   chatMessages: ChatMessage[];
   codeContent: string;
+  codeOutput: string | null;
+  isCodeRunning: boolean;
   role: 'INTERVIEWER' | 'INTERVIEWEE' | null;
   currentQuestion: any | null;
+  incomingWhiteboardPatch: any | null;
+  aiHint: { status: 'idle' | 'loading' | 'success' | 'error', text: string | null };
   joinQueue: (role: string, difficulty: string, language: string) => void;
   leaveQueue: () => void;
   joinRoom: (roomId: string) => void;
   leaveRoom: () => void;
   sendMessage: (text: string) => void;
   sendCodeUpdate: (code: string) => void;
+  sendWhiteboardSync: (patch: any) => void;
+  executeCode: (code: string) => void;
+  getHint: () => void;
   selectQuestion: (question: any) => void;
   swapRoles: () => void;
   submitFeedback: (technicalRating: number, communicationRating: number, feedback: string) => void;
@@ -43,8 +50,12 @@ export function useWebRTC(): UseWebRTCReturn {
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [codeContent, setCodeContent] = useState<string>('');
+  const [codeOutput, setCodeOutput] = useState<string | null>(null);
+  const [isCodeRunning, setIsCodeRunning] = useState(false);
   const [role, setRole] = useState<'INTERVIEWER' | 'INTERVIEWEE' | null>(null);
   const [currentQuestion, setCurrentQuestion] = useState<any | null>(null);
+  const [incomingWhiteboardPatch, setIncomingWhiteboardPatch] = useState<any | null>(null);
+  const [aiHint, setAiHint] = useState<{ status: 'idle' | 'loading' | 'success' | 'error', text: string | null }>({ status: 'idle', text: null });
   const [isAudioEnabled, setIsAudioEnabled] = useState(true);
   const [isVideoEnabled, setIsVideoEnabled] = useState(true);
 
@@ -101,6 +112,23 @@ export function useWebRTC(): UseWebRTCReturn {
           break;
         case 'SWAP_ROLES':
           setRole(prev => prev === 'INTERVIEWER' ? 'INTERVIEWEE' : 'INTERVIEWER');
+          break;
+        case 'CODE_OUTPUT':
+          setIsCodeRunning(msg.payload.status === 'running');
+          if (msg.payload.output) {
+            setCodeOutput(msg.payload.output);
+          } else if (msg.payload.status === 'running') {
+            setCodeOutput('Running code...');
+          }
+          break;
+        case 'WHITEBOARD_SYNC':
+          setIncomingWhiteboardPatch(msg.payload.patch);
+          break;
+        case 'HINT_RECEIVED':
+          setAiHint({
+            status: msg.payload.status,
+            text: msg.payload.hint || null
+          });
           break;
       }
     };
@@ -235,6 +263,21 @@ export function useWebRTC(): UseWebRTCReturn {
     sendWsMessage({ type: 'CODE_UPDATE', payload: { code } });
   }, []);
 
+  const sendWhiteboardSync = useCallback((patch: any) => {
+    sendWsMessage({ type: 'WHITEBOARD_SYNC', payload: { patch } });
+  }, []);
+
+  const executeCode = useCallback((code: string) => {
+    setIsCodeRunning(true);
+    sendWsMessage({ type: 'EXECUTE_CODE', payload: { roomId, code } });
+  }, [roomId]);
+
+  const getHint = useCallback(() => {
+    if (currentQuestion) {
+      sendWsMessage({ type: 'GET_HINT', payload: { question: currentQuestion.description, code: codeContent } });
+    }
+  }, [currentQuestion, codeContent]);
+
   const selectQuestion = useCallback((question: any) => {
     setCurrentQuestion(question);
     sendWsMessage({ type: 'SELECT_QUESTION', payload: { question } });
@@ -276,14 +319,21 @@ export function useWebRTC(): UseWebRTCReturn {
     roomId,
     chatMessages,
     codeContent,
+    codeOutput,
+    isCodeRunning,
     role,
     currentQuestion,
+    incomingWhiteboardPatch,
+    aiHint,
     joinQueue,
     leaveQueue,
     joinRoom,
     leaveRoom,
     sendMessage,
     sendCodeUpdate,
+    sendWhiteboardSync,
+    executeCode,
+    getHint,
     selectQuestion,
     swapRoles,
     submitFeedback,

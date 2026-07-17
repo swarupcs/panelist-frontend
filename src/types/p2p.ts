@@ -17,6 +17,11 @@ export type P2PMessageType =
   | 'SELECT_QUESTION'
   | 'SWAP_ROLES'
   | 'SUBMIT_FEEDBACK'
+  | 'WHITEBOARD_SYNC'
+  | 'EXECUTE_CODE'
+  | 'CODE_OUTPUT'
+  | 'GET_HINT'
+  | 'HINT_RECEIVED'
   | 'ERROR';
 
 export interface P2PMessage {
