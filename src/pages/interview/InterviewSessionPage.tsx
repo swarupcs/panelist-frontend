@@ -18,6 +18,7 @@
 //        elements styled with Tailwind, never wrapped inside a shadcn Button.
 
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Lightbulb,
@@ -46,7 +47,7 @@ import { Button } from '@/components/ui/Button';
 import { Card, CardContent, CardHeader } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { LoadingScreen } from '@/components/common';
-import { getDifficultyBadge, formatScore } from '@/utils/formatters';
+import { getDifficultyBadge } from '@/utils/formatters';
 import { cn } from '@/lib/cn';
 import { Progress } from '@/components/ui/progress';
 import { Textarea } from '@/components/ui/textarea';
@@ -543,63 +544,81 @@ export default function InterviewSessionPage() {
 
       {/* ══════════════════════════════════════════════════════════════════════
           PHASE: completed  (UX-2 modal)
+          Rendered via createPortal into document.body so that `fixed` positioning
+          is never clipped by overflow:hidden or CSS transforms on AppShell.
       ══════════════════════════════════════════════════════════════════════ */}
-      {phase === 'completed' && (
-        <div
-          className='fixed inset-0 z-50 flex items-center justify-center
+      {phase === 'completed' &&
+        createPortal(
+          <div
+            className='fixed inset-0 z-[9999] flex items-center justify-center
                         bg-background/80 backdrop-blur-sm animate-fade-in'
-        >
-          <Card className='w-full max-w-md mx-4 border-primary/30'>
-            <CardContent className='pt-8 pb-6 space-y-6 text-center'>
-              <div className='flex justify-center'>
-                <div className='rounded-full bg-primary/10 p-4'>
-                  <Trophy className='size-10 text-primary' />
-                </div>
-              </div>
-
-              <div className='space-y-1'>
-                <h2 className='text-xl font-bold text-foreground'>
-                  Session Complete!
-                </h2>
-                <p className='text-sm text-muted-foreground'>
-                  You answered all {totalQuestions} question
-                  {totalQuestions !== 1 ? 's' : ''}
-                </p>
-              </div>
-
-              {/* Last question's feedback preview */}
-              {pendingFeedback && (
-                <div className='rounded-xl border border-border bg-secondary/30 p-4 text-left space-y-3'>
-                  <div className='flex items-center justify-between'>
-                    <p className='text-xs font-semibold text-muted-foreground uppercase tracking-wider'>
-                      Last Answer
-                    </p>
-                    <ScoreRing score={pendingFeedback.score} />
+          >
+            <Card className='w-full max-w-md mx-4 border-primary/30 shadow-2xl'>
+              <CardContent className='pt-8 pb-6 space-y-6 text-center'>
+                <div className='flex justify-center'>
+                  <div className='rounded-full bg-primary/10 p-4'>
+                    <Trophy className='size-10 text-primary' />
                   </div>
-                  <p className='text-sm text-foreground leading-relaxed line-clamp-3'>
-                    {pendingFeedback.feedback}
+                </div>
+
+                <div className='space-y-1'>
+                  <h2 className='text-xl font-bold text-foreground'>
+                    Session Complete!
+                  </h2>
+                  <p className='text-sm text-muted-foreground'>
+                    You answered all {totalQuestions} question
+                    {totalQuestions !== 1 ? 's' : ''}
                   </p>
                 </div>
-              )}
 
-              <p className='text-sm text-muted-foreground'>
-                View the full breakdown with per-question scores, time spent,
-                and improvement suggestions.
-              </p>
+                {/* Last question's feedback preview */}
+                {pendingFeedback && (
+                  <div className='rounded-xl border border-border bg-secondary/30 p-4 text-left space-y-3'>
+                    <div className='flex items-center justify-between'>
+                      <p className='text-xs font-semibold text-muted-foreground uppercase tracking-wider'>
+                        Last Answer
+                      </p>
+                      <div
+                        className={cn(
+                          'text-2xl font-bold tabular-nums',
+                          pendingFeedback.score >= 80
+                            ? 'text-green-400'
+                            : pendingFeedback.score >= 60
+                              ? 'text-yellow-400'
+                              : 'text-red-400',
+                        )}
+                      >
+                        {pendingFeedback.score}
+                        <span className='text-sm text-muted-foreground font-normal'>
+                          /100
+                        </span>
+                      </div>
+                    </div>
+                    <p className='text-sm text-foreground leading-relaxed line-clamp-3'>
+                      {pendingFeedback.feedback}
+                    </p>
+                  </div>
+                )}
 
-              <Button
-                variant='gradient'
-                size='lg'
-                onClick={() => navigate(`/interview/results/${sessionId}`)}
-                className='w-full gap-2'
-              >
-                View Full Results
-                <ChevronRight className='size-4' />
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
-      )}
+                <p className='text-sm text-muted-foreground'>
+                  View the full breakdown with per-question scores, time spent,
+                  and improvement suggestions.
+                </p>
+
+                <Button
+                  variant='gradient'
+                  size='lg'
+                  onClick={() => navigate(`/interview/results/${sessionId}`)}
+                  className='w-full gap-2'
+                >
+                  View Full Results
+                  <ChevronRight className='size-4' />
+                </Button>
+              </CardContent>
+            </Card>
+          </div>,
+          document.body,
+        )}
     </div>
   );
 }
