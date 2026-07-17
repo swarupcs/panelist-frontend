@@ -48,4 +48,14 @@ export const companyApi = {
     const res = await api.get('/companies/recommended');
     return res.data.data;
   },
+
+  getReadiness: async (slug: string) => {
+    const res = await api.get(`/companies/${slug}/readiness`);
+    return res.data.data;
+  },
+
+  getAllReadiness: async () => {
+    const res = await api.get('/companies/readiness');
+    return res.data.data;
+  },
 };

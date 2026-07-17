@@ -20,6 +20,7 @@ import { Badge } from '@/components/ui/badge';
 import { PageHeader, EmptyState } from '@/components/common';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/cn';
+import { useAuthStore } from '@/store/authStore';
 
 // ── Difficulty color ───────────────────────────────────────────────────────
 
@@ -66,12 +67,21 @@ interface Company {
   };
 }
 
+interface ReadinessData {
+  companyId: string;
+  slug: string;
+  name: string;
+  readiness: number;
+}
+
 function CompanyCard({
   company,
   onSelect,
+  readiness,
 }: {
   company: Company;
   onSelect: () => void;
+  readiness?: number;
 }) {
   return (
     <button
@@ -134,6 +144,29 @@ function CompanyCard({
         </div>
         <ChevronRight className='size-3.5' />
       </div>
+
+      {/* Readiness indicator */}
+      {readiness !== undefined && readiness > 0 && (
+        <div className='flex items-center gap-2 border-t border-border/50 pt-2'>
+          <div className='relative h-1.5 flex-1 rounded-full bg-secondary overflow-hidden'>
+            <div
+              className={cn(
+                'h-full rounded-full transition-all duration-500',
+                readiness >= 70 ? 'bg-green-500' : readiness >= 40 ? 'bg-yellow-500' : 'bg-red-500',
+              )}
+              style={{ width: `${readiness}%` }}
+            />
+          </div>
+          <span
+            className={cn(
+              'text-xs font-semibold tabular-nums',
+              readiness >= 70 ? 'text-green-400' : readiness >= 40 ? 'text-yellow-400' : 'text-red-400',
+            )}
+          >
+            {readiness}%
+          </span>
+        </div>
+      )}
     </button>
   );
 }
@@ -173,6 +206,14 @@ function CompanyDetail({
 
   const company = companyData?.company;
   const questions = questionsData?.questions ?? [];
+
+  const { data: readinessData, isLoading: readinessLoading } = useQuery({
+    queryKey: ['company', slug, 'readiness'],
+    queryFn: () => companyApi.getReadiness(slug),
+    enabled: !!slug,
+  });
+
+  const readiness = readinessData?.readiness;
 
   return (
     <div className='fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-background/80 backdrop-blur-sm'>
@@ -266,6 +307,72 @@ function CompanyDetail({
                   Failed to start practice session.
                 </p>
               )}
+
+              {/* Readiness section */}
+              {readiness && (
+                <div className='space-y-3 pt-1'>
+                  <p className='text-xs font-semibold text-muted-foreground uppercase tracking-wider'>
+                    Interview Readiness
+                  </p>
+                  <div className='flex items-center gap-4'>
+                    <div className='relative flex items-center justify-center'>
+                      <svg width={64} height={64} viewBox='0 0 64 64' className='-rotate-90'>
+                        <circle cx={32} cy={32} r={26} fill='none' stroke='hsl(var(--secondary))' strokeWidth={5} />
+                        <circle
+                          cx={32} cy={32} r={26} fill='none'
+                          stroke={readiness.readiness >= 70 ? '#4ade80' : readiness.readiness >= 40 ? '#facc15' : '#f87171'}
+                          strokeWidth={5}
+                          strokeDasharray={2 * Math.PI * 26}
+                          strokeDashoffset={2 * Math.PI * 26 - (readiness.readiness / 100) * (2 * Math.PI * 26)}
+                          strokeLinecap='round'
+                          style={{ transition: 'stroke-dashoffset 0.5s ease' }}
+                        />
+                        <text
+                          x={32} y={32} textAnchor='middle' dominantBaseline='middle'
+                          fill={readiness.readiness >= 70 ? '#4ade80' : readiness.readiness >= 40 ? '#facc15' : '#f87171'}
+                          fontSize={14} fontWeight='bold'
+                          transform={`rotate(90, 32, 32)`}
+                        >
+                          {readiness.readiness}%
+                        </text>
+                      </svg>
+                    </div>
+                    <div className='flex-1 space-y-1.5'>
+                      {[
+                        { label: 'Coverage', value: readiness.breakdown.coverage },
+                        { label: 'Score', value: readiness.breakdown.score },
+                        { label: 'Consistency', value: readiness.breakdown.consistency },
+                        { label: 'Recency', value: readiness.breakdown.recency },
+                      ].map(({ label, value }) => (
+                        <div key={label} className='flex items-center gap-2'>
+                          <span className='text-xs text-muted-foreground w-20'>{label}</span>
+                          <div className='relative h-1 flex-1 rounded-full bg-secondary overflow-hidden'>
+                            <div
+                              className={cn(
+                                'h-full rounded-full transition-all duration-500',
+                                value >= 70 ? 'bg-green-500' : value >= 40 ? 'bg-yellow-500' : 'bg-red-500/70',
+                              )}
+                              style={{ width: `${value}%` }}
+                            />
+                          </div>
+                          <span className='text-xs text-muted-foreground tabular-nums w-7 text-right'>{value}%</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div className='flex gap-3 text-xs text-muted-foreground'>
+                    <span>{readiness.questionsAttempted}/{readiness.totalQuestions} questions</span>
+                    {readiness.lastPracticed && (
+                      <span>Last practiced: {new Date(readiness.lastPracticed).toLocaleDateString()}</span>
+                    )}
+                  </div>
+                </div>
+              )}
+              {readinessLoading && (
+                <div className='py-3'>
+                  <Skeleton className='h-16 w-full rounded-lg' />
+                </div>
+              )}
             </>
           )}
 
@@ -342,6 +449,24 @@ export default function CompaniesPage() {
     queryFn: () => companyApi.getAll(),
     staleTime: 1000 * 60 * 5,
   });
+
+  const { isAuthenticated } = useAuthStore();
+
+  // Fetch bulk readiness for all companies (only if authenticated)
+  const { data: readinessData } = useQuery({
+    queryKey: ['companies', 'readiness'],
+    queryFn: () => companyApi.getAllReadiness(),
+    enabled: isAuthenticated,
+    staleTime: 1000 * 60 * 5,
+  });
+
+  // Build a slug → readiness map for quick lookup
+  const readinessMap = new Map<string, number>();
+  if (readinessData?.readiness) {
+    (readinessData.readiness as ReadinessData[]).forEach((r: ReadinessData) => {
+      readinessMap.set(r.slug, r.readiness);
+    });
+  }
 
   const companies: Company[] = data?.companies ?? [];
 
@@ -471,6 +596,7 @@ export default function CompaniesPage() {
               key={company.id}
               company={company}
               onSelect={() => setSelectedSlug(company.slug)}
+              readiness={readinessMap.get(company.slug)}
             />
           ))}
         </div>
