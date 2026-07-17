@@ -5,12 +5,13 @@ import { useInterviewStore } from '@/store/interviewStore'
 import { useSubmitAnswer, useRequestHint, usePauseSession, useResumeSession } from '@/hooks/useInterview'
 import { Button } from '@/components/ui/Button'
 import { Card, CardContent, CardHeader } from '@/components/ui/Card'
+
 import { Badge } from '@/components/ui/Badge'
-import { Textarea } from '@/components/ui/Input'
-import { Progress } from '@/components/ui/Badge'
 import { LoadingScreen } from '@/components/common'
 import { getDifficultyBadge, formatScore } from '@/utils/formatters'
 import { cn } from '@/lib/cn'
+import { Progress } from '@/components/ui/progress'
+import { Textarea } from '@/components/ui/textarea'
 
 export default function InterviewSessionPage() {
   const { sessionId } = useParams<{ sessionId: string }>()

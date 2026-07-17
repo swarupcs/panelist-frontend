@@ -9,14 +9,17 @@ import { useLogout } from '@/hooks/useAuth'
 import { PageHeader, LoadingScreen } from '@/components/common'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
-import { Input, Label, Textarea } from '@/components/ui/Input'
+import { Input } from '@/components/ui/Input'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/Avatar'
-import { Separator } from '@/components/ui/Badge'
 import { Badge } from '@/components/ui/Badge'
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/Select'
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/Dialog'
+
+
+
 import { formatDate, formatRelative } from '@/utils/formatters'
 import { userApi } from '@/api/user.api'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog'
+import { Label } from '@/components/ui/label'
 
 const profileSchema = z.object({ name: z.string().min(2, 'At least 2 characters') })
 const passwordSchema = z.object({

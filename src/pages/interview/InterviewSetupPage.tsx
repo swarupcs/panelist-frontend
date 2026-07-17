@@ -1,73 +1,143 @@
-import { useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
-import { Brain, Code2, Layers, Users, Shuffle, Clock, Gauge, Target } from 'lucide-react'
-import { Button } from '@/components/ui/Button'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/Card'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/Select'
-import { PageHeader } from '@/components/common'
-import { useStartInterview } from '@/hooks/useInterview'
-import type { InterviewType, Difficulty } from '@/types'
-import { cn } from '@/lib/cn'
+import { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import {
+  Brain,
+  Code2,
+  Layers,
+  Users,
+  Shuffle,
+  Clock,
+  Gauge,
+  Target,
+} from 'lucide-react';
+import { Button } from '@/components/ui/Button';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from '@/components/ui/Card';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/Select';
+import { PageHeader } from '@/components/common';
+import { useStartInterview } from '@/hooks/useInterview';
+import type { InterviewType, Difficulty } from '@/types';
+import { cn } from '@/lib/cn';
 
 const interviewTypes = [
-  { value: 'dsa', label: 'DSA', description: 'Data structures & algorithms', icon: Code2, color: 'text-blue-400', bg: 'bg-blue-500/10 border-blue-500/20' },
-  { value: 'system_design', label: 'System Design', description: 'Architecture & scalability', icon: Layers, color: 'text-purple-400', bg: 'bg-purple-500/10 border-purple-500/20' },
-  { value: 'behavioral', label: 'Behavioral', description: 'STAR method & soft skills', icon: Users, color: 'text-green-400', bg: 'bg-green-500/10 border-green-500/20' },
-  { value: 'mixed', label: 'Mixed', description: 'Combination of all types', icon: Shuffle, color: 'text-yellow-400', bg: 'bg-yellow-500/10 border-yellow-500/20' },
-]
+  {
+    value: 'dsa',
+    label: 'DSA',
+    description: 'Data structures & algorithms',
+    icon: Code2,
+    color: 'text-blue-400',
+    bg: 'bg-blue-500/10 border-blue-500/20',
+  },
+  {
+    value: 'system_design',
+    label: 'System Design',
+    description: 'Architecture & scalability',
+    icon: Layers,
+    color: 'text-purple-400',
+    bg: 'bg-purple-500/10 border-purple-500/20',
+  },
+  {
+    value: 'behavioral',
+    label: 'Behavioral',
+    description: 'STAR method & soft skills',
+    icon: Users,
+    color: 'text-green-400',
+    bg: 'bg-green-500/10 border-green-500/20',
+  },
+  {
+    value: 'mixed',
+    label: 'Mixed',
+    description: 'Combination of all types',
+    icon: Shuffle,
+    color: 'text-yellow-400',
+    bg: 'bg-yellow-500/10 border-yellow-500/20',
+  },
+];
 
 const difficulties = [
-  { value: 'easy', label: 'Easy', description: 'Junior / entry level', color: 'text-green-400', border: 'border-green-500/30' },
-  { value: 'medium', label: 'Medium', description: 'Mid-level engineer', color: 'text-yellow-400', border: 'border-yellow-500/30' },
-  { value: 'hard', label: 'Hard', description: 'Senior / lead engineer', color: 'text-red-400', border: 'border-red-500/30' },
-]
+  {
+    value: 'easy',
+    label: 'Easy',
+    description: 'Junior / entry level',
+    color: 'text-green-400',
+    border: 'border-green-500/30',
+  },
+  {
+    value: 'medium',
+    label: 'Medium',
+    description: 'Mid-level engineer',
+    color: 'text-yellow-400',
+    border: 'border-yellow-500/30',
+  },
+  {
+    value: 'hard',
+    label: 'Hard',
+    description: 'Senior / lead engineer',
+    color: 'text-red-400',
+    border: 'border-red-500/30',
+  },
+];
 
-const durations = [15, 30, 45, 60, 90]
+const durations = [15, 30, 45, 60, 90];
 
 const schema = z.object({
   type: z.enum(['dsa', 'system_design', 'behavioral', 'mixed'] as const),
   difficulty: z.enum(['easy', 'medium', 'hard'] as const),
   duration: z.number().min(15).max(120),
-})
-type FormData = z.infer<typeof schema>
+});
+type FormData = z.infer<typeof schema>;
 
 export default function InterviewSetupPage() {
-  const [searchParams] = useSearchParams()
-  const initialType = (searchParams.get('type') as InterviewType) || 'dsa'
-  const [selectedType, setSelectedType] = useState<InterviewType>(initialType)
-  const [selectedDifficulty, setSelectedDifficulty] = useState<Difficulty>('medium')
-  const [selectedDuration, setSelectedDuration] = useState(30)
-  const startInterview = useStartInterview()
+  const [searchParams] = useSearchParams();
+  const initialType = (searchParams.get('type') as InterviewType) || 'dsa';
+  const [selectedType, setSelectedType] = useState<InterviewType>(initialType);
+  const [selectedDifficulty, setSelectedDifficulty] =
+    useState<Difficulty>('medium');
+  const [selectedDuration, setSelectedDuration] = useState(30);
+  const startInterview = useStartInterview();
 
   const handleStart = () => {
     startInterview.mutate({
       type: selectedType,
       difficulty: selectedDifficulty,
       duration: selectedDuration,
-    })
-  }
+    });
+  };
 
   return (
-    <div className="space-y-6 max-w-2xl animate-fade-in">
+    <div className='space-y-6 max-w-2xl animate-fade-in'>
       <PageHeader
-        title="Start Interview"
-        description="Configure your mock interview session"
+        title='Start Interview'
+        description='Configure your mock interview session'
       />
 
       {/* Interview Type */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2">
-            <Brain className="size-4 text-primary" />
+          <CardTitle className='text-base flex items-center gap-2'>
+            <Brain className='size-4 text-primary' />
             Interview Type
           </CardTitle>
-          <CardDescription>What type of interview do you want to practice?</CardDescription>
+          <CardDescription>
+            What type of interview do you want to practice?
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 gap-3">
+          <div className='grid grid-cols-2 gap-3'>
             {interviewTypes.map((type) => (
               <button
                 key={type.value}
@@ -81,8 +151,12 @@ export default function InterviewSetupPage() {
               >
                 <type.icon className={cn('size-5', type.color)} />
                 <div>
-                  <p className="font-medium text-sm text-foreground">{type.label}</p>
-                  <p className="text-xs text-muted-foreground">{type.description}</p>
+                  <p className='font-medium text-sm text-foreground'>
+                    {type.label}
+                  </p>
+                  <p className='text-xs text-muted-foreground'>
+                    {type.description}
+                  </p>
                 </div>
               </button>
             ))}
@@ -93,14 +167,16 @@ export default function InterviewSetupPage() {
       {/* Difficulty */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2">
-            <Gauge className="size-4 text-primary" />
+          <CardTitle className='text-base flex items-center gap-2'>
+            <Gauge className='size-4 text-primary' />
             Difficulty
           </CardTitle>
-          <CardDescription>Choose the difficulty level for your session</CardDescription>
+          <CardDescription>
+            Choose the difficulty level for your session
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-3 gap-3">
+          <div className='grid grid-cols-3 gap-3'>
             {difficulties.map((diff) => (
               <button
                 key={diff.value}
@@ -112,8 +188,12 @@ export default function InterviewSetupPage() {
                     : 'border-border hover:bg-secondary',
                 )}
               >
-                <p className={cn('font-semibold text-sm', diff.color)}>{diff.label}</p>
-                <p className="text-xs text-muted-foreground">{diff.description}</p>
+                <p className={cn('font-semibold text-sm', diff.color)}>
+                  {diff.label}
+                </p>
+                <p className='text-xs text-muted-foreground'>
+                  {diff.description}
+                </p>
               </button>
             ))}
           </div>
@@ -123,14 +203,17 @@ export default function InterviewSetupPage() {
       {/* Duration */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2">
-            <Clock className="size-4 text-primary" />
+          <CardTitle className='text-base flex items-center gap-2'>
+            <Clock className='size-4 text-primary' />
             Duration
           </CardTitle>
-          <CardDescription>How long do you want to practice? ({Math.floor(selectedDuration / 15)} questions)</CardDescription>
+          <CardDescription>
+            How long do you want to practice? (
+            {Math.floor(selectedDuration / 15)} questions)
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-wrap gap-2">
+          <div className='flex flex-wrap gap-2'>
             {durations.map((dur) => (
               <button
                 key={dur}
@@ -150,15 +233,17 @@ export default function InterviewSetupPage() {
       </Card>
 
       {/* Summary & Start */}
-      <Card className="border-primary/30 bg-primary/5">
-        <CardContent className="pt-5">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="space-y-1">
-              <p className="font-medium text-foreground">Session Summary</p>
-              <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
-                <span className="capitalize">{interviewTypes.find(t => t.value === selectedType)?.label}</span>
+      <Card className='border-primary/30 bg-primary/5'>
+        <CardContent className='pt-5'>
+          <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-4'>
+            <div className='space-y-1'>
+              <p className='font-medium text-foreground'>Session Summary</p>
+              <div className='flex flex-wrap gap-2 text-xs text-muted-foreground'>
+                <span className='capitalize'>
+                  {interviewTypes.find((t) => t.value === selectedType)?.label}
+                </span>
                 <span>•</span>
-                <span className="capitalize">{selectedDifficulty}</span>
+                <span className='capitalize'>{selectedDifficulty}</span>
                 <span>•</span>
                 <span>{selectedDuration} minutes</span>
                 <span>•</span>
@@ -166,23 +251,24 @@ export default function InterviewSetupPage() {
               </div>
             </div>
             <Button
-              variant="gradient"
-              size="lg"
+              variant='gradient'
+              size='lg'
               onClick={handleStart}
               loading={startInterview.isPending}
-              className="shrink-0"
+              className='shrink-0'
             >
               Start Session
             </Button>
           </div>
 
           {startInterview.isError && (
-            <p className="mt-3 text-sm text-destructive">
-              {(startInterview.error as any)?.response?.data?.error?.message || 'Failed to start interview'}
+            <p className='mt-3 text-sm text-destructive'>
+              {(startInterview.error as any)?.response?.data?.error?.message ||
+                'Failed to start interview'}
             </p>
           )}
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }

@@ -3,11 +3,12 @@ import { useAchievements, useLeaderboard } from '@/hooks/useAnalytics'
 import { PageHeader, LoadingScreen, ErrorState, EmptyState } from '@/components/common'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/Avatar'
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/Select'
+
 import { Badge } from '@/components/ui/Badge'
 import { formatRelative } from '@/utils/formatters'
 import { cn } from '@/lib/cn'
 import { useAuthStore } from '@/store/authStore'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 export default function AchievementsPage() {
   const { data: achievements, isLoading, isError, refetch } = useAchievements()

@@ -3,11 +3,14 @@ import { BarChart3, TrendingUp, Target, Users, AlertTriangle } from 'lucide-reac
 import { useAnalyticsDashboard, usePerformanceTrends, useSkillGaps } from '@/hooks/useAnalytics'
 import { PageHeader, StatCard, LoadingScreen, ErrorState, SectionHeader } from '@/components/common'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/Select'
+
+
 import { Badge } from '@/components/ui/Badge'
-import { Progress } from '@/components/ui/Badge'
 import { formatScore, formatPercent, formatDate, getScoreBg, formatCategory } from '@/utils/formatters'
 import { cn } from '@/lib/cn'
+import { Progress } from '@/components/ui/progress'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+
 
 function MiniBarChart({ data }: { data: { date: string; averageScore: number; interviewCount: number }[] }) {
   if (!data?.length) return <div className="h-32 flex items-center justify-center text-sm text-muted-foreground">No data yet</div>
