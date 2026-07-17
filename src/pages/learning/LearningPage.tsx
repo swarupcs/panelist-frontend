@@ -36,6 +36,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { PageHeader, EmptyState } from '@/components/common';
+import { SkillTree } from './components/SkillTree';
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { formatCategory, formatDate, formatPercent } from '@/utils/formatters';
 import { cn } from '@/lib/cn';
