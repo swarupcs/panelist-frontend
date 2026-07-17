@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import type { GetPostsOptions, GetPostsResponse, ForumPost } from '@/api/forum';
 import { forumApi } from '@/api/forum';
 
@@ -29,7 +30,11 @@ export function useCreatePost() {
     mutationFn: forumApi.createPost,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: forumKeys.all });
+      toast.success('Post created successfully!');
     },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.error?.message || 'Failed to create post');
+    }
   });
 }
 
@@ -39,7 +44,11 @@ export function useCreateComment() {
     mutationFn: forumApi.createComment,
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: forumKeys.post(variables.postId) });
+      toast.success('Comment posted successfully!');
     },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.error?.message || 'Failed to post comment');
+    }
   });
 }
 
@@ -48,10 +57,12 @@ export function useVotePost() {
   return useMutation({
     mutationFn: ({ postId, value }: { postId: string; value: 1 | -1 }) => forumApi.votePost(postId, value),
     onSuccess: (_, variables) => {
-      // Invalidate both the list and the specific post to refresh vote counts
       queryClient.invalidateQueries({ queryKey: forumKeys.post(variables.postId) });
       queryClient.invalidateQueries({ queryKey: [...forumKeys.all, 'posts'] });
     },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.error?.message || 'Failed to vote');
+    }
   });
 }
 
@@ -62,6 +73,9 @@ export function useVoteComment() {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: forumKeys.post(variables.postId) });
     },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.error?.message || 'Failed to vote');
+    }
   });
 }
 
@@ -72,6 +86,10 @@ export function useAcceptAnswer() {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: forumKeys.post(variables.postId) });
       queryClient.invalidateQueries({ queryKey: [...forumKeys.all, 'posts'] });
+      toast.success('Answer accepted!');
     },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.error?.message || 'Failed to accept answer');
+    }
   });
 }

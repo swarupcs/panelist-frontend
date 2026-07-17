@@ -1,5 +1,6 @@
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
+import { toast } from 'sonner'
 import { useAuthStore } from '../store/authStore'
 import { authApi } from '../api/auth.api'
 import type { LoginRequest, RegisterRequest } from '../types'
@@ -25,8 +26,12 @@ export function useLogin() {
     onSuccess: (data) => {
       setAuth(data.user, data.tokens)
       queryClient.setQueryData(['auth', 'me'], { user: data.user })
+      toast.success('Successfully logged in!')
       navigate('/dashboard')
     },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.error?.message || 'Login failed')
+    }
   })
 }
 
@@ -36,8 +41,12 @@ export function useRegister() {
   return useMutation({
     mutationFn: (data: RegisterRequest) => authApi.register(data),
     onSuccess: () => {
+      toast.success('Account created! Please check your email.')
       navigate('/login?registered=true')
     },
+    onError: (error: any) => {
+      toast.error(error.response?.data?.error?.message || 'Registration failed')
+    }
   })
 }
 
@@ -53,6 +62,7 @@ export function useLogout() {
     onSettled: () => {
       clearAuth()
       queryClient.clear()
+      toast.info('Logged out')
       navigate('/login')
     },
   })
@@ -61,6 +71,8 @@ export function useLogout() {
 export function useForgotPassword() {
   return useMutation({
     mutationFn: (email: string) => authApi.forgotPassword(email),
+    onSuccess: () => toast.success('Password reset email sent!'),
+    onError: (error: any) => toast.error(error.response?.data?.error?.message || 'Failed to send reset email')
   })
 }
 
@@ -69,12 +81,18 @@ export function useResetPassword() {
   return useMutation({
     mutationFn: ({ token, newPassword }: { token: string; newPassword: string }) =>
       authApi.resetPassword(token, newPassword),
-    onSuccess: () => navigate('/login?reset=true'),
+    onSuccess: () => {
+      toast.success('Password reset successfully!')
+      navigate('/login?reset=true')
+    },
+    onError: (error: any) => toast.error(error.response?.data?.error?.message || 'Failed to reset password')
   })
 }
 
 export function useVerifyEmail() {
   return useMutation({
     mutationFn: (token: string) => authApi.verifyEmail(token),
+    onSuccess: () => toast.success('Email verified successfully!'),
+    onError: (error: any) => toast.error(error.response?.data?.error?.message || 'Verification failed')
   })
 }
