@@ -1,6 +1,4 @@
-// src/types/admin.ts
-// Types derived directly from backend admin controller response shapes.
-
+// src/types/admin.ts  (FULL REPLACEMENT)
 import type { Pagination } from '@/types'
 
 export type { Pagination }
@@ -15,15 +13,11 @@ export interface AdminDashboardStats {
   activeUsers: number
   bannedUsers: number
   suspendedUsers: number
-  byRole: {
-    free: number
-    premium: number
-    admin: number
-  }
+  byRole: { free: number; premium: number; admin: number }
 }
 
 // ============================================================
-// User List Item  (GET /admin/users)
+// User List Item
 // ============================================================
 export interface AdminUserListItem {
   id: string
@@ -40,10 +34,7 @@ export interface AdminUserListItem {
   profilePicture?: string | null
   bannedAt?: string | null
   suspendedUntil?: string | null
-  _count: {
-    interviewSessions: number
-    achievements: number
-  }
+  _count: { interviewSessions: number; achievements: number }
 }
 
 // ============================================================
@@ -61,12 +52,65 @@ export interface AdminUserStats {
   daysSinceLastLogin: number | null
 }
 
+export interface AdminUserBanRecord {
+  id: string
+  reason: string
+  isPermanent: boolean
+  bannedBy: string
+  createdAt: string
+  unbannedAt?: string | null
+  unbannedBy?: string | null
+}
+
+export interface AdminUserSuspensionRecord {
+  id: string
+  reason: string
+  duration: number
+  expiresAt: string
+  suspendedBy: string
+  createdAt: string
+  endedAt?: string | null
+  endedBy?: string | null
+}
+
+export interface AdminRefreshToken {
+  id: string
+  createdAt: string
+  expiresAt: string
+}
+
+export interface AdminUserAchievementDetail {
+  id: string
+  unlockedAt: string
+  achievement: {
+    id: string
+    code: string
+    title: string
+    description: string
+    icon: string
+    points: number
+  }
+}
+
+export interface AdminWeakArea {
+  topic: string
+  category: string
+  failureCount: number
+  lastEncountered: string
+  improvementSuggestions: string[]
+}
+
 export interface AdminUserDetails {
   user: AdminUserListItem & {
     adminNotes?: string | null
     banReason?: string | null
     suspensionReason?: string | null
     oauthProvider?: string | null
+    bans?: AdminUserBanRecord[]
+    suspensions?: AdminUserSuspensionRecord[]
+    refreshTokens?: AdminRefreshToken[]
+    achievements?: AdminUserAchievementDetail[]
+    weakAreas?: AdminWeakArea[]
   }
   stats: AdminUserStats
   recentActivity: AdminActivityLog[]
@@ -99,16 +143,8 @@ export interface AdminAction {
   changes?: Record<string, unknown> | null
   metadata?: Record<string, unknown> | null
   createdAt: string
-  admin: {
-    id: string
-    name: string
-    email: string
-  }
-  targetUser?: {
-    id: string
-    name: string
-    email: string
-  } | null
+  admin: { id: string; name: string; email: string }
+  targetUser?: { id: string; name: string; email: string } | null
 }
 
 // ============================================================
@@ -315,13 +351,50 @@ export interface AdminSystemHealth {
 // Analytics — Performance Metrics
 // ============================================================
 export interface AdminPerformanceMetrics {
-  responseTime: {
-    p50: number
-    p95: number
-    p99: number
-  }
+  responseTime: { p50: number; p95: number; p99: number }
   throughput: number
   errorRate: number
+}
+
+// ============================================================
+// AI Question Management
+// ============================================================
+export interface AdminAIQuestion {
+  id: string
+  question: string
+  description?: string | null
+  difficulty: string
+  category: string
+  subcategory?: string | null
+  hints: string[]
+  solution: string
+  sampleCode: string
+  explanation: string
+  testCases: Array<{ input: unknown; expectedOutput: unknown; explanation?: string }>
+  timeComplexity?: string | null
+  spaceComplexity?: string | null
+  generationType: string
+  status: 'PENDING_REVIEW' | 'APPROVED' | 'REJECTED'
+  isApproved: boolean
+  approvedBy?: string | null
+  approvedAt?: string | null
+  timesUsed: number
+  createdAt: string
+  baseQuestion?: { id: string; question: string } | null
+}
+
+export interface AdminAIQuestionStats {
+  total: number
+  byType: Array<{ generationType: string; _count: { id: number } }>
+  byStatus: Array<{ status: string; _count: { id: number } }>
+  recentGenerations: Array<{
+    id: string
+    question: string
+    difficulty: string
+    category: string
+    status: string
+    createdAt: string
+  }>
 }
 
 // ============================================================
@@ -334,6 +407,7 @@ export type AdminTab =
   | 'system'
   | 'audit'
   | 'reports'
+  | 'ai-questions'
 
 export type UserFilterStatus = 'all' | 'active' | 'banned' | 'suspended' | 'inactive'
 export type UserSortField    = 'createdAt' | 'lastLogin' | 'email' | 'name'

@@ -1,27 +1,31 @@
-// src/hooks/useAdmin.ts
+// src/hooks/useAdmin.ts  (FULL REPLACEMENT)
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { adminUserApi, adminAnalyticsApi, adminStatsApi } from '@/api/admin.api'
+import { adminUserApi, adminAnalyticsApi, adminStatsApi, adminAIQuestionApi } from '@/api/admin.api'
 import type { UserFilterStatus, UserSortField } from '@/types/admin'
 
 // ── Query Keys ─────────────────────────────────────────────────────────────
 
 export const adminKeys = {
-  all:         ['admin'] as const,
-  stats:       ()           => [...adminKeys.all, 'stats']                   as const,
-  users:       ()           => [...adminKeys.all, 'users']                   as const,
-  userList:    (p: object)  => [...adminKeys.users(), p]                     as const,
-  userDetail:  (id: string) => [...adminKeys.users(), id]                    as const,
-  userActivity:(id: string) => [...adminKeys.users(), id, 'activity']        as const,
-  actions:     (p: object)  => [...adminKeys.all, 'actions', p]              as const,
-  analytics:   ()           => [...adminKeys.all, 'analytics']               as const,
-  overview:    ()           => [...adminKeys.analytics(), 'overview']        as const,
-  behavior:    ()           => [...adminKeys.analytics(), 'behavior']        as const,
-  cohorts:     (m: number)  => [...adminKeys.analytics(), 'cohorts', m]      as const,
-  apiUsage:    (h: number)  => [...adminKeys.analytics(), 'api-usage', h]    as const,
-  errorLogs:   (p: object)  => [...adminKeys.analytics(), 'errors', p]       as const,
-  health:      ()           => [...adminKeys.analytics(), 'health']          as const,
-  performance: (h: number)  => [...adminKeys.analytics(), 'performance', h]  as const,
-  reports:     (p: object)  => [...adminKeys.analytics(), 'reports', p]      as const,
+  all:           ['admin'] as const,
+  stats:         ()           => [...adminKeys.all, 'stats']                  as const,
+  users:         ()           => [...adminKeys.all, 'users']                  as const,
+  userList:      (p: object)  => [...adminKeys.users(), p]                    as const,
+  userDetail:    (id: string) => [...adminKeys.users(), id]                   as const,
+  userActivity:  (id: string) => [...adminKeys.users(), id, 'activity']       as const,
+  actions:       (p: object)  => [...adminKeys.all, 'actions', p]             as const,
+  analytics:     ()           => [...adminKeys.all, 'analytics']              as const,
+  overview:      ()           => [...adminKeys.analytics(), 'overview']       as const,
+  behavior:      ()           => [...adminKeys.analytics(), 'behavior']       as const,
+  cohorts:       (m: number)  => [...adminKeys.analytics(), 'cohorts', m]     as const,
+  apiUsage:      (h: number)  => [...adminKeys.analytics(), 'api-usage', h]   as const,
+  errorLogs:     (p: object)  => [...adminKeys.analytics(), 'errors', p]      as const,
+  health:        ()           => [...adminKeys.analytics(), 'health']         as const,
+  performance:   (h: number)  => [...adminKeys.analytics(), 'performance', h] as const,
+  reports:       (p: object)  => [...adminKeys.analytics(), 'reports', p]     as const,
+  aiQuestions:   ()           => [...adminKeys.all, 'ai-questions']           as const,
+  aiPending:     (l: number)  => [...adminKeys.aiQuestions(), 'pending', l]   as const,
+  aiStats:       ()           => [...adminKeys.aiQuestions(), 'stats']        as const,
+  aiQuestion:    (id: string) => [...adminKeys.aiQuestions(), id]             as const,
 }
 
 // ============================================================
@@ -84,6 +88,8 @@ export function useAdminActions(params: {
   adminId?: string
   targetUserId?: string
   action?: string
+  dateFrom?: string
+  dateTo?: string
   page?: number
   limit?: number
 }) {
@@ -112,40 +118,25 @@ function useUserMutation<TVariables>(
   })
 }
 
-// ── Individual mutation hooks ──────────────────────────────────────────────
-
 export function useBanUser(onSuccess?: () => void) {
   return useUserMutation(
-    ({
-      userId,
-      reason,
-      isPermanent = true,
-    }: {
-      userId: string
-      reason: string
-      isPermanent?: boolean
-    }) => adminUserApi.banUser(userId, reason, isPermanent),
+    ({ userId, reason, isPermanent = true }: { userId: string; reason: string; isPermanent?: boolean }) =>
+      adminUserApi.banUser(userId, reason, isPermanent),
     { onSuccess },
   )
 }
 
 export function useUnbanUser(onSuccess?: () => void) {
-  return useUserMutation((userId: string) => adminUserApi.unbanUser(userId), {
-    onSuccess,
-  })
+  return useUserMutation(
+    (userId: string) => adminUserApi.unbanUser(userId),
+    { onSuccess },
+  )
 }
 
 export function useSuspendUser(onSuccess?: () => void) {
   return useUserMutation(
-    ({
-      userId,
-      reason,
-      durationHours,
-    }: {
-      userId: string
-      reason: string
-      durationHours: number
-    }) => adminUserApi.suspendUser(userId, reason, durationHours),
+    ({ userId, reason, durationHours }: { userId: string; reason: string; durationHours: number }) =>
+      adminUserApi.suspendUser(userId, reason, durationHours),
     { onSuccess },
   )
 }
@@ -167,13 +158,8 @@ export function useChangeUserRole(onSuccess?: () => void) {
 
 export function useResetUserPassword(onSuccess?: () => void) {
   return useUserMutation(
-    ({
-      userId,
-      newPassword,
-    }: {
-      userId: string
-      newPassword: string
-    }) => adminUserApi.resetPassword(userId, newPassword),
+    ({ userId, newPassword }: { userId: string; newPassword: string }) =>
+      adminUserApi.resetPassword(userId, newPassword),
     { onSuccess },
   )
 }
@@ -200,13 +186,8 @@ export function useUpdateAdminNotes() {
 export function useMarkSuspicious() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: ({
-      userId,
-      isSuspicious,
-    }: {
-      userId: string
-      isSuspicious: boolean
-    }) => adminUserApi.markSuspicious(userId, isSuspicious),
+    mutationFn: ({ userId, isSuspicious }: { userId: string; isSuspicious: boolean }) =>
+      adminUserApi.markSuspicious(userId, isSuspicious),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: adminKeys.users() })
     },
@@ -216,13 +197,8 @@ export function useMarkSuspicious() {
 export function useBulkBanUsers(onSuccess?: () => void) {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: ({
-      userIds,
-      reason,
-    }: {
-      userIds: string[]
-      reason: string
-    }) => adminUserApi.bulkBanUsers(userIds, reason),
+    mutationFn: ({ userIds, reason }: { userIds: string[]; reason: string }) =>
+      adminUserApi.bulkBanUsers(userIds, reason),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: adminKeys.users() })
       qc.invalidateQueries({ queryKey: adminKeys.stats() })
@@ -300,10 +276,10 @@ export function useAdminPerformance(hours = 24) {
   })
 }
 
-export function useAdminReports(page = 1, limit = 20) {
+export function useAdminReports(page = 1, limit = 20, status?: string) {
   return useQuery({
-    queryKey: adminKeys.reports({ page, limit }),
-    queryFn:  () => adminAnalyticsApi.getReports(page, limit),
+    queryKey: adminKeys.reports({ page, limit, status }),
+    queryFn:  () => adminAnalyticsApi.getReports(page, limit, status),
     staleTime: 1000 * 60,
     placeholderData: (prev) => prev,
   })
@@ -323,15 +299,50 @@ export function useGenerateReport(onSuccess?: () => void) {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (data: {
-      name: string
-      type: string
-      startDate: string
-      endDate: string
-      metrics: string[]
-      format: string
+      name: string; type: string; startDate: string
+      endDate: string; metrics: string[]; format: string
     }) => adminAnalyticsApi.generateReport(data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: adminKeys.analytics() })
+      onSuccess?.()
+    },
+  })
+}
+
+// ============================================================
+// AI Question Management
+// ============================================================
+
+export function useAdminAIPendingQuestions(limit = 10) {
+  return useQuery({
+    queryKey: adminKeys.aiPending(limit),
+    queryFn:  () => adminAIQuestionApi.getPendingReview(limit),
+    staleTime: 1000 * 30,
+  })
+}
+
+export function useAdminAIStats() {
+  return useQuery({
+    queryKey: adminKeys.aiStats(),
+    queryFn:  adminAIQuestionApi.getStatistics,
+    staleTime: 1000 * 60 * 5,
+  })
+}
+
+export function useAdminAIQuestion(questionId: string | null) {
+  return useQuery({
+    queryKey: adminKeys.aiQuestion(questionId ?? ''),
+    queryFn:  () => adminAIQuestionApi.getQuestion(questionId!),
+    enabled:  !!questionId,
+  })
+}
+
+export function useApproveAIQuestion(onSuccess?: () => void) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (questionId: string) => adminAIQuestionApi.approveQuestion(questionId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: adminKeys.aiQuestions() })
       onSuccess?.()
     },
   })

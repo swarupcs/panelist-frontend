@@ -1,44 +1,35 @@
-// src/pages/admin/AdminPage.tsx
+// src/pages/admin/AdminPage.tsx  (FULL REPLACEMENT)
 import { useState } from 'react'
-import {
-  Users,
-  BarChart3,
-  Activity,
-  Shield,
-  FileText,
-  Settings,
-} from 'lucide-react'
+import { Users, BarChart3, Activity, Shield, FileText, Settings, Sparkles } from 'lucide-react'
 import { PageHeader, LoadingScreen } from '@/components/common'
 import { useAuthStore } from '@/store/authStore'
 import { cn } from '@/lib/cn'
 import { useAdminStats } from '@/hooks/useAdmin'
-import { AdminOverviewTab }  from '@/components/admin/AdminOverviewTab'
-import { AdminUsersTab }     from '@/components/admin/AdminUsersTab'
-import { AdminAnalyticsTab } from '@/components/admin/AdminAnalyticsTab'
-import { AdminSystemTab }    from '@/components/admin/AdminSystemTab'
-import { AdminAuditTab }     from '@/components/admin/AdminAuditTab'
-import { AdminReportsTab }   from '@/components/admin/AdminReportsTab'
-import type { AdminTab }     from '@/types/admin'
-
-// ── Tab config ─────────────────────────────────────────────────────────────
+import { AdminOverviewTab }     from '@/components/admin/AdminOverviewTab'
+import { AdminUsersTab }        from '@/components/admin/AdminUsersTab'
+import { AdminAnalyticsTab }    from '@/components/admin/AdminAnalyticsTab'
+import { AdminSystemTab }       from '@/components/admin/AdminSystemTab'
+import { AdminAuditTab }        from '@/components/admin/AdminAuditTab'
+import { AdminReportsTab }      from '@/components/admin/AdminReportsTab'
+import { AdminAIQuestionsTab }  from '@/components/admin/AdminAIQuestionsTab'
+import type { AdminTab }        from '@/types/admin'
 
 const TABS: { id: AdminTab; label: string; icon: React.ElementType }[] = [
-  { id: 'overview',  label: 'Overview',  icon: BarChart3 },
-  { id: 'users',     label: 'Users',     icon: Users     },
-  { id: 'analytics', label: 'Analytics', icon: Activity  },
-  { id: 'system',    label: 'System',    icon: Settings  },
-  { id: 'audit',     label: 'Audit Log', icon: Shield    },
-  { id: 'reports',   label: 'Reports',   icon: FileText  },
+  { id: 'overview',      label: 'Overview',     icon: BarChart3  },
+  { id: 'users',         label: 'Users',        icon: Users      },
+  { id: 'analytics',     label: 'Analytics',    icon: Activity   },
+  { id: 'system',        label: 'System',       icon: Settings   },
+  { id: 'audit',         label: 'Audit Log',    icon: Shield     },
+  { id: 'reports',       label: 'Reports',      icon: FileText   },
+  { id: 'ai-questions',  label: 'AI Questions', icon: Sparkles   },
 ]
 
-// ── Main Page ──────────────────────────────────────────────────────────────
-
 export default function AdminPage() {
-  const { user }      = useAuthStore()
+  const { user }     = useAuthStore()
   const [activeTab, setActiveTab] = useState<AdminTab>('overview')
-  const { data: stats, isLoading: statsLoading } = useAdminStats()
+  const { data: stats, isLoading } = useAdminStats()
 
-  if (statsLoading) return <LoadingScreen message="Loading admin panel..." />
+  if (isLoading) return <LoadingScreen message="Loading admin panel..." />
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -47,24 +38,21 @@ export default function AdminPage() {
         description={`Signed in as ${user?.name} · ${user?.email}`}
       />
 
-      {/* Quick-stat strip */}
       {stats && (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
           {[
-            { label: 'Total Users',   value: stats.totalUsers,          color: 'text-foreground'  },
-            { label: 'Active',        value: stats.activeUsers,         color: 'text-green-400'   },
-            { label: 'New Today',     value: stats.newUsersToday,       color: 'text-blue-400'    },
-            { label: 'This Week',     value: stats.newUsersThisWeek,    color: 'text-blue-300'    },
-            { label: 'Banned',        value: stats.bannedUsers,         color: 'text-destructive' },
-            { label: 'Suspended',     value: stats.suspendedUsers,      color: 'text-yellow-400'  },
+            { label: 'Total Users',  value: stats.totalUsers,       color: 'text-foreground'  },
+            { label: 'Active',       value: stats.activeUsers,      color: 'text-green-400'   },
+            { label: 'New Today',    value: stats.newUsersToday,    color: 'text-blue-400'    },
+            { label: 'This Week',    value: stats.newUsersThisWeek, color: 'text-blue-300'    },
+            { label: 'Banned',       value: stats.bannedUsers,      color: 'text-destructive' },
+            { label: 'Suspended',    value: stats.suspendedUsers,   color: 'text-yellow-400'  },
           ].map((item) => (
             <div
               key={item.label}
               className="rounded-xl border border-border bg-card px-4 py-3 text-center"
             >
-              <p className={cn('text-2xl font-bold tabular-nums', item.color)}>
-                {item.value}
-              </p>
+              <p className={cn('text-2xl font-bold tabular-nums', item.color)}>{item.value}</p>
               <p className="text-xs text-muted-foreground mt-0.5">{item.label}</p>
             </div>
           ))}
@@ -94,14 +82,14 @@ export default function AdminPage() {
         })}
       </div>
 
-      {/* Tab content */}
       <div className="min-h-[400px]">
-        {activeTab === 'overview'  && <AdminOverviewTab  />}
-        {activeTab === 'users'     && <AdminUsersTab     />}
-        {activeTab === 'analytics' && <AdminAnalyticsTab />}
-        {activeTab === 'system'    && <AdminSystemTab    />}
-        {activeTab === 'audit'     && <AdminAuditTab     />}
-        {activeTab === 'reports'   && <AdminReportsTab   />}
+        {activeTab === 'overview'     && <AdminOverviewTab    />}
+        {activeTab === 'users'        && <AdminUsersTab       />}
+        {activeTab === 'analytics'    && <AdminAnalyticsTab   />}
+        {activeTab === 'system'       && <AdminSystemTab      />}
+        {activeTab === 'audit'        && <AdminAuditTab       />}
+        {activeTab === 'reports'      && <AdminReportsTab     />}
+        {activeTab === 'ai-questions' && <AdminAIQuestionsTab />}
       </div>
     </div>
   )

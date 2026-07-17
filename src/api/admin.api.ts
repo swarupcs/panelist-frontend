@@ -1,4 +1,4 @@
-// src/api/admin.api.ts
+// src/api/admin.api.ts  (FULL REPLACEMENT)
 import api from './axios'
 import type {
   AdminDashboardStats,
@@ -14,6 +14,8 @@ import type {
   AdminPerformanceMetrics,
   AdminReport,
   AdminBulkBanResult,
+  AdminAIQuestionStats,
+  AdminAIQuestion,
   Pagination,
 } from '@/types/admin'
 
@@ -178,8 +180,11 @@ export const adminAnalyticsApi = {
   getReports: async (
     page = 1,
     limit = 20,
+    status?: string,
   ): Promise<{ reports: AdminReport[]; pagination: Pagination }> => {
-    const res = await api.get(`/admin/analytics/reports?page=${page}&limit=${limit}`)
+    const q = new URLSearchParams({ page: String(page), limit: String(limit) })
+    if (status) q.set('status', status)
+    const res = await api.get(`/admin/analytics/reports?${q}`)
     return res.data.data
   },
 
@@ -215,6 +220,30 @@ export const adminAnalyticsApi = {
 
   getPerformanceMetrics: async (hours = 24): Promise<AdminPerformanceMetrics> => {
     const res = await api.get(`/admin/analytics/performance?hours=${hours}`)
+    return res.data.data
+  },
+}
+
+// ── AI Question Management ─────────────────────────────────────────────────
+
+export const adminAIQuestionApi = {
+  getPendingReview: async (limit = 10): Promise<{ questions: AdminAIQuestion[] }> => {
+    const res = await api.get(`/ai-questions/admin/pending?limit=${limit}`)
+    return res.data.data
+  },
+
+  approveQuestion: async (questionId: string): Promise<{ question: AdminAIQuestion }> => {
+    const res = await api.post(`/ai-questions/${questionId}/approve`)
+    return res.data.data
+  },
+
+  getStatistics: async (): Promise<AdminAIQuestionStats> => {
+    const res = await api.get('/ai-questions/admin/statistics')
+    return res.data.data
+  },
+
+  getQuestion: async (questionId: string): Promise<{ question: AdminAIQuestion }> => {
+    const res = await api.get(`/ai-questions/${questionId}`)
     return res.data.data
   },
 }
