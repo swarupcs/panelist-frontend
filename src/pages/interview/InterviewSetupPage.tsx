@@ -30,7 +30,8 @@ import {
   Gauge,
   Zap,
   Timer,
-  FileText
+  FileText,
+  Repeat
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -120,6 +121,14 @@ const INTERVIEW_TYPES = [
     icon: FileText,
     color: 'text-blue-400',
     bg: 'bg-blue-500/10 border-blue-500/20',
+  },
+  {
+    value: 'srs_review',
+    label: 'SRS Weak Area Review',
+    description: 'Targeted practice for topics you previously struggled with',
+    icon: Repeat,
+    color: 'text-rose-400',
+    bg: 'bg-rose-500/10 border-rose-500/20',
   },
 ] as const;
 
