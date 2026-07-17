@@ -88,6 +88,8 @@ export default function P2PRoomPage() {
     { id: 1, input: 'twoSum([2,7,11,15], 9)', expected: '[0,1]' }
   ]);
   const [isVimMode, setIsVimMode] = useState(false);
+  const [followMode, setFollowMode] = useState(false);
+  const [whiteboardFocusMode, setWhiteboardFocusMode] = useState(false);
   const [whiteboardEngine, setWhiteboardEngine] = useState<'tldraw' | 'excalidraw'>('tldraw');
   const [excalidrawAPI, setExcalidrawAPI] = useState<any>(null);
   const [tldrawEditor, setTldrawEditor] = useState<any>(null);
@@ -163,6 +165,84 @@ export default function P2PRoomPage() {
   const handleFeedbackSubmit = (tech: number, comm: number, fb: string) => {
     submitFeedback(tech, comm, fb);
     finishEndCall();
+  };
+
+  // Broadcaster for Follow Mode
+  useEffect(() => {
+    if (!followMode) return;
+    const interval = setInterval(() => {
+      if (whiteboardEngine === 'tldraw' && tldrawEditor) {
+        const camera = tldrawEditor.getCamera();
+        sendWhiteboardCameraSync({ x: camera.x, y: camera.y, z: camera.z });
+      } else if (whiteboardEngine === 'excalidraw' && excalidrawAPI) {
+        const state = excalidrawAPI.getAppState();
+        sendWhiteboardCameraSync({ x: state.scrollX, y: state.scrollY, z: state.zoom.value });
+      }
+    }, 100);
+    return () => clearInterval(interval);
+  }, [followMode, whiteboardEngine, tldrawEditor, excalidrawAPI, sendWhiteboardCameraSync]);
+
+  // Receiver for Follow Mode
+  useEffect(() => {
+    if (incomingWhiteboardCamera) {
+      if (whiteboardEngine === 'tldraw' && tldrawEditor) {
+        // Only update if we are not the one broadcasting Follow Mode
+        if (!followMode) {
+          tldrawEditor.setCamera(incomingWhiteboardCamera.x, incomingWhiteboardCamera.y, incomingWhiteboardCamera.z);
+        }
+      } else if (whiteboardEngine === 'excalidraw' && excalidrawAPI) {
+        if (!followMode) {
+          excalidrawAPI.updateScene({
+            appState: {
+              scrollX: incomingWhiteboardCamera.x,
+              scrollY: incomingWhiteboardCamera.y,
+              zoom: { value: incomingWhiteboardCamera.z }
+            }
+          });
+        }
+      }
+    }
+  }, [incomingWhiteboardCamera, whiteboardEngine, tldrawEditor, excalidrawAPI, followMode]);
+
+  const handleEndInterview = async () => {
+    toast.success('Interview ended!');
+    
+    let codeSnapshot = codeContent;
+    let whiteboardSnapshot = await getWhiteboardSnapshot() || '';
+
+    if (roomId) {
+      sendSaveSnapshots(roomId, codeSnapshot, whiteboardSnapshot);
+    }
+
+    setTimeout(() => {
+      leaveRoom();
+      navigate('/dashboard');
+    }, 1000);
+  };
+
+  const handleCodeToCanvas = () => {
+    if (!codeContent.trim()) {
+      toast.error('Code editor is empty.');
+      return;
+    }
+
+    if (whiteboardEngine === 'tldraw' && tldrawEditor) {
+      const camera = tldrawEditor.getCamera();
+      tldrawEditor.createShapes([{
+        type: 'text',
+        x: camera.x + 100,
+        y: camera.y + 100,
+        props: {
+          text: codeContent,
+          font: 'mono',
+          size: 's',
+        },
+      }]);
+      toast.success('Code pasted to canvas!');
+    } else {
+      navigator.clipboard.writeText(codeContent);
+      toast.success('Code copied! Click on the Excalidraw canvas and press Ctrl+V');
+    }
   };
 
   const finishEndCall = () => {
@@ -415,13 +495,15 @@ export default function P2PRoomPage() {
           </div>
           <div className="flex-1">
             <Tabs defaultValue="editor" className="h-full flex flex-col">
-              <div className="px-4 py-2 border-b">
-                <TabsList>
-                  <TabsTrigger value="editor">Code Editor</TabsTrigger>
-                  <TabsTrigger value="whiteboard">Whiteboard</TabsTrigger>
-                </TabsList>
-              </div>
-              <TabsContent value="editor" className="flex-1 mt-0 p-0 h-full relative flex flex-col">
+              {!whiteboardFocusMode && (
+                <div className="px-4 py-2 border-b">
+                  <TabsList>
+                    <TabsTrigger value="editor">Code Editor</TabsTrigger>
+                    <TabsTrigger value="whiteboard">Whiteboard</TabsTrigger>
+                  </TabsList>
+                </div>
+              )}
+              <TabsContent value="editor" className={cn("flex-1 mt-0 p-0 h-full relative flex flex-col", whiteboardFocusMode && "hidden")}>
                 <Editor
                   height="100%"
                   language={editorLanguage}
@@ -448,6 +530,25 @@ export default function P2PRoomPage() {
                     <option value="excalidraw">Excalidraw (Advanced)</option>
                   </select>
                   <div className="ml-auto flex gap-2">
+                    <Button 
+                      size="sm" 
+                      variant={whiteboardFocusMode ? "default" : "outline"} 
+                      className={cn("text-xs h-7", whiteboardFocusMode && "bg-primary text-primary-foreground")} 
+                      onClick={() => setWhiteboardFocusMode(!whiteboardFocusMode)}
+                    >
+                      {whiteboardFocusMode ? "Exit Focus Mode" : "Focus Mode"}
+                    </Button>
+                    <Button size="sm" variant="outline" className="text-xs h-7" onClick={handleCodeToCanvas}>
+                      <Code2 className="h-3 w-3 mr-1" /> Code ➡️ Canvas
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      variant={followMode ? "default" : "outline"} 
+                      className={cn("text-xs h-7", followMode && "bg-yellow-500 hover:bg-yellow-600 text-black")} 
+                      onClick={() => setFollowMode(!followMode)}
+                    >
+                      {followMode ? "Following Mode On" : "Follow Me"}
+                    </Button>
                     <Button size="sm" variant="outline" className="text-xs h-7" onClick={handleSnapshotToChat}>
                       Snapshot to Chat
                     </Button>
@@ -489,8 +590,9 @@ export default function P2PRoomPage() {
         </Card>
 
         {/* Chat Panel */}
-        <Card className="h-64 flex flex-col border-border">
-          <div className="bg-muted px-4 py-2 border-b text-sm font-medium flex items-center gap-2">
+        {!whiteboardFocusMode && (
+          <Card className="h-64 flex flex-col border-border">
+            <div className="bg-muted px-4 py-2 border-b text-sm font-medium flex items-center gap-2">
             <MessageSquare className="h-4 w-4" /> Chat
           </div>
           <div className="flex-1 overflow-y-auto p-4 space-y-3">
@@ -537,14 +639,15 @@ export default function P2PRoomPage() {
               </Button>
             </form>
           </div>
-        </Card>
+          </Card>
+        )}
       </div>
 
       {/* RIGHT PANEL: Video Feeds & Controls */}
-      <div className="w-80 flex flex-col gap-4 shrink-0">
+      <div className={cn("flex flex-col gap-4 shrink-0", whiteboardFocusMode ? "w-64" : "w-80")}>
         
         {/* Actions for Interviewer */}
-        {role === 'INTERVIEWER' && (
+        {!whiteboardFocusMode && role === 'INTERVIEWER' && (
           <div className="flex flex-col gap-2">
             <Card className="p-3 border-border bg-primary/5 flex flex-col gap-2">
               <div className="flex justify-between items-center gap-2">
