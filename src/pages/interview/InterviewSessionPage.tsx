@@ -1,21 +1,17 @@
-// src/pages/InterviewSessionPage.tsx
+// src/pages/interview/InterviewSessionPage.tsx
 //
-// FIXES
+// EXTENSIONS (on top of existing fixes)
 // ─────────────────────────────────────────────────────────────────────────────
-// UX-1   Feedback was bleeding into the next question on the same page.
-//        Industry standard (Pramp / Interviewing.io style): after submitting,
-//        show a full feedback interstitial. The next question only renders
-//        after the user explicitly clicks "Next Question".
+// EXT-1  DSA sessions now render a <CodeExecutionPanel> tab so candidates can
+//        write, run against test cases (POST /api/code/execute), and submit
+//        their code as the answer — all without leaving the page.
 //
-// UX-2   Session completion now shows an inline modal with the final score
-//        and a "View Full Results" CTA before navigating to /results.
+// EXT-2  The session timer now uses <SessionTimer> which polls
+//        GET /api/interview/:sessionId/timer every 10 s and shows the backend
+//        countdown for timed sessions. The local elapsed fallback is preserved.
 //
-// DOM-1  `loading` boolean was spreading onto the native <button> element via
-//        shadcn's Button (which forwards all props to the DOM). Fixed by never
-//        passing `loading` to Button — use `disabled` + a manual Loader2 spinner.
-//
-// DOM-2  Nested <button> error — pause/skip/end controls are now plain <button>
-//        elements styled with Tailwind, never wrapped inside a shadcn Button.
+// EXT-3  Answer mode tabs: "Text" (original textarea) ↔ "Code" (CodeExecutionPanel)
+//        available for DSA interviews.
 
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
@@ -25,7 +21,6 @@ import {
   Send,
   Pause,
   Play,
-  Clock,
   CheckCircle2,
   AlertCircle,
   SkipForward,
@@ -33,6 +28,8 @@ import {
   ChevronRight,
   Trophy,
   Loader2,
+  Code2,
+  AlignLeft,
 } from 'lucide-react';
 import { useInterviewStore } from '@/store/interviewStore';
 import {
@@ -47,6 +44,8 @@ import { Button } from '@/components/ui/Button';
 import { Card, CardContent, CardHeader } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { LoadingScreen } from '@/components/common';
+import { SessionTimer } from '@/components/interview/SessionTimer';
+import { CodeExecutionPanel } from '@/components/interview/CodeExecutionPanel';
 import { getDifficultyBadge } from '@/utils/formatters';
 import { cn } from '@/lib/cn';
 import { Progress } from '@/components/ui/progress';
@@ -54,23 +53,15 @@ import { Textarea } from '@/components/ui/textarea';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-type PagePhase =
-  | 'answering' // question + textarea visible
-  | 'feedback' // interstitial: score + feedback + "Next Question" button
-  | 'completed'; // modal: final score + "View Full Results" button
+type PagePhase = 'answering' | 'feedback' | 'completed';
+type AnswerTab = 'text' | 'code';
 
 interface FeedbackState {
   score: number;
   feedback: string;
 }
 
-// ── Small helpers ─────────────────────────────────────────────────────────────
-
-function formatTime(s: number) {
-  const m = Math.floor(s / 60);
-  const sec = s % 60;
-  return `${m}:${String(sec).padStart(2, '0')}`;
-}
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
 function ScoreRing({ score }: { score: number }) {
   const color =
@@ -87,7 +78,6 @@ function ScoreRing({ score }: { score: number }) {
   );
 }
 
-// DOM-2 FIX: plain <button> with Tailwind — never inside a shadcn Button
 function IconButton({
   onClick,
   disabled = false,
@@ -121,7 +111,6 @@ function IconButton({
   );
 }
 
-// DOM-2 FIX: plain text button for hint/skip — not a shadcn Button
 function TextButton({
   onClick,
   disabled = false,
@@ -153,13 +142,14 @@ function TextButton({
   );
 }
 
-// ── Main component ────────────────────────────────────────────────────────────
+// ── Main ──────────────────────────────────────────────────────────────────────
 
 export default function InterviewSessionPage() {
   const { sessionId } = useParams<{ sessionId: string }>();
   const navigate = useNavigate();
 
   const [phase, setPhase] = useState<PagePhase>('answering');
+  const [answerTab, setAnswerTab] = useState<AnswerTab>('text');
   const [answer, setAnswer] = useState('');
   const [hints, setHints] = useState<string[]>([]);
   const [showHints, setShowHints] = useState(false);
@@ -175,6 +165,7 @@ export default function InterviewSessionPage() {
     totalQuestions,
     isPaused,
     isCompleted,
+    type: sessionType,
   } = useInterviewStore();
 
   const submitAnswer = useSubmitAnswer();
@@ -184,37 +175,41 @@ export default function InterviewSessionPage() {
   const skipQuestion = useSkipQuestion();
   const endInterview = useEndInterview();
 
-  // Timer — only ticks while answering and not paused
+  const isDSA = sessionType === 'dsa';
+
+  // Timer tick — local elapsed only when answering and not paused
   useEffect(() => {
     if (phase !== 'answering' || isPaused || isCompleted) return;
     const id = setInterval(() => setTimeSpent((t) => t + 1), 1000);
     return () => clearInterval(id);
   }, [phase, isPaused, isCompleted]);
 
-  // Store can flip isCompleted (e.g. via skip on last question without feedback)
+  // Store isCompleted flip (skip on last question path)
   useEffect(() => {
-    if (isCompleted && phase !== 'completed') {
-      setPhase('completed');
-    }
+    if (isCompleted && phase !== 'completed') setPhase('completed');
   }, [isCompleted, phase]);
+
+  // Reset to text tab on new question
+  useEffect(() => {
+    if (phase === 'answering') setAnswerTab('text');
+  }, [currentQuestionIndex, phase]);
 
   // ── Handlers ───────────────────────────────────────────────────────────────
 
-  const handleSubmit = () => {
-    if (!answer.trim() || !sessionId) return;
+  const handleSubmit = (codeOverride?: string) => {
+    const finalAnswer = codeOverride ?? answer;
+    if (!finalAnswer.trim() || !sessionId) return;
     submitAnswer.mutate(
-      { sessionId, answer: answer.trim(), timeSpent },
+      { sessionId, answer: finalAnswer.trim(), timeSpent },
       {
         onSuccess: (data) => {
           setPendingFeedback({ score: data.score, feedback: data.feedback });
-          // UX-1: always go to feedback interstitial first
           setPhase(data.sessionCompleted ? 'completed' : 'feedback');
         },
       },
     );
   };
 
-  // UX-1: user explicitly advances from feedback → next question
   const handleNextQuestion = () => {
     setAnswer('');
     setHints([]);
@@ -243,7 +238,6 @@ export default function InterviewSessionPage() {
     if (!sessionId) return;
     skipQuestion.mutate(sessionId, {
       onSuccess: (data) => {
-        // Skip: no feedback interstitial, move straight to next question
         setAnswer('');
         setHints([]);
         setShowHints(false);
@@ -274,7 +268,7 @@ export default function InterviewSessionPage() {
 
   return (
     <div className='max-w-3xl mx-auto space-y-4 animate-fade-in'>
-      {/* ── Header bar ── always visible ──────────────────────────────────── */}
+      {/* ── Header bar ────────────────────────────────────────────────────── */}
       <div className='flex items-center justify-between'>
         <div className='flex items-center gap-3'>
           <span className='text-sm text-muted-foreground'>
@@ -284,20 +278,14 @@ export default function InterviewSessionPage() {
         </div>
 
         <div className='flex items-center gap-2'>
-          {/* Timer */}
-          <div className='flex items-center gap-1.5 text-sm text-muted-foreground'>
-            <Clock className='size-3.5' />
-            <span
-              className={cn(
-                timeSpent > 300 && 'text-yellow-400',
-                timeSpent > 600 && 'text-red-400',
-              )}
-            >
-              {formatTime(timeSpent)}
-            </span>
-          </div>
+          {/* EXT-2: SessionTimer — uses backend for timed sessions */}
+          <SessionTimer
+            sessionId={sessionId!}
+            isPaused={isPaused}
+            isTimed={false} // set to true if your start flow supports isTimed
+            localElapsed={timeSpent}
+          />
 
-          {/* DOM-1 + DOM-2 FIX: plain <button>, no `loading` prop on shadcn Button */}
           <IconButton
             onClick={handlePauseResume}
             disabled={phase === 'feedback'}
@@ -357,11 +345,12 @@ export default function InterviewSessionPage() {
         </div>
       )}
 
-      {/* ══════════════════════════════════════════════════════════════════════
+      {/* ══════════════════════════════════════════════════════════════════
           PHASE: answering
-      ══════════════════════════════════════════════════════════════════════ */}
+      ══════════════════════════════════════════════════════════════════ */}
       {phase === 'answering' && currentQuestion && (
         <>
+          {/* Question card */}
           <Card>
             <CardHeader className='pb-3'>
               <div className='flex flex-wrap gap-2'>
@@ -374,6 +363,15 @@ export default function InterviewSessionPage() {
                 >
                   {currentQuestion.difficulty}
                 </span>
+                {isDSA && (
+                  <span
+                    className='inline-flex items-center gap-1 rounded-full border
+                                   border-blue-500/30 bg-blue-500/10 px-2.5 py-0.5
+                                   text-xs font-medium text-blue-400'
+                  >
+                    <Code2 className='size-3' /> DSA
+                  </span>
+                )}
               </div>
             </CardHeader>
             <CardContent>
@@ -383,6 +381,7 @@ export default function InterviewSessionPage() {
             </CardContent>
           </Card>
 
+          {/* Hints */}
           {hints.length > 0 && showHints && (
             <Card className='border-primary/20 bg-primary/5'>
               <CardContent className='pt-4'>
@@ -401,31 +400,110 @@ export default function InterviewSessionPage() {
             </Card>
           )}
 
+          {/* Answer area */}
           {!isPaused && (
             <Card>
               <CardContent className='pt-4 space-y-3'>
-                <Textarea
-                  placeholder='Type your answer here... For code, use plain text or specify the language.'
-                  value={answer}
-                  onChange={(e) => setAnswer(e.target.value)}
-                  className='min-h-[180px] font-mono text-sm resize-y'
-                  disabled={isSubmitting}
-                />
-                <div className='flex items-center justify-between gap-2'>
-                  <div className='flex items-center gap-1'>
-                    {/* DOM-1 + DOM-2 FIX: plain TextButton, no shadcn nesting */}
-                    <TextButton
-                      onClick={handleHint}
-                      loading={requestHint.isPending}
-                      disabled={hintsExhausted}
-                      className='text-muted-foreground hover:text-primary hover:bg-secondary'
-                    >
-                      {!requestHint.isPending && (
-                        <Lightbulb className='size-3.5' />
+                {/* EXT-3: Tab switcher for DSA */}
+                {isDSA && (
+                  <div className='flex items-center gap-1 rounded-lg border border-border bg-secondary/30 p-1 w-fit'>
+                    <button
+                      type='button'
+                      onClick={() => setAnswerTab('text')}
+                      className={cn(
+                        'flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors',
+                        answerTab === 'text'
+                          ? 'bg-card text-foreground shadow-sm'
+                          : 'text-muted-foreground hover:text-foreground',
                       )}
-                      Hint{hints.length > 0 ? ` (${hints.length})` : ''}
-                    </TextButton>
+                    >
+                      <AlignLeft className='size-3.5' />
+                      Text
+                    </button>
+                    <button
+                      type='button'
+                      onClick={() => setAnswerTab('code')}
+                      className={cn(
+                        'flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors',
+                        answerTab === 'code'
+                          ? 'bg-card text-foreground shadow-sm'
+                          : 'text-muted-foreground hover:text-foreground',
+                      )}
+                    >
+                      <Code2 className='size-3.5' />
+                      Code
+                    </button>
+                  </div>
+                )}
 
+                {/* EXT-1: Code execution panel */}
+                {isDSA && answerTab === 'code' ? (
+                  <CodeExecutionPanel
+                    onSubmit={(code) => handleSubmit(code)}
+                    testCases={(currentQuestion as any).testCases ?? undefined}
+                    submitLoading={isSubmitting}
+                    disabled={isSubmitting}
+                  />
+                ) : (
+                  <>
+                    <Textarea
+                      placeholder='Type your answer here... For code, use plain text or specify the language.'
+                      value={answer}
+                      onChange={(e) => setAnswer(e.target.value)}
+                      className='min-h-[180px] font-mono text-sm resize-y'
+                      disabled={isSubmitting}
+                    />
+                    <div className='flex items-center justify-between gap-2'>
+                      <div className='flex items-center gap-1'>
+                        <TextButton
+                          onClick={handleHint}
+                          loading={requestHint.isPending}
+                          disabled={hintsExhausted}
+                          className='text-muted-foreground hover:text-primary hover:bg-secondary'
+                        >
+                          {!requestHint.isPending && (
+                            <Lightbulb className='size-3.5' />
+                          )}
+                          Hint{hints.length > 0 ? ` (${hints.length})` : ''}
+                        </TextButton>
+
+                        <TextButton
+                          onClick={handleSkip}
+                          loading={skipQuestion.isPending}
+                          className='text-muted-foreground hover:text-yellow-400 hover:bg-secondary'
+                        >
+                          {!skipQuestion.isPending && (
+                            <SkipForward className='size-3.5' />
+                          )}
+                          Skip
+                        </TextButton>
+                      </div>
+
+                      <Button
+                        variant='gradient'
+                        size='sm'
+                        onClick={() => handleSubmit()}
+                        disabled={!answer.trim() || isSubmitting}
+                        className='gap-1.5'
+                      >
+                        {isSubmitting ? (
+                          <>
+                            <Loader2 className='size-3.5 animate-spin' />{' '}
+                            Evaluating…
+                          </>
+                        ) : (
+                          <>
+                            <Send className='size-3.5' /> Submit Answer
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </>
+                )}
+
+                {/* Skip button available on code tab too */}
+                {isDSA && answerTab === 'code' && (
+                  <div className='flex justify-start'>
                     <TextButton
                       onClick={handleSkip}
                       loading={skipQuestion.isPending}
@@ -434,42 +512,21 @@ export default function InterviewSessionPage() {
                       {!skipQuestion.isPending && (
                         <SkipForward className='size-3.5' />
                       )}
-                      Skip
+                      Skip question
                     </TextButton>
                   </div>
-
-                  {/* shadcn Button is safe here — it is not nested inside another button */}
-                  <Button
-                    variant='gradient'
-                    size='sm'
-                    onClick={handleSubmit}
-                    disabled={!answer.trim() || isSubmitting}
-                    className='gap-1.5'
-                  >
-                    {isSubmitting ? (
-                      <>
-                        <Loader2 className='size-3.5 animate-spin' />{' '}
-                        Evaluating…
-                      </>
-                    ) : (
-                      <>
-                        <Send className='size-3.5' /> Submit Answer
-                      </>
-                    )}
-                  </Button>
-                </div>
+                )}
               </CardContent>
             </Card>
           )}
         </>
       )}
 
-      {/* ══════════════════════════════════════════════════════════════════════
-          PHASE: feedback  (UX-1 interstitial)
-      ══════════════════════════════════════════════════════════════════════ */}
+      {/* ══════════════════════════════════════════════════════════════════
+          PHASE: feedback
+      ══════════════════════════════════════════════════════════════════ */}
       {phase === 'feedback' && pendingFeedback && currentQuestion && (
         <div className='space-y-4 animate-fade-in'>
-          {/* Previous question — dimmed, read-only */}
           <Card className='opacity-60'>
             <CardHeader className='pb-3'>
               <div className='flex flex-wrap gap-2'>
@@ -491,7 +548,6 @@ export default function InterviewSessionPage() {
             </CardContent>
           </Card>
 
-          {/* Feedback card */}
           <Card
             className={cn(
               'border-2',
@@ -542,16 +598,14 @@ export default function InterviewSessionPage() {
         </div>
       )}
 
-      {/* ══════════════════════════════════════════════════════════════════════
-          PHASE: completed  (UX-2 modal)
-          Rendered via createPortal into document.body so that `fixed` positioning
-          is never clipped by overflow:hidden or CSS transforms on AppShell.
-      ══════════════════════════════════════════════════════════════════════ */}
+      {/* ══════════════════════════════════════════════════════════════════
+          PHASE: completed (portal modal)
+      ══════════════════════════════════════════════════════════════════ */}
       {phase === 'completed' &&
         createPortal(
           <div
             className='fixed inset-0 z-[9999] flex items-center justify-center
-                        bg-background/80 backdrop-blur-sm animate-fade-in'
+                          bg-background/80 backdrop-blur-sm animate-fade-in'
           >
             <Card className='w-full max-w-md mx-4 border-primary/30 shadow-2xl'>
               <CardContent className='pt-8 pb-6 space-y-6 text-center'>
@@ -571,7 +625,6 @@ export default function InterviewSessionPage() {
                   </p>
                 </div>
 
-                {/* Last question's feedback preview */}
                 {pendingFeedback && (
                   <div className='rounded-xl border border-border bg-secondary/30 p-4 text-left space-y-3'>
                     <div className='flex items-center justify-between'>
