@@ -40,6 +40,8 @@ import {
   Zap,
   Timer,
 } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { useInterviewStore } from '@/store/interviewStore';
 import {
   useSubmitAnswer,
@@ -541,9 +543,11 @@ export default function InterviewSessionPage() {
               </div>
             </CardHeader>
             <CardContent>
-              <p className='text-foreground leading-relaxed whitespace-pre-wrap'>
-                {currentQuestion.question}
-              </p>
+              <div className='prose prose-invert prose-p:leading-relaxed max-w-none'>
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                  {currentQuestion.question}
+                </ReactMarkdown>
+              </div>
             </CardContent>
           </Card>
 
@@ -709,9 +713,11 @@ export default function InterviewSessionPage() {
               </div>
             </CardHeader>
             <CardContent>
-              <p className='text-muted-foreground leading-relaxed whitespace-pre-wrap text-sm'>
-                {currentQuestion.question}
-              </p>
+              <div className='prose prose-invert prose-sm max-w-none prose-p:leading-relaxed opacity-80'>
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                  {currentQuestion.question}
+                </ReactMarkdown>
+              </div>
             </CardContent>
           </Card>
 

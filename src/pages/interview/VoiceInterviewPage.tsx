@@ -28,6 +28,8 @@ import { WaveformVisualizer }    from '@/components/interview/voice/WaveformVisu
 import { VoiceStatusBadge }      from '@/components/interview/voice/VoiceStatusBadge';
 import { getDifficultyBadge }    from '@/utils/formatters';
 import { cn }                    from '@/lib/cn';
+import ReactMarkdown             from 'react-markdown';
+import remarkGfm                 from 'remark-gfm';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -276,9 +278,11 @@ export default function VoiceInterviewPage() {
                   {state.currentQuestion.difficulty}
                 </span>
               </div>
-              <p className='text-foreground leading-relaxed'>
-                {state.currentQuestion.question}
-              </p>
+              <div className='prose prose-invert prose-p:leading-relaxed max-w-none mt-2'>
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                  {state.currentQuestion.question}
+                </ReactMarkdown>
+              </div>
             </div>
 
             {/* Live transcript */}
