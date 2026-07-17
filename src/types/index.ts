@@ -49,7 +49,7 @@ export interface RegisterResponse {
 // ============================================================
 // Interview Types
 // ============================================================
-export type InterviewType = 'dsa' | 'system_design' | 'behavioral' | 'mixed' | 'frontend' | 'backend' | 'devops' | 'mobile';
+export type InterviewType = 'dsa' | 'system_design' | 'behavioral' | 'mixed' | 'frontend' | 'backend' | 'devops' | 'mobile' | 'resume_deep_dive';
 export type Difficulty = 'easy' | 'medium' | 'hard';
 
 // FIX: added 'abandoned' to match backend DB status
@@ -87,6 +87,7 @@ export interface StartInterviewRequest {
   difficulty?: Difficulty;
   duration?: number;
   focusAreas?: string[];
+  resumeText?: string;
 }
 
 export interface StartInterviewResponse {

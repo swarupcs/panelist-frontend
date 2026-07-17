@@ -29,7 +29,8 @@ import {
   ChevronUp,
   Gauge,
   Zap,
-  Timer
+  Timer,
+  FileText
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -111,6 +112,14 @@ const INTERVIEW_TYPES = [
     icon: Shuffle,
     color: 'text-yellow-400',
     bg: 'bg-yellow-500/10 border-yellow-500/20',
+  },
+  {
+    value: 'resume_deep_dive',
+    label: 'Resume Deep Dive',
+    description: 'Questions tailored to your resume',
+    icon: FileText,
+    color: 'text-blue-400',
+    bg: 'bg-blue-500/10 border-blue-500/20',
   },
 ] as const;
 
@@ -310,6 +319,7 @@ export default function InterviewSetupPage() {
   const [showFocusAreas, setShowFocusAreas] = useState(false);
   const [isTimed, setIsTimed] = useState(false);
   const [adaptiveMode, setAdaptiveMode] = useState(false);
+  const [resumeText, setResumeText] = useState('');
 
   const startInterview = useStartInterview();
 
@@ -351,6 +361,7 @@ export default function InterviewSetupPage() {
       difficulty: selectedDifficulty,
       duration: selectedDuration,
       focusAreas: focusAreas.length > 0 ? focusAreas : undefined,
+      resumeText: selectedType === 'resume_deep_dive' ? resumeText : undefined,
     });
   };
 
@@ -416,6 +427,28 @@ export default function InterviewSetupPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* ── Resume Text Area ── */}
+      {selectedType === 'resume_deep_dive' && (
+        <Card className="border-blue-500/30">
+          <CardHeader>
+            <CardTitle className='text-base flex items-center gap-2'>
+              <FileText className='size-4 text-blue-400' /> Resume Context
+            </CardTitle>
+            <CardDescription>
+              Paste your resume text below. Our AI will analyze your experience and generate highly specific technical questions based on your past projects.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <textarea
+              value={resumeText}
+              onChange={(e) => setResumeText(e.target.value)}
+              placeholder="Paste your resume text here (e.g. 'Senior Frontend Engineer at Google. Developed micro-frontends using React, Webpack...')"
+              className="w-full min-h-[200px] rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            />
+          </CardContent>
+        </Card>
+      )}
 
       {/* ── Difficulty ── */}
       <Card>
