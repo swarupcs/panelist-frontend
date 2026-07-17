@@ -61,6 +61,96 @@ const LEVELS = [
   { value: 'EXPERT', label: 'Expert' },
 ];
 
+const GAUNTLETS = [
+  {
+    id: 'google',
+    name: 'Google Gauntlet',
+    description: 'Heavy focus on Hard DSA, Dynamic Programming, and System Design.',
+    color: 'from-blue-500/20 to-green-500/20',
+    borderColor: 'border-blue-500/30',
+    preset: {
+      targetRole: 'DSA_SPECIALIST',
+      currentLevel: 'ADVANCED',
+      targetCompanies: 'Google',
+      weaknesses: 'Dynamic Programming, Graphs, System Design',
+      weeklyHours: 15,
+    }
+  },
+  {
+    id: 'amazon',
+    name: 'Amazon Gauntlet',
+    description: 'Rigorous behavioral scenarios mapped to Leadership Principles.',
+    color: 'from-orange-500/20 to-yellow-500/20',
+    borderColor: 'border-orange-500/30',
+    preset: {
+      targetRole: 'FULLSTACK_DEVELOPER',
+      currentLevel: 'INTERMEDIATE',
+      targetCompanies: 'Amazon',
+      weaknesses: 'Behavioral Questions, Leadership Principles, OOD',
+      weeklyHours: 15,
+    }
+  },
+  {
+    id: 'stripe',
+    name: 'Stripe Gauntlet',
+    description: 'Practical API design, real-world integration, and bug squashing.',
+    color: 'from-indigo-500/20 to-purple-500/20',
+    borderColor: 'border-indigo-500/30',
+    preset: {
+      targetRole: 'BACKEND_DEVELOPER',
+      currentLevel: 'ADVANCED',
+      targetCompanies: 'Stripe',
+      weaknesses: 'API Design, Practical Implementation, Bug Fixing',
+      weeklyHours: 15,
+    }
+  },
+  {
+    id: 'meta',
+    name: 'Meta Gauntlet',
+    description: 'High-speed problem solving and extreme scale system design.',
+    color: 'from-blue-600/20 to-blue-400/20',
+    borderColor: 'border-blue-600/30',
+    preset: {
+      targetRole: 'FULLSTACK_DEVELOPER',
+      currentLevel: 'ADVANCED',
+      targetCompanies: 'Meta',
+      weaknesses: 'Speed Drills, Standard Algorithms, Scalability',
+      weeklyHours: 15,
+    }
+  }
+];
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function CompanyGauntlets({ onGenerate, isGenerating }: { onGenerate: (preset: any) => void, isGenerating: boolean }) {
+  return (
+    <div className='grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8'>
+      {GAUNTLETS.map(g => (
+        <button
+          key={g.id}
+          type="button"
+          disabled={isGenerating}
+          onClick={() => onGenerate(g.preset)}
+          className={cn(
+            'flex flex-col text-left p-5 rounded-xl border transition-all duration-300 relative overflow-hidden group hover:scale-[1.02]',
+            g.borderColor,
+            'bg-card hover:bg-muted/50'
+          )}
+        >
+          <div className={cn('absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity bg-gradient-to-br', g.color)} />
+          <div className='relative z-10'>
+            <h3 className='font-bold text-lg text-foreground mb-1 flex items-center gap-2'>
+              {g.name}
+            </h3>
+            <p className='text-sm text-muted-foreground'>
+              {g.description}
+            </p>
+          </div>
+        </button>
+      ))}
+    </div>
+  );
+}
+
 function PathGenerator() {
   const [role, setRole] = useState('FULLSTACK_DEVELOPER');
   const [level, setLevel] = useState('BEGINNER');
@@ -70,118 +160,140 @@ function PathGenerator() {
   const generate = useGeneratePath();
 
   return (
-    <Card className='border-primary/20 bg-primary/5'>
-      <CardHeader>
-        <CardTitle className='text-base flex items-center gap-2'>
-          <Zap className='size-4 text-primary' />
-          Generate Your Learning Path
-        </CardTitle>
-      </CardHeader>
-      <CardContent className='space-y-4'>
-        <div className='grid grid-cols-1 sm:grid-cols-2 gap-4'>
+    <div className="space-y-8">
+      <div>
+        <h2 className="text-xl font-bold text-foreground mb-4 flex items-center gap-2">
+          <Zap className="size-5 text-primary" />
+          Company Gauntlets
+        </h2>
+        <CompanyGauntlets 
+          onGenerate={(preset) => generate.mutate(preset)} 
+          isGenerating={generate.isPending} 
+        />
+      </div>
+
+      <div className="relative">
+        <div className="absolute inset-0 flex items-center">
+          <span className="w-full border-t border-border" />
+        </div>
+        <div className="relative flex justify-center text-xs uppercase">
+          <span className="bg-background px-2 text-muted-foreground">Or build your own custom path</span>
+        </div>
+      </div>
+
+      <Card className='border-primary/20 bg-primary/5'>
+        <CardHeader>
+          <CardTitle className='text-base flex items-center gap-2'>
+            Custom Learning Path
+          </CardTitle>
+        </CardHeader>
+        <CardContent className='space-y-4'>
+          <div className='grid grid-cols-1 sm:grid-cols-2 gap-4'>
+            <div className='space-y-1.5'>
+              <label className='text-xs font-semibold text-muted-foreground uppercase tracking-wider'>
+                Target Role
+              </label>
+              <select
+                value={role}
+                onChange={(e) => setRole(e.target.value)}
+                className='w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary/50'
+              >
+                {ROLES.map((r) => (
+                  <option key={r.value} value={r.value}>
+                    {r.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className='space-y-1.5'>
+              <label className='text-xs font-semibold text-muted-foreground uppercase tracking-wider'>
+                Current Level
+              </label>
+              <select
+                value={level}
+                onChange={(e) => setLevel(e.target.value)}
+                className='w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary/50'
+              >
+                {LEVELS.map((l) => (
+                  <option key={l.value} value={l.value}>
+                    {l.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
           <div className='space-y-1.5'>
             <label className='text-xs font-semibold text-muted-foreground uppercase tracking-wider'>
-              Target Role
+              Target Companies (Optional)
             </label>
-            <select
-              value={role}
-              onChange={(e) => setRole(e.target.value)}
+            <input
+              type='text'
+              placeholder='e.g., Google, Stripe, Startups'
+              value={targetCompanies}
+              onChange={(e) => setTargetCompanies(e.target.value)}
               className='w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary/50'
-            >
-              {ROLES.map((r) => (
-                <option key={r.value} value={r.value}>
-                  {r.label}
-                </option>
-              ))}
-            </select>
+            />
           </div>
+
           <div className='space-y-1.5'>
             <label className='text-xs font-semibold text-muted-foreground uppercase tracking-wider'>
-              Current Level
+              Known Weaknesses (Optional)
             </label>
-            <select
-              value={level}
-              onChange={(e) => setLevel(e.target.value)}
+            <input
+              type='text'
+              placeholder='e.g., Dynamic Programming, System Design'
+              value={weaknesses}
+              onChange={(e) => setWeaknesses(e.target.value)}
               className='w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary/50'
-            >
-              {LEVELS.map((l) => (
-                <option key={l.value} value={l.value}>
-                  {l.label}
-                </option>
-              ))}
-            </select>
+            />
           </div>
-        </div>
 
-        <div className='space-y-1.5'>
-          <label className='text-xs font-semibold text-muted-foreground uppercase tracking-wider'>
-            Target Companies (Optional)
-          </label>
-          <input
-            type='text'
-            placeholder='e.g., Google, Stripe, Startups'
-            value={targetCompanies}
-            onChange={(e) => setTargetCompanies(e.target.value)}
-            className='w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary/50'
-          />
-        </div>
-
-        <div className='space-y-1.5'>
-          <label className='text-xs font-semibold text-muted-foreground uppercase tracking-wider'>
-            Known Weaknesses (Optional)
-          </label>
-          <input
-            type='text'
-            placeholder='e.g., Dynamic Programming, System Design'
-            value={weaknesses}
-            onChange={(e) => setWeaknesses(e.target.value)}
-            className='w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary/50'
-          />
-        </div>
-
-        <div className='space-y-1.5'>
-          <label className='text-xs font-semibold text-muted-foreground uppercase tracking-wider'>
-            Weekly Study Hours: {hours}h
-          </label>
-          <input
-            type='range'
-            min={5}
-            max={40}
-            step={5}
-            value={hours}
-            onChange={(e) => setHours(Number(e.target.value))}
-            className='w-full accent-primary'
-          />
-          <div className='flex justify-between text-xs text-muted-foreground'>
-            <span>5h</span>
-            <span>40h</span>
+          <div className='space-y-1.5'>
+            <label className='text-xs font-semibold text-muted-foreground uppercase tracking-wider'>
+              Weekly Study Hours: {hours}h
+            </label>
+            <input
+              type='range'
+              min={5}
+              max={40}
+              step={5}
+              value={hours}
+              onChange={(e) => setHours(Number(e.target.value))}
+              className='w-full accent-primary'
+            />
+            <div className='flex justify-between text-xs text-muted-foreground'>
+              <span>5h</span>
+              <span>40h</span>
+            </div>
           </div>
-        </div>
 
-        <Button
-          variant='gradient'
-          onClick={() =>
-            generate.mutate({
-              targetRole: role,
-              currentLevel: level,
-              weeklyHours: hours,
-              targetCompanies: targetCompanies || undefined,
-              weaknesses: weaknesses || undefined,
-            })
-          }
-          loading={generate.isPending}
-          className='w-full'
-        >
-          Generate Path
-        </Button>
+          <Button
+            variant='gradient'
+            onClick={() =>
+              generate.mutate({
+                targetRole: role,
+                currentLevel: level,
+                weeklyHours: hours,
+                targetCompanies: targetCompanies || undefined,
+                weaknesses: weaknesses || undefined,
+              })
+            }
+            loading={generate.isPending}
+            disabled={generate.isPending}
+            className='w-full'
+          >
+            Generate Path
+          </Button>
 
-        {generate.isError && (
-          <p className='text-sm text-destructive text-center'>
-            Failed to generate path. Please try again.
-          </p>
-        )}
-      </CardContent>
-    </Card>
+          {generate.isError && (
+            <p className='text-sm text-destructive text-center'>
+              Failed to generate path. Please try again.
+            </p>
+          )}
+        </CardContent>
+      </Card>
+    </div>
   );
 }
 
