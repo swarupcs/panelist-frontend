@@ -74,10 +74,12 @@ function AppRoutes() {
         <Route path="/blog/:slug" element={<BlogPostPage />} />
         
         {/* Forum & Groups - public access available */}
-        <Route path="/forum" element={<ForumListPage />} />
-        <Route path="/forum/:id" element={<ForumPostPage />} />
-        <Route path="/groups" element={<StudyGroupListPage />} />
-        <Route path="/groups/:id" element={<StudyGroupDetailPage />} />
+        <Route element={<AppShell />}>
+          <Route path="/forum" element={<ForumListPage />} />
+          <Route path="/forum/:id" element={<ForumPostPage />} />
+          <Route path="/groups" element={<StudyGroupListPage />} />
+          <Route path="/groups/:id" element={<StudyGroupDetailPage />} />
+        </Route>
 
         <Route element={<ProtectedRoute />}>
           <Route path="/onboarding" element={<OnboardingPage />} />
