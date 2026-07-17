@@ -223,6 +223,7 @@ export interface AnalyticsDashboard {
   weakAreas: WeakArea[];
   userProgress: UserProgress | null;
   comparative: ComparativeAnalytics;
+  readinessScore: number;
 }
 
 // ============================================================

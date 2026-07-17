@@ -285,7 +285,13 @@ export default function DashboardPage() {
 
       {/* ── Stats row ── */}
       {!analyticsLoading && stats && (
-        <div className='grid grid-cols-2 lg:grid-cols-4 gap-3'>
+        <div className='grid grid-cols-2 lg:grid-cols-5 gap-3'>
+          <StatTile
+            label='Readiness Score'
+            value={analytics?.readinessScore !== undefined ? formatScore(analytics.readinessScore) : '—'}
+            icon={Zap}
+            color={analytics?.readinessScore !== undefined ? getScoreColor(analytics.readinessScore) : 'text-muted-foreground'}
+          />
           <StatTile
             label='Total Interviews'
             value={stats.totalInterviews}
