@@ -167,3 +167,59 @@ export function getConfidenceColor(confidence: number): string {
   if (confidence >= 0.65) return 'text-yellow-400'
   return 'text-red-400'
 }
+
+
+
+
+
+
+// ── Numbers ────────────────────────────────────────────────────────────────
+
+/** 1200 → "1.2K", 1_500_000 → "1.5M" */
+export function formatNumber(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000)     return `${(n / 1_000).toFixed(1)}K`;
+  return String(n);
+}
+
+
+
+
+
+// ── User / role ────────────────────────────────────────────────────────────
+
+export function formatRole(role: string): string {
+  const map: Record<string, string> = { FREE: 'Free', PREMIUM: 'Premium', ADMIN: 'Admin' };
+  return map[role] ?? role;
+}
+
+/** Tailwind classes for a role badge chip */
+export function getRoleBadge(role: string): string {
+  switch (role) {
+    case 'ADMIN':   return 'border-purple-500/30 bg-purple-500/10 text-purple-400';
+    case 'PREMIUM': return 'border-primary/30    bg-primary/10    text-primary';
+    default:        return 'border-border         bg-secondary/50  text-muted-foreground';
+  }
+}
+
+/** Tailwind classes for user account-status badge */
+export function getStatusBadge(status: string): string {
+  switch (status) {
+    case 'active':    return 'border-green-500/30  bg-green-500/10  text-green-400';
+    case 'banned':    return 'border-red-500/30    bg-red-500/10    text-red-400';
+    case 'suspended': return 'border-yellow-500/30 bg-yellow-500/10 text-yellow-400';
+    default:          return 'border-border         bg-secondary/50  text-muted-foreground';
+  }
+}
+
+// ── Misc ───────────────────────────────────────────────────────────────────
+
+
+/** "John Doe" → "JD" */
+export function getInitials(name: string): string {
+  return name
+    .split(' ')
+    .map((w) => w[0]?.toUpperCase() ?? '')
+    .slice(0, 2)
+    .join('');
+}

@@ -481,3 +481,27 @@ export interface LearningResource {
   type: string;
   isPrimary: boolean;
 }
+
+export interface SessionListItem {
+  id: string;
+  type: string;
+  status: string;
+  difficulty?: string;
+  score?: number | null;
+  totalQuestions: number;
+  currentQuestionIndex: number;
+  startTime: string;
+  endTime?: string | null;
+  duration?: number | null;
+  feedback?: string | null;
+}
+
+export interface SessionListResponse {
+  sessions: SessionListItem[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}

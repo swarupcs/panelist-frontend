@@ -1,56 +1,47 @@
 // src/pages/learning/LearningPage.tsx
-//
-// FIX: replaced shadcn/Radix Tabs with plain state-driven tabs.
-// Radix sets display:grid on the Tabs root, causing TabsList and TabsContent
-// to render side-by-side in a grid instead of stacking vertically —
-// the same bug fixed in AnalyticsPage.
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   BookOpen,
   CheckCircle2,
   Circle,
-  ChevronDown,
+  Zap,
   ChevronRight,
-  Sparkles,
+  Loader2,
+  Star,
+  RefreshCw,
+  Calendar,
+  Target,
+  Lock,
   RotateCcw,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 import {
   useLearningPath,
+  useGeneratePath,
   useCompleteTopic,
+  useRecommendations,
+  useGenerateRecommendations,
+  useCompleteRecommendation,
   useDueReviews,
   useRecordReview,
-  useRecommendations,
-  useGenerateLearningPath,
-} from '@/hooks/useAnalytics';
-import { PageHeader, LoadingScreen, EmptyState } from '@/components/common';
+} from '@/hooks/useLearning';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from '@/components/ui/Dialog';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/Select';
-import { formatRelative } from '@/utils/formatters';
+import { PageHeader, EmptyState } from '@/components/common';
+import { formatCategory, formatDate, formatPercent } from '@/utils/formatters';
 import { cn } from '@/lib/cn';
-import { Progress } from '@/components/ui/progress';
+import type { LearningTopic, SpacedRepetitionItem } from '@/types';
 
-type Tab = 'path' | 'reviews' | 'recommendations';
+// ── Role / Level selector (shown when no path exists) ─────────────────────
 
 const ROLES = [
+  { value: 'DSA_SPECIALIST', label: 'DSA Specialist' },
   { value: 'FRONTEND_DEVELOPER', label: 'Frontend Developer' },
   { value: 'BACKEND_DEVELOPER', label: 'Backend Developer' },
-  { value: 'FULLSTACK_DEVELOPER', label: 'Full-Stack Developer' },
-  { value: 'DSA_SPECIALIST', label: 'DSA Specialist' },
+  { value: 'FULLSTACK_DEVELOPER', label: 'Full Stack Developer' },
   { value: 'MOBILE_DEVELOPER', label: 'Mobile Developer' },
   { value: 'DEVOPS_ENGINEER', label: 'DevOps Engineer' },
 ];
@@ -59,423 +50,660 @@ const LEVELS = [
   { value: 'BEGINNER', label: 'Beginner' },
   { value: 'INTERMEDIATE', label: 'Intermediate' },
   { value: 'ADVANCED', label: 'Advanced' },
+  { value: 'EXPERT', label: 'Expert' },
 ];
 
-function GeneratePathDialog({
-  open,
-  onClose,
-}: {
-  open: boolean;
-  onClose: () => void;
-}) {
-  const [role, setRole] = useState('');
-  const [level, setLevel] = useState('');
-  const generate = useGenerateLearningPath();
-
-  const handleGenerate = () => {
-    if (!role || !level) return;
-    generate.mutate(
-      { targetRole: role, currentLevel: level },
-      { onSuccess: onClose },
-    );
-  };
+function PathGenerator() {
+  const [role, setRole] = useState('FULLSTACK_DEVELOPER');
+  const [level, setLevel] = useState('BEGINNER');
+  const [hours, setHours] = useState(10);
+  const generate = useGeneratePath();
 
   return (
-    <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Generate Learning Path</DialogTitle>
-          <DialogDescription>
-            Configure your personalized learning path
-          </DialogDescription>
-        </DialogHeader>
-        <div className='space-y-4 pt-2'>
+    <Card className='border-primary/20 bg-primary/5'>
+      <CardHeader>
+        <CardTitle className='text-base flex items-center gap-2'>
+          <Zap className='size-4 text-primary' />
+          Generate Your Learning Path
+        </CardTitle>
+      </CardHeader>
+      <CardContent className='space-y-4'>
+        <div className='grid grid-cols-1 sm:grid-cols-2 gap-4'>
           <div className='space-y-1.5'>
-            <label className='text-sm font-medium text-foreground'>
+            <label className='text-xs font-semibold text-muted-foreground uppercase tracking-wider'>
               Target Role
             </label>
-            <Select value={role} onValueChange={setRole}>
-              <SelectTrigger>
-                <SelectValue placeholder='Select role...' />
-              </SelectTrigger>
-              <SelectContent>
-                {ROLES.map((r) => (
-                  <SelectItem key={r.value} value={r.value}>
-                    {r.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <select
+              value={role}
+              onChange={(e) => setRole(e.target.value)}
+              className='w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary/50'
+            >
+              {ROLES.map((r) => (
+                <option key={r.value} value={r.value}>
+                  {r.label}
+                </option>
+              ))}
+            </select>
           </div>
           <div className='space-y-1.5'>
-            <label className='text-sm font-medium text-foreground'>
+            <label className='text-xs font-semibold text-muted-foreground uppercase tracking-wider'>
               Current Level
             </label>
-            <Select value={level} onValueChange={setLevel}>
-              <SelectTrigger>
-                <SelectValue placeholder='Select level...' />
-              </SelectTrigger>
-              <SelectContent>
-                {LEVELS.map((l) => (
-                  <SelectItem key={l.value} value={l.value}>
-                    {l.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <Button
-            variant='gradient'
-            className='w-full'
-            onClick={handleGenerate}
-            disabled={!role || !level || generate.isPending}
-            loading={generate.isPending}
-          >
-            Generate Path
-          </Button>
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-function PhaseCard({ phase, index }: { phase: any; index: number }) {
-  const [expanded, setExpanded] = useState(index === 0);
-  const completeTopic = useCompleteTopic();
-  const completedTopics =
-    phase.topics?.filter((t: any) => t.isCompleted).length ?? 0;
-  const totalTopics = phase.topics?.length ?? 0;
-  const progress = totalTopics > 0 ? (completedTopics / totalTopics) * 100 : 0;
-
-  return (
-    <Card className={cn(phase.isCompleted && 'opacity-75')}>
-      <button
-        type='button'
-        onClick={() => setExpanded((e) => !e)}
-        className='w-full flex items-center justify-between p-5 text-left'
-      >
-        <div className='flex items-center gap-3 min-w-0'>
-          <div
-            className={cn(
-              'flex size-8 shrink-0 items-center justify-center rounded-full text-sm font-bold',
-              phase.isCompleted
-                ? 'bg-green-500/20 text-green-400'
-                : 'bg-primary/20 text-primary',
-            )}
-          >
-            {phase.isCompleted ? (
-              <CheckCircle2 className='size-4' />
-            ) : (
-              phase.phaseNumber
-            )}
-          </div>
-          <div className='min-w-0'>
-            <p className='font-semibold text-foreground text-sm'>
-              {phase.title}
-            </p>
-            <p className='text-xs text-muted-foreground'>
-              {completedTopics}/{totalTopics} topics · {phase.estimatedDays}{' '}
-              days
-            </p>
-          </div>
-        </div>
-        <div className='flex items-center gap-3'>
-          <Progress value={progress} className='w-16 h-1.5 hidden sm:block' />
-          {expanded ? (
-            <ChevronDown className='size-4 text-muted-foreground' />
-          ) : (
-            <ChevronRight className='size-4 text-muted-foreground' />
-          )}
-        </div>
-      </button>
-
-      {expanded && (
-        <CardContent className='pt-0 space-y-2'>
-          {phase.topics?.map((topic: any) => (
-            <div
-              key={topic.id}
-              className={cn(
-                'flex items-center gap-3 rounded-lg p-3 transition-colors',
-                topic.isCompleted ? 'bg-green-500/5' : 'hover:bg-secondary',
-              )}
+            <select
+              value={level}
+              onChange={(e) => setLevel(e.target.value)}
+              className='w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary/50'
             >
-              <button
-                type='button'
-                onClick={() =>
-                  !topic.isCompleted && completeTopic.mutate(topic.id)
-                }
-                className='shrink-0'
-                disabled={topic.isCompleted || completeTopic.isPending}
-              >
-                {topic.isCompleted ? (
-                  <CheckCircle2 className='size-5 text-green-400' />
-                ) : (
-                  <Circle className='size-5 text-muted-foreground hover:text-primary transition-colors' />
-                )}
-              </button>
-              <div className='flex-1 min-w-0'>
-                <p
-                  className={cn(
-                    'text-sm font-medium',
-                    topic.isCompleted
-                      ? 'text-muted-foreground line-through'
-                      : 'text-foreground',
-                  )}
-                >
-                  {topic.title}
-                </p>
-                <p className='text-xs text-muted-foreground'>
-                  {topic.questionsToSolve} questions
-                </p>
-              </div>
-              {topic.questionsSolved > 0 && (
-                <span className='text-xs text-muted-foreground'>
-                  {topic.questionsSolved}/{topic.questionsToSolve}
-                </span>
-              )}
-            </div>
-          ))}
-        </CardContent>
-      )}
+              {LEVELS.map((l) => (
+                <option key={l.value} value={l.value}>
+                  {l.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div className='space-y-1.5'>
+          <label className='text-xs font-semibold text-muted-foreground uppercase tracking-wider'>
+            Weekly Study Hours: {hours}h
+          </label>
+          <input
+            type='range'
+            min={5}
+            max={40}
+            step={5}
+            value={hours}
+            onChange={(e) => setHours(Number(e.target.value))}
+            className='w-full accent-primary'
+          />
+          <div className='flex justify-between text-xs text-muted-foreground'>
+            <span>5h</span>
+            <span>40h</span>
+          </div>
+        </div>
+
+        <Button
+          variant='gradient'
+          onClick={() =>
+            generate.mutate({
+              targetRole: role,
+              currentLevel: level,
+              weeklyHours: hours,
+            })
+          }
+          loading={generate.isPending}
+          className='w-full'
+        >
+          Generate Path
+        </Button>
+
+        {generate.isError && (
+          <p className='text-sm text-destructive text-center'>
+            Failed to generate path. Please try again.
+          </p>
+        )}
+      </CardContent>
     </Card>
   );
 }
 
-export default function LearningPage() {
-  const [activeTab, setActiveTab] = useState<Tab>('path');
-  const [showGenerate, setShowGenerate] = useState(false);
+// ── Topic row ──────────────────────────────────────────────────────────────
 
-  const { data: learningPath, isLoading } = useLearningPath();
-  const { data: reviewData } = useDueReviews();
-  const { data: recommendations } = useRecommendations();
-  const recordReview = useRecordReview();
+function TopicRow({
+  topic,
+  phaseCompleted,
+}: {
+  topic: LearningTopic;
+  phaseCompleted: boolean;
+}) {
+  const completeTopic = useCompleteTopic();
+  const navigate = useNavigate();
+  const progress =
+    topic.questionsToSolve > 0
+      ? Math.min((topic.questionsSolved / topic.questionsToSolve) * 100, 100)
+      : 0;
 
-  const dueCount = reviewData?.stats?.dueForReview ?? 0;
-
-  if (isLoading) return <LoadingScreen message='Loading learning path...' />;
+  const isLocked = !topic.isCompleted && phaseCompleted;
 
   return (
-    <div className='space-y-6 animate-fade-in'>
+    <div
+      className={cn(
+        'rounded-lg border p-3 space-y-2',
+        topic.isCompleted
+          ? 'border-green-500/20 bg-green-500/5'
+          : 'border-border bg-secondary/20',
+        isLocked && 'opacity-50',
+      )}
+    >
+      <div className='flex items-center gap-3'>
+        {topic.isCompleted ? (
+          <CheckCircle2 className='size-4 text-green-400 shrink-0' />
+        ) : isLocked ? (
+          <Lock className='size-4 text-muted-foreground shrink-0' />
+        ) : (
+          <Circle className='size-4 text-muted-foreground shrink-0' />
+        )}
+
+        <div className='flex-1 min-w-0'>
+          <div className='flex flex-wrap items-center gap-2'>
+            <p className='text-sm font-medium text-foreground'>{topic.title}</p>
+            <Badge variant='outline' className='text-xs'>
+              {formatCategory(topic.category)}
+            </Badge>
+          </div>
+          {topic.description && (
+            <p className='text-xs text-muted-foreground mt-0.5 line-clamp-1'>
+              {topic.description}
+            </p>
+          )}
+        </div>
+
+        <div className='shrink-0 flex items-center gap-2'>
+          <span className='text-xs text-muted-foreground'>
+            {topic.questionsSolved}/{topic.questionsToSolve}q
+          </span>
+          {!topic.isCompleted && !isLocked && (
+            <div className='flex gap-1'>
+              <button
+                type='button'
+                onClick={() =>
+                  navigate(
+                    `/interview?type=dsa&topic=${encodeURIComponent(topic.category)}`,
+                  )
+                }
+                className='rounded-md border border-border px-2 py-1 text-xs text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors'
+              >
+                Practice
+              </button>
+              <button
+                type='button'
+                onClick={() => completeTopic.mutate(topic.id)}
+                disabled={completeTopic.isPending}
+                className='rounded-md bg-primary/10 border border-primary/20 px-2 py-1 text-xs text-primary hover:bg-primary/20 transition-colors disabled:opacity-50'
+              >
+                {completeTopic.isPending ? (
+                  <Loader2 className='size-3 animate-spin' />
+                ) : (
+                  'Mark done'
+                )}
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Progress bar */}
+      {!topic.isCompleted && topic.questionsToSolve > 0 && (
+        <div className='ml-7 h-1 rounded-full bg-border overflow-hidden'>
+          <div
+            className='h-full rounded-full bg-primary transition-all duration-500'
+            style={{ width: `${progress}%` }}
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Spaced repetition review card ──────────────────────────────────────────
+
+function ReviewCard({ item }: { item: SpacedRepetitionItem }) {
+  const recordReview = useRecordReview();
+  const [revealed, setRevealed] = useState(false);
+
+  const QUALITY_LABELS = [
+    {
+      q: 0,
+      label: 'Blackout',
+      color: 'text-red-400 border-red-500/30 hover:bg-red-500/10',
+    },
+    {
+      q: 1,
+      label: 'Wrong',
+      color: 'text-red-400 border-red-500/30 hover:bg-red-500/10',
+    },
+    {
+      q: 2,
+      label: 'Hard',
+      color: 'text-orange-400 border-orange-500/30 hover:bg-orange-500/10',
+    },
+    {
+      q: 3,
+      label: 'OK',
+      color: 'text-yellow-400 border-yellow-500/30 hover:bg-yellow-500/10',
+    },
+    {
+      q: 4,
+      label: 'Good',
+      color: 'text-green-400 border-green-500/30 hover:bg-green-500/10',
+    },
+    {
+      q: 5,
+      label: 'Perfect',
+      color: 'text-green-400 border-green-500/30 hover:bg-green-500/10',
+    },
+  ];
+
+  return (
+    <Card>
+      <CardContent className='pt-5 space-y-4'>
+        <div className='flex items-start justify-between gap-3'>
+          <div>
+            <Badge variant='outline' className='text-xs mb-2'>
+              {formatCategory(item.category)}
+            </Badge>
+            <p className='text-sm text-muted-foreground'>
+              Question ID:{' '}
+              <code className='text-xs'>{item.questionId.slice(0, 8)}…</code>
+            </p>
+            <p className='text-xs text-muted-foreground mt-1'>
+              Interval: {item.interval} day{item.interval !== 1 ? 's' : ''} ·
+              Rep #{item.repetitions}
+            </p>
+          </div>
+          {!revealed && (
+            <Button
+              variant='outline'
+              size='sm'
+              onClick={() => setRevealed(true)}
+            >
+              Reveal Answer
+            </Button>
+          )}
+        </div>
+
+        {revealed && (
+          <div className='space-y-3 border-t border-border/50 pt-3'>
+            <p className='text-xs font-semibold text-muted-foreground uppercase tracking-wider'>
+              How well did you recall?
+            </p>
+            <div className='flex flex-wrap gap-2'>
+              {QUALITY_LABELS.map(({ q, label, color }) => (
+                <button
+                  key={q}
+                  type='button'
+                  onClick={() =>
+                    recordReview.mutate({ itemId: item.id, quality: q })
+                  }
+                  disabled={recordReview.isPending}
+                  className={cn(
+                    'rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-50',
+                    color,
+                  )}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+// ── Recommendations panel ──────────────────────────────────────────────────
+
+function RecommendationsPanel() {
+  const { data, isLoading } = useRecommendations();
+  const generate = useGenerateRecommendations();
+  const complete = useCompleteRecommendation();
+  const navigate = useNavigate();
+
+  const active =
+    data?.recommendations?.filter((r) => !r.isCompleted && !r.isDismissed) ??
+    [];
+
+  return (
+    <div className='space-y-3'>
+      <div className='flex items-center justify-between'>
+        <h3 className='text-sm font-semibold text-muted-foreground uppercase tracking-wider'>
+          Recommendations
+        </h3>
+        <Button
+          variant='ghost'
+          size='sm'
+          onClick={() => generate.mutate()}
+          loading={generate.isPending}
+          className='gap-1.5 h-7 text-xs'
+        >
+          <RefreshCw className='size-3' /> Refresh
+        </Button>
+      </div>
+
+      {isLoading && (
+        <div className='flex justify-center py-6'>
+          <Loader2 className='size-5 animate-spin text-primary' />
+        </div>
+      )}
+
+      {!isLoading && active.length === 0 && (
+        <div className='rounded-xl border border-border bg-secondary/20 py-6 text-center text-sm text-muted-foreground'>
+          No recommendations yet.{' '}
+          <button
+            type='button'
+            onClick={() => generate.mutate()}
+            className='text-primary underline-offset-2 hover:underline'
+          >
+            Generate some
+          </button>
+        </div>
+      )}
+
+      {active.slice(0, 4).map((rec) => (
+        <div
+          key={rec.id}
+          className='flex items-start gap-3 rounded-xl border border-border bg-card p-3'
+        >
+          <div className='rounded-lg bg-primary/10 p-1.5 shrink-0 mt-0.5'>
+            <Target className='size-3.5 text-primary' />
+          </div>
+          <div className='flex-1 min-w-0'>
+            <p className='text-sm font-medium text-foreground'>{rec.title}</p>
+            <p className='text-xs text-muted-foreground mt-0.5 line-clamp-2'>
+              {rec.description}
+            </p>
+            {rec.expiresAt && (
+              <p className='text-xs text-muted-foreground mt-1 flex items-center gap-1'>
+                <Calendar className='size-3' />
+                Expires {formatDate(rec.expiresAt)}
+              </p>
+            )}
+          </div>
+          <div className='flex flex-col gap-1 shrink-0'>
+            {rec.category && (
+              <button
+                type='button'
+                onClick={() =>
+                  navigate(
+                    `/interview?type=dsa&topic=${encodeURIComponent(rec.category!)}`,
+                  )
+                }
+                className='flex items-center gap-1 rounded-md border border-border px-2 py-1 text-xs text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors'
+              >
+                Practice <ChevronRight className='size-3' />
+              </button>
+            )}
+            <button
+              type='button'
+              onClick={() => complete.mutate(rec.id)}
+              disabled={complete.isPending}
+              className='rounded-md px-2 py-1 text-xs text-green-400 hover:bg-green-500/10 transition-colors disabled:opacity-50'
+            >
+              Done
+            </button>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ── Main page ──────────────────────────────────────────────────────────────
+
+export default function LearningPage() {
+  const { data: pathData, isLoading: pathLoading } = useLearningPath();
+  const { data: reviewData, isLoading: reviewLoading } = useDueReviews(10);
+  const [expandedPhases, setExpandedPhases] = useState<Set<string>>(new Set());
+  const [activeTab, setActiveTab] = useState<
+    'path' | 'reviews' | 'recommendations'
+  >('path');
+
+  const path = pathData?.learningPath;
+  const reviews = reviewData?.reviews ?? [];
+  const stats = reviewData?.stats;
+  const dueCount = stats?.dueForReview ?? 0;
+
+  const togglePhase = (id: string) => {
+    setExpandedPhases((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+
+  return (
+    <div className='max-w-2xl mx-auto space-y-6 animate-fade-in'>
       <PageHeader
         title='Learning Path'
-        description='Your personalized interview preparation roadmap'
-        action={
-          <Button
-            variant='gradient'
-            size='sm'
-            onClick={() => setShowGenerate(true)}
-            className='gap-2'
-          >
-            <Sparkles className='size-4' />
-            {learningPath ? 'Regenerate' : 'Generate Path'}
-          </Button>
-        }
+        description='Your personalized roadmap to interview mastery'
       />
 
-      <GeneratePathDialog
-        open={showGenerate}
-        onClose={() => setShowGenerate(false)}
-      />
-
-      {/* Plain state tab bar — no Radix grid interference */}
-      <div className='flex gap-1 rounded-lg bg-secondary/50 p-1 w-full max-w-sm'>
+      {/* Tab bar */}
+      <div className='flex gap-1 rounded-lg bg-secondary/50 p-1'>
         {(
           [
-            { key: 'path', label: 'Learning Path' },
+            { key: 'path', label: 'My Path' },
             {
               key: 'reviews',
-              label: `Due Reviews${dueCount > 0 ? ` (${dueCount})` : ''}`,
+              label: `Reviews${dueCount > 0 ? ` (${dueCount})` : ''}`,
             },
-            { key: 'recommendations', label: 'Recommendations' },
-          ] as { key: Tab; label: string }[]
-        ).map((tab) => (
+            { key: 'recommendations', label: 'For You' },
+          ] as const
+        ).map(({ key, label }) => (
           <button
-            key={tab.key}
+            key={key}
             type='button'
-            onClick={() => setActiveTab(tab.key)}
+            onClick={() => setActiveTab(key)}
             className={cn(
-              'flex-1 rounded-md px-2 py-2 text-xs font-medium transition-all duration-200 whitespace-nowrap',
-              activeTab === tab.key
+              'flex-1 rounded-md px-3 py-2 text-sm font-medium transition-all',
+              activeTab === key
                 ? 'bg-background text-foreground shadow-sm'
                 : 'text-muted-foreground hover:text-foreground hover:bg-background/50',
             )}
           >
-            {tab.label}
+            {label}
           </button>
         ))}
       </div>
 
-      {/* ── Learning Path tab ── */}
+      {/* ── Path tab ── */}
       {activeTab === 'path' && (
         <div className='space-y-4'>
-          {!learningPath ? (
-            <EmptyState
-              icon={BookOpen}
-              title='No learning path yet'
-              description='Generate a personalized path based on your target role and skill level'
-              action={
-                <Button
-                  variant='gradient'
-                  onClick={() => setShowGenerate(true)}
-                  className='gap-2'
-                >
-                  <Sparkles className='size-4' /> Generate Learning Path
-                </Button>
-              }
-            />
-          ) : (
+          {pathLoading && (
+            <div className='flex justify-center py-12'>
+              <Loader2 className='size-6 animate-spin text-primary' />
+            </div>
+          )}
+
+          {!pathLoading && !path && <PathGenerator />}
+
+          {!pathLoading && path && (
             <>
-              <div className='flex items-center gap-4 rounded-xl border border-border bg-card p-4'>
-                <div>
-                  <p className='text-sm font-medium text-foreground'>
-                    Target: {learningPath.targetRole?.replace(/_/g, ' ')}
-                  </p>
-                  <p className='text-xs text-muted-foreground'>
-                    Phase {learningPath.currentPhase} of{' '}
-                    {learningPath.totalPhases} · {learningPath.estimatedWeeks}{' '}
-                    weeks estimated
-                  </p>
-                </div>
-                <Progress
-                  value={
-                    (learningPath.currentPhase / learningPath.totalPhases) * 100
-                  }
-                  className='flex-1 h-2'
-                />
+              {/* Path header */}
+              <Card className='border-primary/20 bg-primary/5'>
+                <CardContent className='pt-5 pb-5'>
+                  <div className='flex items-center justify-between gap-4'>
+                    <div>
+                      <p className='font-semibold text-foreground capitalize'>
+                        {path.targetRole.replace(/_/g, ' ').toLowerCase()}
+                      </p>
+                      <p className='text-xs text-muted-foreground mt-0.5'>
+                        Phase {path.currentPhase} of {path.totalPhases}
+                        {path.estimatedWeeks &&
+                          ` · ~${path.estimatedWeeks} weeks`}
+                      </p>
+                    </div>
+                    <div className='text-right'>
+                      <p className='text-2xl font-bold text-primary tabular-nums'>
+                        {Math.round(
+                          (path.currentPhase / path.totalPhases) * 100,
+                        )}
+                        %
+                      </p>
+                      <p className='text-xs text-muted-foreground'>complete</p>
+                    </div>
+                  </div>
+                  {/* Overall progress bar */}
+                  <div className='mt-3 h-1.5 rounded-full bg-border overflow-hidden'>
+                    <div
+                      className='h-full rounded-full bg-primary transition-all duration-700'
+                      style={{
+                        width: `${(path.currentPhase / path.totalPhases) * 100}%`,
+                      }}
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Phases */}
+              {path.phases.map((phase) => {
+                const expanded = expandedPhases.has(phase.id);
+                const completedTopics = phase.topics.filter(
+                  (t) => t.isCompleted,
+                ).length;
+                const totalTopics = phase.topics.length;
+
+                return (
+                  <Card
+                    key={phase.id}
+                    className={cn(phase.isCompleted && 'opacity-70')}
+                  >
+                    <button
+                      type='button'
+                      onClick={() => togglePhase(phase.id)}
+                      className='w-full text-left'
+                    >
+                      <CardHeader className='pb-3'>
+                        <div className='flex items-center justify-between gap-3'>
+                          <div className='flex items-center gap-3'>
+                            <div
+                              className={cn(
+                                'flex size-7 items-center justify-center rounded-full text-xs font-bold',
+                                phase.isCompleted
+                                  ? 'bg-green-500/20 text-green-400'
+                                  : 'bg-primary/10 text-primary',
+                              )}
+                            >
+                              {phase.isCompleted ? (
+                                <CheckCircle2 className='size-4' />
+                              ) : (
+                                phase.phaseNumber
+                              )}
+                            </div>
+                            <div>
+                              <p className='font-semibold text-sm text-foreground'>
+                                {phase.title}
+                              </p>
+                              <p className='text-xs text-muted-foreground'>
+                                {completedTopics}/{totalTopics} topics ·{' '}
+                                {phase.estimatedDays}d est.
+                              </p>
+                            </div>
+                          </div>
+                          <div className='flex items-center gap-2'>
+                            {phase.isCompleted && (
+                              <Badge
+                                variant='outline'
+                                className='text-xs text-green-400 border-green-500/30'
+                              >
+                                Done
+                              </Badge>
+                            )}
+                            {expanded ? (
+                              <ChevronUp className='size-4 text-muted-foreground' />
+                            ) : (
+                              <ChevronDown className='size-4 text-muted-foreground' />
+                            )}
+                          </div>
+                        </div>
+                        {/* Phase progress */}
+                        <div className='h-1 rounded-full bg-border overflow-hidden mt-2'>
+                          <div
+                            className={cn(
+                              'h-full rounded-full transition-all duration-500',
+                              phase.isCompleted ? 'bg-green-400' : 'bg-primary',
+                            )}
+                            style={{
+                              width: totalTopics
+                                ? `${(completedTopics / totalTopics) * 100}%`
+                                : '0%',
+                            }}
+                          />
+                        </div>
+                      </CardHeader>
+                    </button>
+
+                    {expanded && (
+                      <CardContent className='pt-0 space-y-2'>
+                        {phase.topics.map((topic) => (
+                          <TopicRow
+                            key={topic.id}
+                            topic={topic}
+                            phaseCompleted={phase.isCompleted}
+                          />
+                        ))}
+                      </CardContent>
+                    )}
+                  </Card>
+                );
+              })}
+
+              {/* Regenerate */}
+              <div className='flex justify-center pt-2'>
+                <button
+                  type='button'
+                  onClick={() => {
+                    /* show generator — in a real app would toggle a modal */
+                  }}
+                  className='flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors'
+                >
+                  <RotateCcw className='size-3' /> Regenerate path
+                </button>
               </div>
-              {learningPath.phases?.map((phase: any, i: number) => (
-                <PhaseCard key={phase.id} phase={phase} index={i} />
-              ))}
             </>
           )}
         </div>
       )}
 
-      {/* ── Due Reviews tab ── */}
+      {/* ── Reviews tab ── */}
       {activeTab === 'reviews' && (
         <div className='space-y-4'>
-          {reviewData?.stats && (
+          {/* Stats strip */}
+          {stats && (
             <div className='grid grid-cols-3 gap-3'>
               {[
-                { label: 'Total Cards', value: reviewData.stats.totalCards },
-                {
-                  label: 'Due Today',
-                  value: reviewData.stats.dueForReview,
-                  highlight: true,
-                },
-                { label: 'Mastered', value: reviewData.stats.mastered },
-              ].map((s) => (
+                { label: 'Total cards', value: stats.totalCards },
+                { label: 'Due today', value: stats.dueForReview },
+                { label: 'Mastered', value: stats.mastered },
+              ].map(({ label, value }) => (
                 <div
-                  key={s.label}
-                  className={cn(
-                    'rounded-xl border p-3 text-center',
-                    s.highlight && 'border-primary/30 bg-primary/5',
-                  )}
+                  key={label}
+                  className='rounded-xl border border-border bg-card px-4 py-3 text-center'
                 >
-                  <p
-                    className={cn(
-                      'text-xl font-bold',
-                      s.highlight ? 'text-primary' : 'text-foreground',
-                    )}
-                  >
-                    {s.value}
+                  <p className='text-2xl font-bold text-foreground tabular-nums'>
+                    {value}
                   </p>
-                  <p className='text-xs text-muted-foreground'>{s.label}</p>
+                  <p className='text-xs text-muted-foreground mt-0.5'>
+                    {label}
+                  </p>
                 </div>
               ))}
             </div>
           )}
 
-          {!reviewData?.reviews?.length ? (
-            <EmptyState
-              icon={RotateCcw}
-              title='No reviews due'
-              description="Great! You're all caught up on your spaced repetition reviews."
-            />
-          ) : (
-            <div className='space-y-3'>
-              {reviewData.reviews.map((item: any) => (
-                <Card key={item.id}>
-                  <CardContent className='pt-4'>
-                    <div className='flex items-center justify-between gap-3'>
-                      <div>
-                        <p className='text-sm font-medium text-foreground'>
-                          {item.category}
-                        </p>
-                        <p className='text-xs text-muted-foreground'>
-                          Due: {formatRelative(item.nextReview)}
-                        </p>
-                      </div>
-                      <div className='flex gap-2'>
-                        {([0, 1, 3, 5] as const).map((q, idx) => (
-                          <button
-                            key={q}
-                            type='button'
-                            onClick={() =>
-                              recordReview.mutate({
-                                itemId: item.id,
-                                quality: q,
-                              })
-                            }
-                            className={cn(
-                              'rounded px-2 py-1 text-xs font-medium transition-colors',
-                              idx === 0
-                                ? 'bg-red-500/10 text-red-400 hover:bg-red-500/20'
-                                : idx === 1
-                                  ? 'bg-orange-500/10 text-orange-400 hover:bg-orange-500/20'
-                                  : idx === 2
-                                    ? 'bg-yellow-500/10 text-yellow-400 hover:bg-yellow-500/20'
-                                    : 'bg-green-500/10 text-green-400 hover:bg-green-500/20',
-                            )}
-                            title={['Blackout', 'Wrong', 'Hard', 'Easy'][idx]}
-                          >
-                            {['✗', '~', '✓', '★'][idx]}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+          {reviewLoading && (
+            <div className='flex justify-center py-8'>
+              <Loader2 className='size-6 animate-spin text-primary' />
             </div>
           )}
+
+          {!reviewLoading && reviews.length === 0 && (
+            <EmptyState
+              icon={BookOpen}
+              title='No reviews due'
+              description='Great job! Check back later or complete more interviews to add cards.'
+            />
+          )}
+
+          {reviews.map((item) => (
+            <ReviewCard key={item.id} item={item} />
+          ))}
         </div>
       )}
 
       {/* ── Recommendations tab ── */}
-      {activeTab === 'recommendations' && (
-        <div className='space-y-3'>
-          {!recommendations?.length ? (
-            <EmptyState
-              icon={Sparkles}
-              title='No recommendations yet'
-              description='Complete more interviews to get personalized recommendations.'
-            />
-          ) : (
-            recommendations.map((rec: any) => (
-              <Card key={rec.id}>
-                <CardContent className='pt-4'>
-                  <div className='flex items-start justify-between gap-3'>
-                    <div className='min-w-0'>
-                      <div className='flex items-center gap-2 mb-1'>
-                        <p className='font-medium text-sm text-foreground'>
-                          {rec.title}
-                        </p>
-                        <Badge variant='outline' className='text-xs shrink-0'>
-                          Priority {rec.priority}
-                        </Badge>
-                      </div>
-                      <p className='text-xs text-muted-foreground'>
-                        {rec.description}
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))
-          )}
-        </div>
-      )}
+      {activeTab === 'recommendations' && <RecommendationsPanel />}
     </div>
   );
 }

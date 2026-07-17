@@ -1,430 +1,459 @@
 // src/pages/companies/CompaniesPage.tsx
 import { useState } from 'react';
+import { useQuery, useMutation } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import {
   Building2,
+  Search,
   ChevronRight,
-  Target,
-  Users,
-  Star,
   Loader2,
-  ArrowLeft,
-  BookOpen,
+  Star,
+  Users,
+  Play,
+  Filter,
+  X,
 } from 'lucide-react';
-import {
-  useCompanies,
-  useCompany,
-  useCompanyQuestions,
-  useCompanyProgress,
-  useStartCompanyPractice,
-} from '@/hooks/useCompany';
-import {
-  PageHeader,
-  LoadingScreen,
-  ErrorState,
-  EmptyState,
-} from '@/components/common';
+import { companyApi } from '@/api/company.api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
-import { getDifficultyBadge, formatCategory } from '@/utils/formatters';
+import { PageHeader, EmptyState } from '@/components/common';
 import { cn } from '@/lib/cn';
 
-// ── Difficulty badge colors for company difficulty (EASY/MEDIUM/HARD/VERY_HARD) ──
+// ── Difficulty color ───────────────────────────────────────────────────────
 
-function companyDifficultyBadge(d: string) {
+function diffColor(d?: string) {
   switch (d) {
     case 'EASY':
-      return 'bg-green-400/10 text-green-400 border-green-400/20';
+      return 'text-green-400 border-green-500/30 bg-green-500/10';
     case 'MEDIUM':
-      return 'bg-yellow-400/10 text-yellow-400 border-yellow-400/20';
+      return 'text-yellow-400 border-yellow-500/30 bg-yellow-500/10';
     case 'HARD':
-      return 'bg-red-400/10 text-red-400 border-red-400/20';
+      return 'text-red-400 border-red-500/30 bg-red-500/10';
     case 'VERY_HARD':
-      return 'bg-purple-400/10 text-purple-400 border-purple-400/20';
+      return 'text-purple-400 border-purple-500/30 bg-purple-500/10';
     default:
-      return 'bg-muted text-muted-foreground';
+      return 'text-muted-foreground border-border bg-secondary/30';
   }
 }
 
-// ── Practice Config Dialog ─────────────────────────────────────────────────
-
-function PracticeButton({
-  slug,
-  companyName,
-}: {
-  slug: string;
-  companyName: string;
-}) {
-  const [open, setOpen] = useState(false);
-  const [count, setCount] = useState(10);
-  const [difficulty, setDifficulty] = useState('');
-  const startPractice = useStartCompanyPractice();
-
-  const handleStart = () => {
-    startPractice.mutate({
-      slug,
-      config: {
-        questionCount: count,
-        difficulty: difficulty || undefined,
-        duration: count * 5,
-      },
-    });
+function diffLabel(d?: string) {
+  const map: Record<string, string> = {
+    EASY: 'Easy',
+    MEDIUM: 'Medium',
+    HARD: 'Hard',
+    VERY_HARD: 'Very Hard',
   };
+  return d ? (map[d] ?? d) : 'Unknown';
+}
 
-  if (!open) {
-    return (
-      <Button
-        variant='gradient'
-        size='sm'
-        className='gap-1.5'
-        onClick={() => setOpen(true)}
-      >
-        <Target className='size-3.5' />
-        Practice
-      </Button>
-    );
-  }
+// ── Company card ───────────────────────────────────────────────────────────
 
+interface Company {
+  id: string;
+  name: string;
+  slug: string;
+  description?: string;
+  industry?: string;
+  size?: string;
+  interviewDifficulty?: string;
+  isPremium?: boolean;
+  _count?: {
+    questions: number;
+    interviewTips: number;
+    interviewExperiences: number;
+  };
+}
+
+function CompanyCard({
+  company,
+  onSelect,
+}: {
+  company: Company;
+  onSelect: () => void;
+}) {
   return (
-    <div className='rounded-xl border border-primary/30 bg-primary/5 p-4 space-y-3'>
-      <p className='text-sm font-semibold text-foreground'>
-        Start {companyName} Practice
-      </p>
-      <div className='grid grid-cols-2 gap-3'>
-        <div className='space-y-1'>
-          <label className='text-xs text-muted-foreground'>Questions</label>
-          <select
-            value={count}
-            onChange={(e) => setCount(Number(e.target.value))}
-            className='h-8 w-full rounded-lg border border-border bg-input px-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring'
-          >
-            {[5, 10, 15, 20].map((n) => (
-              <option key={n} value={n}>
-                {n} questions
-              </option>
-            ))}
-          </select>
+    <button
+      type='button'
+      onClick={onSelect}
+      className={cn(
+        'flex flex-col gap-3 rounded-xl border p-4 text-left transition-all duration-200',
+        'border-border hover:border-primary/30 hover:bg-secondary/30 hover:scale-[1.01]',
+      )}
+    >
+      <div className='flex items-start justify-between gap-2'>
+        <div className='flex items-center gap-3'>
+          <div className='flex size-10 items-center justify-center rounded-lg bg-primary/10 shrink-0'>
+            <Building2 className='size-5 text-primary' />
+          </div>
+          <div>
+            <p className='font-semibold text-sm text-foreground'>
+              {company.name}
+            </p>
+            {company.industry && (
+              <p className='text-xs text-muted-foreground'>
+                {company.industry}
+              </p>
+            )}
+          </div>
         </div>
-        <div className='space-y-1'>
-          <label className='text-xs text-muted-foreground'>Difficulty</label>
-          <select
-            value={difficulty}
-            onChange={(e) => setDifficulty(e.target.value)}
-            className='h-8 w-full rounded-lg border border-border bg-input px-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring'
-          >
-            <option value=''>Any</option>
-            <option value='EASY'>Easy</option>
-            <option value='MEDIUM'>Medium</option>
-            <option value='HARD'>Hard</option>
-          </select>
-        </div>
-      </div>
-      <div className='flex gap-2'>
-        <Button
-          variant='gradient'
-          size='sm'
-          onClick={handleStart}
-          disabled={startPractice.isPending}
-          className='gap-1.5'
-        >
-          {startPractice.isPending ? (
-            <Loader2 className='size-3.5 animate-spin' />
-          ) : (
-            <Target className='size-3.5' />
+        <div className='flex flex-col items-end gap-1'>
+          {company.isPremium && (
+            <Badge className='text-xs bg-yellow-500/10 text-yellow-400 border-yellow-500/30'>
+              Premium
+            </Badge>
           )}
-          {startPractice.isPending ? 'Starting...' : 'Start Session'}
-        </Button>
-        <Button variant='ghost' size='sm' onClick={() => setOpen(false)}>
-          Cancel
-        </Button>
+          {company.interviewDifficulty && (
+            <span
+              className={cn(
+                'inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium',
+                diffColor(company.interviewDifficulty),
+              )}
+            >
+              {diffLabel(company.interviewDifficulty)}
+            </span>
+          )}
+        </div>
       </div>
-    </div>
+
+      {company.description && (
+        <p className='text-xs text-muted-foreground line-clamp-2'>
+          {company.description}
+        </p>
+      )}
+
+      <div className='flex items-center justify-between text-xs text-muted-foreground border-t border-border/50 pt-2'>
+        <div className='flex gap-3'>
+          {company._count && (
+            <>
+              <span>{company._count.questions} questions</span>
+              <span>{company._count.interviewExperiences} experiences</span>
+            </>
+          )}
+        </div>
+        <ChevronRight className='size-3.5' />
+      </div>
+    </button>
   );
 }
 
-// ── Company Detail Panel ───────────────────────────────────────────────────
+// ── Company detail panel ───────────────────────────────────────────────────
 
-function CompanyDetail({ slug, onBack }: { slug: string; onBack: () => void }) {
-  const { data: company, isLoading } = useCompany(slug);
-  const { data: questions } = useCompanyQuestions(slug);
-  const { data: progress } = useCompanyProgress(slug);
-  const [diffFilter, setDiffFilter] = useState('');
+function CompanyDetail({
+  slug,
+  onClose,
+}: {
+  slug: string;
+  onClose: () => void;
+}) {
+  const navigate = useNavigate();
 
-  if (isLoading) return <LoadingScreen message='Loading company...' />;
-  if (!company)
-    return <ErrorState message='Company not found' onRetry={onBack} />;
+  const { data: companyData, isLoading: companyLoading } = useQuery({
+    queryKey: ['company', slug],
+    queryFn: () => companyApi.getBySlug(slug),
+    enabled: !!slug,
+  });
 
-  const filtered = diffFilter
-    ? questions?.filter((q: any) => q.question?.difficulty === diffFilter)
-    : questions;
+  const { data: questionsData, isLoading: questionsLoading } = useQuery({
+    queryKey: ['company', slug, 'questions'],
+    queryFn: () => companyApi.getQuestions(slug, { limit: 10 }),
+    enabled: !!slug,
+  });
+
+  const startPractice = useMutation({
+    mutationFn: () =>
+      companyApi.startPractice(slug, { questionCount: 10, duration: 30 }),
+    onSuccess: (data) => {
+      if (data?.session?.id) {
+        navigate(`/interview/${data.session.id}`);
+      }
+    },
+  });
+
+  const company = companyData?.company;
+  const questions = questionsData?.questions ?? [];
 
   return (
-    <div className='space-y-6 animate-fade-in'>
-      {/* Header */}
-      <div className='flex items-center gap-3'>
-        <button
-          onClick={onBack}
-          className='flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors'
-        >
-          <ArrowLeft className='size-4' /> Back
-        </button>
-      </div>
-
-      <div className='flex items-start justify-between gap-4 flex-wrap'>
-        <div className='space-y-1'>
+    <div className='fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-background/80 backdrop-blur-sm'>
+      <div className='w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl border border-border bg-card shadow-2xl'>
+        {/* Header */}
+        <div className='sticky top-0 flex items-center justify-between gap-3 border-b border-border bg-card px-5 py-4'>
           <div className='flex items-center gap-3'>
-            <h1 className='text-2xl font-bold text-foreground'>
-              {company.name}
-            </h1>
-            {company.interviewDifficulty && (
-              <span
-                className={cn(
-                  'inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold',
-                  companyDifficultyBadge(company.interviewDifficulty),
-                )}
-              >
-                {company.interviewDifficulty.replace('_', ' ')}
-              </span>
-            )}
+            <div className='flex size-9 items-center justify-center rounded-lg bg-primary/10'>
+              <Building2 className='size-5 text-primary' />
+            </div>
+            <div>
+              <p className='font-semibold text-foreground'>
+                {company?.name ?? '…'}
+              </p>
+              {company?.industry && (
+                <p className='text-xs text-muted-foreground'>
+                  {company.industry}
+                </p>
+              )}
+            </div>
           </div>
-          <p className='text-sm text-muted-foreground'>
-            {company.industry} · {company.size}
-          </p>
-          {company.description && (
-            <p className='text-sm text-muted-foreground max-w-xl'>
-              {company.description}
-            </p>
+          <button
+            type='button'
+            onClick={onClose}
+            className='rounded-md p-1.5 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors'
+          >
+            <X className='size-4' />
+          </button>
+        </div>
+
+        <div className='p-5 space-y-5'>
+          {companyLoading && (
+            <div className='flex justify-center py-8'>
+              <Loader2 className='size-6 animate-spin text-primary' />
+            </div>
           )}
-        </div>
-        <PracticeButton slug={slug} companyName={company.name} />
-      </div>
 
-      {/* Progress card */}
-      {progress && (
-        <div className='grid grid-cols-3 gap-3'>
-          {[
-            { label: 'Attempted', value: progress.questionsAttempted ?? 0 },
-            { label: 'Completed', value: progress.questionsCompleted ?? 0 },
-            {
-              label: 'Avg Score',
-              value: progress.averageScore
-                ? `${Math.round(Number(progress.averageScore))}`
-                : '—',
-            },
-          ].map((s) => (
-            <div
-              key={s.label}
-              className='rounded-xl border border-border bg-card p-3 text-center'
-            >
-              <p className='text-xl font-bold text-foreground'>{s.value}</p>
-              <p className='text-xs text-muted-foreground'>{s.label}</p>
-            </div>
-          ))}
-        </div>
-      )}
+          {company && (
+            <>
+              {company.description && (
+                <p className='text-sm text-muted-foreground'>
+                  {company.description}
+                </p>
+              )}
 
-      {/* Interview process */}
-      {company.interviewProcess?.rounds && (
-        <Card>
-          <CardHeader>
-            <CardTitle className='text-sm'>Interview Process</CardTitle>
-          </CardHeader>
-          <CardContent className='space-y-2'>
-            {company.interviewProcess.rounds.map((round: any, i: number) => (
-              <div key={i} className='flex items-center gap-3'>
-                <div className='flex size-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary'>
-                  {i + 1}
-                </div>
-                <div className='flex-1'>
-                  <p className='text-sm font-medium text-foreground'>
-                    {round.name}
-                  </p>
-                  <p className='text-xs text-muted-foreground'>
-                    {round.duration} min · {round.focus?.join(', ')}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Questions */}
-      {questions && questions.length > 0 && (
-        <Card>
-          <CardHeader>
-            <div className='flex items-center justify-between flex-wrap gap-2'>
-              <CardTitle className='text-sm'>
-                Common Questions ({questions.length})
-              </CardTitle>
-              <div className='flex gap-1'>
-                {['', 'EASY', 'MEDIUM', 'HARD'].map((d) => (
-                  <button
-                    key={d}
-                    onClick={() => setDiffFilter(d)}
-                    className={cn(
-                      'rounded-md px-2.5 py-1 text-xs font-medium transition-colors',
-                      diffFilter === d
-                        ? 'bg-primary text-primary-foreground'
-                        : 'text-muted-foreground hover:text-foreground hover:bg-secondary',
-                    )}
-                  >
-                    {d || 'All'}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className='space-y-2'>
-            {filtered?.slice(0, 20).map((cq: any, i: number) => (
-              <div
-                key={i}
-                className='flex items-start gap-3 rounded-lg border border-border p-3'
-              >
-                <div className='flex-1 min-w-0'>
-                  <p className='text-sm text-foreground leading-relaxed'>
-                    {cq.question?.question}
-                  </p>
-                  <div className='flex items-center gap-2 mt-1.5'>
-                    <span
-                      className={cn(
-                        'inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-semibold',
-                        getDifficultyBadge(
-                          cq.question?.difficulty?.toLowerCase(),
-                        ),
-                      )}
+              {/* Meta grid */}
+              <div className='grid grid-cols-2 gap-3'>
+                {[
+                  { label: 'Industry', value: company.industry },
+                  { label: 'Size', value: company.size },
+                  {
+                    label: 'Difficulty',
+                    value: diffLabel(company.interviewDifficulty),
+                  },
+                  { label: 'Questions', value: company._count?.questions ?? 0 },
+                ].map(({ label, value }) =>
+                  value ? (
+                    <div
+                      key={label}
+                      className='rounded-lg border border-border bg-secondary/20 px-3 py-2'
                     >
-                      {cq.question?.difficulty}
-                    </span>
-                    <span className='text-xs text-muted-foreground'>
-                      {formatCategory(cq.question?.category || '')}
-                    </span>
-                    {cq.frequency && (
-                      <span className='text-xs text-muted-foreground ml-auto'>
-                        freq: {cq.frequency}
+                      <p className='text-xs text-muted-foreground'>{label}</p>
+                      <p className='text-sm font-medium text-foreground'>
+                        {value}
+                      </p>
+                    </div>
+                  ) : null,
+                )}
+              </div>
+
+              {/* Practice button */}
+              <Button
+                variant='gradient'
+                className='w-full gap-2'
+                onClick={() => startPractice.mutate()}
+                loading={startPractice.isPending}
+              >
+                <Play className='size-4' />
+                Start Company Practice
+              </Button>
+
+              {startPractice.isError && (
+                <p className='text-xs text-destructive text-center'>
+                  Failed to start practice session.
+                </p>
+              )}
+            </>
+          )}
+
+          {/* Questions preview */}
+          {questions.length > 0 && (
+            <div className='space-y-2'>
+              <p className='text-xs font-semibold text-muted-foreground uppercase tracking-wider'>
+                Top Questions
+              </p>
+              {questions.slice(0, 6).map((cq: any) => (
+                <div
+                  key={cq.id}
+                  className='rounded-lg border border-border bg-secondary/20 px-3 py-2.5 space-y-1'
+                >
+                  <p className='text-sm text-foreground line-clamp-2'>
+                    {cq.question?.question ?? 'Question'}
+                  </p>
+                  <div className='flex items-center gap-2'>
+                    {cq.question?.difficulty && (
+                      <span
+                        className={cn(
+                          'rounded-full border px-2 py-0.5 text-xs font-medium',
+                          diffColor(cq.question.difficulty),
+                        )}
+                      >
+                        {cq.question.difficulty.toLowerCase()}
+                      </span>
+                    )}
+                    {cq.frequency > 1 && (
+                      <span className='text-xs text-muted-foreground'>
+                        {cq.frequency}× asked
                       </span>
                     )}
                   </div>
                 </div>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-      )}
+              ))}
+            </div>
+          )}
+
+          {questionsLoading && (
+            <div className='flex justify-center py-4'>
+              <Loader2 className='size-4 animate-spin text-primary' />
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
 
-// ── Company List ───────────────────────────────────────────────────────────
+// ── Main page ──────────────────────────────────────────────────────────────
+
+const INDUSTRIES = [
+  'All',
+  'Technology',
+  'E-commerce/Technology',
+  'Fintech',
+  'Social Media/Technology',
+  'Hospitality/Technology',
+];
+const DIFFICULTIES = ['All', 'EASY', 'MEDIUM', 'HARD', 'VERY_HARD'];
 
 export default function CompaniesPage() {
+  const [search, setSearch] = useState('');
+  const [industryFilter, setIndustryFilter] = useState('All');
+  const [diffFilter, setDiffFilter] = useState('All');
   const [selectedSlug, setSelectedSlug] = useState<string | null>(null);
-  const [industryFilter, setIndustryFilter] = useState('');
-  const {
-    data: companies,
-    isLoading,
-    isError,
-    refetch,
-  } = useCompanies(industryFilter ? { industry: industryFilter } : undefined);
+  const [showFilters, setShowFilters] = useState(false);
 
-  if (selectedSlug) {
-    return (
-      <CompanyDetail slug={selectedSlug} onBack={() => setSelectedSlug(null)} />
-    );
-  }
+  const { data, isLoading, isError, refetch } = useQuery({
+    queryKey: ['companies'],
+    queryFn: () => companyApi.getAll(),
+    staleTime: 1000 * 60 * 5,
+  });
 
-  if (isLoading) return <LoadingScreen message='Loading companies...' />;
-  if (isError)
-    return <ErrorState message='Failed to load companies' onRetry={refetch} />;
+  const companies: Company[] = data?.companies ?? [];
 
-  const industries = Array.from(
-    new Set(companies?.map((c: any) => c.industry).filter(Boolean) ?? []),
-  );
+  const filtered = companies.filter((c) => {
+    const matchSearch =
+      !search ||
+      c.name.toLowerCase().includes(search.toLowerCase()) ||
+      c.industry?.toLowerCase().includes(search.toLowerCase());
+    const matchIndustry =
+      industryFilter === 'All' || c.industry === industryFilter;
+    const matchDiff =
+      diffFilter === 'All' || c.interviewDifficulty === diffFilter;
+    return matchSearch && matchIndustry && matchDiff;
+  });
 
   return (
-    <div className='space-y-6 animate-fade-in'>
+    <div className='max-w-2xl mx-auto space-y-6 animate-fade-in'>
       <PageHeader
-        title='Company Practice'
-        description='Practice with real interview questions from top tech companies'
+        title='Companies'
+        description='Practice company-specific interview questions'
       />
 
-      {/* Industry filter */}
-      <div className='flex flex-wrap gap-2'>
-        {['', ...industries].map((ind) => (
+      {/* Search + filter bar */}
+      <div className='space-y-3'>
+        <div className='flex gap-2'>
+          <div className='relative flex-1'>
+            <Search className='absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground' />
+            <input
+              type='text'
+              placeholder='Search companies…'
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className='w-full rounded-lg border border-border bg-card pl-9 pr-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-primary/50'
+            />
+          </div>
           <button
-            key={ind || 'all'}
-            onClick={() => setIndustryFilter(ind as string)}
+            type='button'
+            onClick={() => setShowFilters((o) => !o)}
             className={cn(
-              'rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors',
-              industryFilter === ind
-                ? 'border-primary bg-primary/10 text-primary'
-                : 'border-border text-muted-foreground hover:border-primary/50 hover:text-foreground',
+              'flex items-center gap-1.5 rounded-lg border px-3 py-2 text-sm transition-colors',
+              showFilters
+                ? 'border-primary/40 bg-primary/10 text-primary'
+                : 'border-border text-muted-foreground hover:bg-secondary hover:text-foreground',
             )}
           >
-            {ind || 'All Industries'}
+            <Filter className='size-3.5' /> Filters
           </button>
-        ))}
+        </div>
+
+        {showFilters && (
+          <div className='grid grid-cols-2 gap-3 p-3 rounded-xl border border-border bg-secondary/20'>
+            <div className='space-y-1.5'>
+              <label className='text-xs text-muted-foreground font-medium'>
+                Industry
+              </label>
+              <select
+                value={industryFilter}
+                onChange={(e) => setIndustryFilter(e.target.value)}
+                className='w-full rounded-lg border border-border bg-card px-2 py-1.5 text-xs text-foreground focus:outline-none'
+              >
+                {INDUSTRIES.map((i) => (
+                  <option key={i}>{i}</option>
+                ))}
+              </select>
+            </div>
+            <div className='space-y-1.5'>
+              <label className='text-xs text-muted-foreground font-medium'>
+                Difficulty
+              </label>
+              <select
+                value={diffFilter}
+                onChange={(e) => setDiffFilter(e.target.value)}
+                className='w-full rounded-lg border border-border bg-card px-2 py-1.5 text-xs text-foreground focus:outline-none'
+              >
+                {DIFFICULTIES.map((d) => (
+                  <option key={d}>{d === 'All' ? 'All' : diffLabel(d)}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+        )}
       </div>
 
-      {!companies?.length ? (
+      {/* Company grid */}
+      {isLoading ? (
+        <div className='flex justify-center py-12'>
+          <Loader2 className='size-8 animate-spin text-primary' />
+        </div>
+      ) : isError ? (
         <EmptyState
           icon={Building2}
-          title='No companies yet'
-          description='Company question banks will appear here once loaded.'
+          title='Could not load companies'
+          action={
+            <Button variant='outline' size='sm' onClick={() => refetch()}>
+              Retry
+            </Button>
+          }
+        />
+      ) : filtered.length === 0 ? (
+        <EmptyState
+          icon={Building2}
+          title='No companies found'
+          description='Try adjusting your search or filters.'
         />
       ) : (
-        <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4'>
-          {companies.map((company: any) => (
-            <button
+        <div className='grid grid-cols-1 sm:grid-cols-2 gap-3'>
+          {filtered.map((company) => (
+            <CompanyCard
               key={company.id}
-              onClick={() => setSelectedSlug(company.slug)}
-              className='text-left rounded-xl border border-border bg-card p-5 hover:border-primary/40 hover:shadow-sm transition-all duration-200 group'
-            >
-              <div className='flex items-start justify-between gap-2 mb-3'>
-                <div className='flex size-10 items-center justify-center rounded-xl bg-primary/10'>
-                  <Building2 className='size-5 text-primary' />
-                </div>
-                {company.interviewDifficulty && (
-                  <span
-                    className={cn(
-                      'inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-semibold shrink-0',
-                      companyDifficultyBadge(company.interviewDifficulty),
-                    )}
-                  >
-                    {company.interviewDifficulty.replace('_', ' ')}
-                  </span>
-                )}
-              </div>
-
-              <h3 className='font-semibold text-foreground group-hover:text-primary transition-colors'>
-                {company.name}
-              </h3>
-              <p className='text-xs text-muted-foreground mt-0.5'>
-                {company.industry}
-              </p>
-
-              <div className='flex items-center gap-3 mt-3 text-xs text-muted-foreground'>
-                <span className='flex items-center gap-1'>
-                  <BookOpen className='size-3' />
-                  {company._count?.questions ?? 0} questions
-                </span>
-                {company.isPremium && (
-                  <span className='flex items-center gap-1 text-yellow-400'>
-                    <Star className='size-3' />
-                    Premium
-                  </span>
-                )}
-              </div>
-
-              <div className='flex items-center justify-between mt-3 pt-3 border-t border-border'>
-                <span className='text-xs text-muted-foreground'>
-                  {company.totalInterviews ?? 0} interviews
-                </span>
-                <ChevronRight className='size-4 text-muted-foreground group-hover:text-primary transition-colors' />
-              </div>
-            </button>
+              company={company}
+              onSelect={() => setSelectedSlug(company.slug)}
+            />
           ))}
         </div>
+      )}
+
+      {/* Detail modal */}
+      {selectedSlug && (
+        <CompanyDetail
+          slug={selectedSlug}
+          onClose={() => setSelectedSlug(null)}
+        />
       )}
     </div>
   );

@@ -1,17 +1,14 @@
-// src/api/interview.api.ts
-//
-// FIXES
-// ─────────────────────────────────────────────────────────────────────────────
-// API-1  startInterview no longer sends userId in the body.
-//        Backend (AUTH-1 fix) derives userId from the JWT token.
-//
-// API-2  submitAnswer no longer sends userId in the body.
-//        Backend (AUTH-2 fix) derives userId from the JWT token.
-//
-// API-3  Added endInterview   → POST /interview/:sessionId/end
-// API-4  Added skipQuestion   → POST /interview/:sessionId/skip
-// API-5  Added getResults     → GET  /interview/:sessionId/results
-// API-6  Added compareAttempts → GET  /interview/compare?sessionId1=&sessionId2=
+// PATCH — add this method to the interviewApi object in src/api/interview.api.ts
+// Insert after the `rateQuestion` method:
+
+/*
+  updateReplayProgress: async (replayId: string, currentStep: number) => {
+    const res = await api.post(`/interview/replay/${replayId}/progress`, { currentStep })
+    return res.data.data
+  },
+*/
+
+// Full updated interviewApi export — replace your existing src/api/interview.api.ts with this:
 
 import api from './axios';
 import type {
@@ -23,10 +20,10 @@ import type {
   HintResponse,
   TimerStatus,
   SessionResults,
+  SessionListResponse,
 } from '@/types';
 
 export const interviewApi = {
-  // API-1 FIX: userId removed — derived from JWT on the backend
   startInterview: async (
     data: StartInterviewRequest,
   ): Promise<StartInterviewResponse> => {
@@ -34,7 +31,6 @@ export const interviewApi = {
     return res.data.data;
   },
 
-  // API-2 FIX: userId removed — derived from JWT on the backend
   submitAnswer: async (
     data: SubmitAnswerRequest,
   ): Promise<SubmitAnswerResponse> => {
@@ -62,19 +58,16 @@ export const interviewApi = {
     return res.data.data;
   },
 
-  // API-3: explicit end (abandoned) — POST /:sessionId/end
   endInterview: async (sessionId: string) => {
     const res = await api.post(`/interview/${sessionId}/end`);
     return res.data.data;
   },
 
-  // API-4: skip current question — POST /:sessionId/skip
   skipQuestion: async (sessionId: string): Promise<SkipQuestionResponse> => {
     const res = await api.post(`/interview/${sessionId}/skip`);
     return res.data.data;
   },
 
-  // API-5: full results breakdown — GET /:sessionId/results
   getResults: async (sessionId: string): Promise<SessionResults> => {
     const res = await api.get(`/interview/${sessionId}/results`);
     return res.data.data;
@@ -82,6 +75,16 @@ export const interviewApi = {
 
   getTimerStatus: async (sessionId: string): Promise<TimerStatus> => {
     const res = await api.get(`/interview/${sessionId}/timer`);
+    return res.data.data;
+  },
+
+  pauseTimer: async (sessionId: string) => {
+    const res = await api.post(`/interview/${sessionId}/timer/pause`);
+    return res.data.data;
+  },
+
+  resumeTimer: async (sessionId: string) => {
+    const res = await api.post(`/interview/${sessionId}/timer/resume`);
     return res.data.data;
   },
 
@@ -95,7 +98,27 @@ export const interviewApi = {
     return res.data.data;
   },
 
-  // API-6: compare two attempts — GET /interview/compare?sessionId1=&sessionId2=
+  getSessions: async (params?: {
+    page?: number;
+    limit?: number;
+    status?: string;
+  }): Promise<SessionListResponse> => {
+    const q = new URLSearchParams();
+    if (params?.page) q.set('page', String(params.page));
+    if (params?.limit) q.set('limit', String(params.limit));
+    if (params?.status) q.set('status', params.status);
+    const res = await api.get(`/interview/sessions?${q}`);
+    return res.data.data;
+  },
+
+  // ── NEW: update replay step progress ──────────────────────────────────
+  updateReplayProgress: async (replayId: string, currentStep: number) => {
+    const res = await api.post(`/interview/replay/${replayId}/progress`, {
+      currentStep,
+    });
+    return res.data.data;
+  },
+
   compareAttempts: async (sessionId1: string, sessionId2: string) => {
     const res = await api.get('/interview/compare', {
       params: { sessionId1, sessionId2 },
