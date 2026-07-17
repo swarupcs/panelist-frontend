@@ -1,11 +1,4 @@
-// src/App.tsx
-// EXTENSIONS
-// ─────────────────────────────────────────────────────────────────────────────
-// ROUTE-1  /interview/replay/:sessionId   → InterviewReplayPage
-// ROUTE-2  /interview/history            → InterviewHistoryPage
-// ROUTE-3  /interview/compare            → InterviewComparePage
-// All placed BEFORE the /:sessionId catch-all so Express-style matching works.
-
+// src/App.tsx — Updated with /chat route and all pages wired
 import { useEffect, Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClientProvider } from '@tanstack/react-query';
@@ -25,105 +18,60 @@ import RegisterPage from '@/pages/auth/RegisterPage';
 import ForgotPasswordPage from '@/pages/auth/ForgotPasswordPage';
 
 const DashboardPage = lazy(() => import('@/pages/dashboard/DashboardPage'));
-const InterviewSetupPage = lazy(
-  () => import('@/pages/interview/InterviewSetupPage'),
-);
-const InterviewSessionPage = lazy(
-  () => import('@/pages/interview/InterviewSessionPage'),
-);
-const InterviewResultsPage = lazy(
-  () => import('@/pages/interview/InterviewResultsPage'),
-);
-
-// ── NEW pages ──────────────────────────────────────────────────────────────
-const InterviewReplayPage = lazy(
-  () => import('@/pages/interview/InterviewReplayPage'),
-);
-const InterviewHistoryPage = lazy(
-  () => import('@/pages/interview/InterviewHistoryPage'),
-);
-const InterviewComparePage = lazy(
-  () => import('@/pages/interview/InterviewComparePage'),
-);
-// ──────────────────────────────────────────────────────────────────────────
-
+const InterviewSetupPage = lazy(() => import('@/pages/interview/InterviewSetupPage'));
+const InterviewSessionPage = lazy(() => import('@/pages/interview/InterviewSessionPage'));
+const InterviewResultsPage = lazy(() => import('@/pages/interview/InterviewResultsPage'));
+const InterviewReplayPage = lazy(() => import('@/pages/interview/InterviewReplayPage'));
+const InterviewHistoryPage = lazy(() => import('@/pages/interview/InterviewHistoryPage'));
+const InterviewComparePage = lazy(() => import('@/pages/interview/InterviewComparePage'));
 const AnalyticsPage = lazy(() => import('@/pages/analytics/AnalyticsPage'));
 const LearningPage = lazy(() => import('@/pages/learning/LearningPage'));
 const CompaniesPage = lazy(() => import('@/pages/companies/CompaniesPage'));
 const TopicsPage = lazy(() => import('@/pages/topics/TopicsPage'));
 const ProfilePage = lazy(() => import('@/pages/profile/ProfilePage'));
 const AchievementsPage = lazy(() => import('@/pages/profile/AchievementsPage'));
+const AIChatPage = lazy(() => import('@/pages/chat/AIChatPage'));
 const AdminPage = lazy(() => import('@/pages/admin/AdminPage'));
 const NotFoundPage = lazy(() => import('@/pages/NotFoundPage'));
 
 function AppRoutes() {
   return (
-    <Suspense fallback={<LoadingScreen message='Loading page...' />}>
+    <Suspense fallback={<LoadingScreen message="Loading page..." />}>
       <Routes>
-        {/* ── Guest-only ────────────────────────────────────────────── */}
         <Route element={<GuestRoute />}>
-          <Route path='/login' element={<LoginPage />} />
-          <Route path='/register' element={<RegisterPage />} />
-          <Route path='/forgot-password' element={<ForgotPasswordPage />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         </Route>
 
-        {/* ── Authenticated ─────────────────────────────────────────── */}
         <Route element={<ProtectedRoute />}>
           <Route element={<AppShell />}>
-            <Route path='/dashboard' element={<DashboardPage />} />
+            <Route path="/dashboard" element={<DashboardPage />} />
+            <Route path="/chat" element={<AIChatPage />} />
 
-            {/* ── Interview routes ────────────────────────────────────
-                ORDER MATTERS: static segments must come before /:sessionId
-            ─────────────────────────────────────────────────────────── */}
+            {/* Interview routes — static before dynamic */}
+            <Route path="/interview" element={<InterviewSetupPage />} />
+            <Route path="/interview/history" element={<InterviewHistoryPage />} />
+            <Route path="/interview/compare" element={<InterviewComparePage />} />
+            <Route path="/interview/results/:sessionId" element={<InterviewResultsPage />} />
+            <Route path="/interview/replay/:sessionId" element={<InterviewReplayPage />} />
+            <Route path="/interview/:sessionId" element={<InterviewSessionPage />} />
 
-            {/* Setup (no param) */}
-            <Route path='/interview' element={<InterviewSetupPage />} />
-
-            {/* Static-prefix routes — BEFORE /:sessionId */}
-            <Route
-              path='/interview/history'
-              element={<InterviewHistoryPage />}
-            />
-            <Route
-              path='/interview/compare'
-              element={<InterviewComparePage />}
-            />
-
-            {/* Results — static prefix "results" before dynamic :sessionId */}
-            <Route
-              path='/interview/results/:sessionId'
-              element={<InterviewResultsPage />}
-            />
-
-            {/* ROUTE-1: Replay */}
-            <Route
-              path='/interview/replay/:sessionId'
-              element={<InterviewReplayPage />}
-            />
-
-            {/* Dynamic :sessionId — MUST be last */}
-            <Route
-              path='/interview/:sessionId'
-              element={<InterviewSessionPage />}
-            />
-
-            {/* ── Other pages ───────────────────────────────────────── */}
-            <Route path='/analytics' element={<AnalyticsPage />} />
-            <Route path='/learning' element={<LearningPage />} />
-            <Route path='/companies' element={<CompaniesPage />} />
-            <Route path='/topics' element={<TopicsPage />} />
-            <Route path='/achievements' element={<AchievementsPage />} />
-            <Route path='/profile' element={<ProfilePage />} />
+            <Route path="/analytics" element={<AnalyticsPage />} />
+            <Route path="/learning" element={<LearningPage />} />
+            <Route path="/companies" element={<CompaniesPage />} />
+            <Route path="/topics" element={<TopicsPage />} />
+            <Route path="/achievements" element={<AchievementsPage />} />
+            <Route path="/profile" element={<ProfilePage />} />
 
             <Route element={<AdminRoute />}>
-              <Route path='/admin' element={<AdminPage />} />
+              <Route path="/admin" element={<AdminPage />} />
             </Route>
           </Route>
         </Route>
 
-        {/* ── Fallbacks ─────────────────────────────────────────────── */}
-        <Route path='/' element={<Navigate to='/dashboard' replace />} />
-        <Route path='*' element={<NotFoundPage />} />
+        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+        <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </Suspense>
   );
