@@ -137,6 +137,7 @@ export interface QuestionResult {
   timeSpent: number | null;
   hintsUsed: number;
   skipped: boolean;
+  idealSolution: string | null;
 }
 
 export interface SessionResultStats {

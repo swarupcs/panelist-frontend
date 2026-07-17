@@ -209,6 +209,41 @@ function QuestionRow({
         </div>
       )}
 
+      {/* Side-by-side Answer Comparison */}
+      {hasScoredData && !skipped && (q.userAnswer || q.idealSolution) && (
+        <div className='pl-6 mt-4'>
+          <div className='grid grid-cols-1 md:grid-cols-2 gap-4 border border-border/50 rounded-lg overflow-hidden bg-secondary/5'>
+            {/* User Answer */}
+            <div className='flex flex-col border-r border-border/50'>
+              <div className='bg-muted/50 px-3 py-2 border-b border-border/50 text-xs font-semibold text-muted-foreground flex items-center gap-2'>
+                <CheckCircle className='size-3' /> Your Answer
+              </div>
+              <div className='p-3 prose prose-sm prose-invert max-w-none flex-1 overflow-auto max-h-[300px]'>
+                {q.userAnswer ? (
+                  <ReactMarkdown>{q.userAnswer}</ReactMarkdown>
+                ) : (
+                  <span className='italic text-muted-foreground'>No answer provided</span>
+                )}
+              </div>
+            </div>
+
+            {/* Ideal Solution */}
+            <div className='flex flex-col'>
+              <div className='bg-primary/10 px-3 py-2 border-b border-border/50 text-xs font-semibold text-primary flex items-center gap-2'>
+                <Target className='size-3' /> Ideal Solution
+              </div>
+              <div className='p-3 prose prose-sm prose-invert max-w-none flex-1 overflow-auto max-h-[300px]'>
+                {q.idealSolution ? (
+                  <ReactMarkdown>{q.idealSolution}</ReactMarkdown>
+                ) : (
+                  <span className='italic text-muted-foreground'>No ideal solution available</span>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* No answer recorded — question was skipped or session ended early */}
       {neverAnswered && !scoresPending && !dataMissing && (
         <p className='pl-6 text-xs text-muted-foreground italic'>
