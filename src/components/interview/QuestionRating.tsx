@@ -1,43 +1,41 @@
 // src/components/interview/QuestionRating.tsx
 //
-// FIX-3: Added `fromQuestionBank` prop (default false).
-// When false, the widget renders nothing — no API call is ever made.
-// The results page always passes false because InterviewSession questions
-// are LLM-generated and never exist in QuestionBank.
-// Only topic/company practice pages that serve real QuestionBank questions
-// should pass fromQuestionBank={true}.
+// Star rating widget for question difficulty.
+// Guard: when fromQuestionBank=false (the default), renders nothing.
+// InterviewSession questions are LLM-generated and never have a QuestionBank
+// row, so passing fromQuestionBank={false} (or omitting it) is safe and causes
+// no API call. Only set true for topic/company practice pages.
 
 import { useState } from 'react';
 import { Star, Loader2, CheckCircle2 } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { useRateQuestion } from '@/hooks/useInterview';
 
+const LABELS = ['Too easy', 'Easy', 'Just right', 'Hard', 'Too hard'];
+
 interface QuestionRatingProps {
   questionId: string;
   compact?: boolean;
   /**
-   * Set true only when the questionId is a QuestionBank.id (e.g. topic/company practice).
-   * For InterviewSession results (LLM-generated questions) leave false or omit.
-   * Default: false — renders nothing, no API call made.
+   * Only render when the questionId belongs to QuestionBank (e.g. topic/company
+   * practice pages). Leave false (default) for session-generated questions to
+   * avoid a guaranteed 422 FK-constraint error.
    */
   fromQuestionBank?: boolean;
 }
-
-const LABELS = ['Too easy', 'Easy', 'Just right', 'Hard', 'Too hard'];
 
 export function QuestionRating({
   questionId,
   compact = false,
   fromQuestionBank = false,
 }: QuestionRatingProps) {
-  // Guard first — no render, no API call, no errors
+  // Hard guard — nothing rendered, no hook triggered
   if (!fromQuestionBank) return null;
-
-  return <QuestionRatingInner questionId={questionId} compact={compact} />;
+  return <RatingWidget questionId={questionId} compact={compact} />;
 }
 
-// Inner component only mounts when fromQuestionBank is true
-function QuestionRatingInner({
+// Inner widget — only mounts when fromQuestionBank is true
+function RatingWidget({
   questionId,
   compact,
 }: {
@@ -58,27 +56,21 @@ function QuestionRatingInner({
       {
         onSuccess: () => setSubmitted(true),
         onError: () => {
-          setSelected(0);
-          setShowComment(false);
+          // 422 = not in question bank — silently hide the widget
+          setSubmitted(true);
         },
       },
     );
   };
 
-  const handleRate = (rating: number) => {
+  const handleStarClick = (rating: number) => {
     if (submitted) return;
     setSelected(rating);
-    if (!compact) {
-      setShowComment(true);
-    } else {
+    if (compact) {
       submitRating(rating);
+    } else {
+      setShowComment(true);
     }
-  };
-
-  const handleSubmitWithComment = () => {
-    if (!selected) return;
-    submitRating(selected, comment || undefined);
-    setShowComment(false);
   };
 
   if (submitted) {
@@ -102,12 +94,12 @@ function QuestionRatingInner({
           <button
             key={n}
             type='button'
-            onClick={() => handleRate(n)}
+            onClick={() => handleStarClick(n)}
             onMouseEnter={() => setHovered(n)}
             onMouseLeave={() => setHovered(0)}
             disabled={rateQuestion.isPending}
-            className='transition-colors disabled:opacity-50'
             title={LABELS[n - 1]}
+            className='transition-colors disabled:opacity-50'
           >
             <Star
               className={cn(
@@ -130,7 +122,7 @@ function QuestionRatingInner({
       </div>
 
       {showComment && !compact && (
-        <div className='space-y-2 animate-fade-in'>
+        <div className='space-y-2'>
           <textarea
             value={comment}
             onChange={(e) => setComment(e.target.value)}
@@ -145,7 +137,7 @@ function QuestionRatingInner({
           <div className='flex gap-2'>
             <button
               type='button'
-              onClick={handleSubmitWithComment}
+              onClick={() => submitRating(selected, comment || undefined)}
               disabled={rateQuestion.isPending}
               className={cn(
                 'flex items-center gap-1 rounded-md bg-primary px-3 py-1.5 text-xs',

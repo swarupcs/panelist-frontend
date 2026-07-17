@@ -1,16 +1,4 @@
 // src/store/interviewStore.ts
-//
-// FIXES
-// ─────────────────────────────────────────────────────────────────────────────
-// STORE-1  startSession no longer accepts or stores difficulty — it was only
-//          used for display and is available from the question itself.
-//          Removed from StartSessionData to avoid callers having to supply it.
-//
-// STORE-2  Added abandonSession action — mirrors completeSession but sets
-//          status to 'abandoned' so the UI can render the correct state.
-//
-// STORE-3  Added status field so the page can branch on
-//          active / paused / completed / abandoned without boolean flags.
 
 import { create } from 'zustand';
 import type {
@@ -38,15 +26,16 @@ interface InterviewState {
   sessionId: string | null;
   type: InterviewType | null;
   difficulty: Difficulty | null;
+  // `status` is canonical. `isPaused` / `isCompleted` are derived and kept in sync.
   status: InterviewStatus;
+  isPaused: boolean;
+  isCompleted: boolean;
   currentQuestion: InterviewQuestion | null;
   currentQuestionIndex: number;
   totalQuestions: number;
   score: number | null;
-  isPaused: boolean;
-  isCompleted: boolean;
+  // Local answer cache — fallback when DB hasn't flushed yet
   answers: Record<string, AnswerRecord>;
-
   // Actions
   startSession: (data: StartSessionData) => void;
   setCurrentQuestion: (
@@ -59,68 +48,79 @@ interface InterviewState {
     score?: number,
     feedback?: string,
   ) => void;
-  completeSession: (score: number) => void;
-  // STORE-2: explicit abandon action
-  abandonSession: () => void;
   setPaused: (paused: boolean) => void;
+  completeSession: (score: number) => void;
+  abandonSession: () => void;
   resetSession: () => void;
 }
 
-const initialState = {
+const INITIAL: Pick<
+  InterviewState,
+  | 'sessionId'
+  | 'type'
+  | 'difficulty'
+  | 'status'
+  | 'isPaused'
+  | 'isCompleted'
+  | 'currentQuestion'
+  | 'currentQuestionIndex'
+  | 'totalQuestions'
+  | 'score'
+  | 'answers'
+> = {
   sessionId: null,
   type: null,
   difficulty: null,
-  status: 'active' as InterviewStatus,
+  status: 'active',
+  isPaused: false,
+  isCompleted: false,
   currentQuestion: null,
   currentQuestionIndex: 0,
   totalQuestions: 0,
   score: null,
-  isPaused: false,
-  isCompleted: false,
   answers: {},
 };
 
 export const useInterviewStore = create<InterviewState>((set) => ({
-  ...initialState,
+  ...INITIAL,
 
   startSession: (data) =>
     set({
+      ...INITIAL,
       sessionId: data.sessionId,
       type: data.type,
       difficulty: data.difficulty,
-      status: 'active',
       currentQuestion: data.currentQuestion,
       totalQuestions: data.totalQuestions,
-      currentQuestionIndex: 0,
-      isPaused: false,
-      isCompleted: false,
-      score: null,
-      answers: {},
     }),
 
   setCurrentQuestion: (question, index) =>
     set({ currentQuestion: question, currentQuestionIndex: index }),
 
   recordAnswer: (questionId, answer, score, feedback) =>
-    set((state) => ({
-      answers: { ...state.answers, [questionId]: { answer, score, feedback } },
+    set((s) => ({
+      answers: { ...s.answers, [questionId]: { answer, score, feedback } },
     })),
+
+  setPaused: (paused) =>
+    set({ isPaused: paused, status: paused ? 'paused' : 'active' }),
 
   completeSession: (score) =>
     set({
       status: 'completed',
       isCompleted: true,
+      isPaused: false,
       score,
       currentQuestion: null,
     }),
 
-  // STORE-2
   abandonSession: () =>
-    set({ status: 'abandoned', isCompleted: false, currentQuestion: null }),
+    set({
+      status: 'abandoned',
+      isCompleted: false,
+      isPaused: false,
+      currentQuestion: null,
+    }),
 
-  // STORE-3: keep isPaused in sync with status so both can be read
-  setPaused: (paused) =>
-    set({ isPaused: paused, status: paused ? 'paused' : 'active' }),
-
-  resetSession: () => set(initialState),
+  resetSession: () => set({ ...INITIAL }),
 }));

@@ -1,22 +1,24 @@
 // src/components/interview/SessionTimer.tsx
-// Wires GET /api/interview/:sessionId/timer into a live countdown display.
-// Polls every 10s when active. Shows warning colors as time runs out.
-// Also exposes pause/resume timer controls (POST .../timer/pause, .../timer/resume)
+//
+// Shows elapsed time (local) for untimed sessions.
+// Polls GET /interview/:sessionId/timer every 10 s for timed sessions
+// and shows the backend countdown with urgency colors.
+// Exposes pause/resume timer controls only when isTimed=true.
 
 import { useEffect, useState } from 'react';
 import { Clock, Pause, Play, AlertTriangle } from 'lucide-react';
+import { useMutation } from '@tanstack/react-query';
 import { cn } from '@/lib/cn';
 import { useTimerStatus } from '@/hooks/useInterview';
 import { interviewApi } from '@/api/interview.api';
-import { useMutation } from '@tanstack/react-query';
 import { queryClient } from '@/lib/queryClient';
 
 interface SessionTimerProps {
   sessionId: string;
   isPaused: boolean;
-  /** If true the timer is shown; if false it falls back to local elapsed */
+  /** true → shows backend countdown; false → shows local elapsed */
   isTimed?: boolean;
-  /** Local elapsed seconds (from the parent component tick) */
+  /** Elapsed seconds ticked by the parent */
   localElapsed?: number;
   className?: string;
 }
@@ -30,8 +32,9 @@ export function SessionTimer({
 }: SessionTimerProps) {
   const [backendTime, setBackendTime] = useState<string | null>(null);
   const [isExpired, setIsExpired] = useState(false);
+  const [remaining, setRemaining] = useState<number>(-1);
 
-  // Poll backend timer only when the session is timed
+  // Poll backend only when the session is timed and not paused
   const { data: timerData } = useTimerStatus(
     isTimed ? sessionId : null,
     isTimed && !isPaused,
@@ -41,6 +44,7 @@ export function SessionTimer({
     if (timerData) {
       setBackendTime(timerData.formattedTime);
       setIsExpired(timerData.isExpired);
+      setRemaining(timerData.timeRemaining);
     }
   }, [timerData]);
 
@@ -60,8 +64,7 @@ export function SessionTimer({
       }),
   });
 
-  // Local fallback display (elapsed time, not countdown)
-  function formatLocal(s: number) {
+  function formatLocal(s: number): string {
     const m = Math.floor(s / 60);
     const sec = s % 60;
     return `${m}:${String(sec).padStart(2, '0')}`;
@@ -69,45 +72,51 @@ export function SessionTimer({
 
   const displayTime =
     isTimed && backendTime ? backendTime : formatLocal(localElapsed);
-  const remainingSecs = timerData?.timeRemaining ?? -1;
 
-  const urgency =
-    isTimed && remainingSecs >= 0
-      ? remainingSecs <= 60
-        ? 'critical' // last 1 min
-        : remainingSecs <= 300
-          ? 'warning' // last 5 min
+  // Urgency driven by backend remaining or local elapsed
+  const urgency: 'critical' | 'warning' | 'normal' =
+    isTimed && remaining >= 0
+      ? remaining <= 60
+        ? 'critical'
+        : remaining <= 300
+          ? 'warning'
           : 'normal'
-      : localElapsed > 600
+      : localElapsed > 900
         ? 'warning'
-        : localElapsed > 300
-          ? 'normal'
-          : 'normal';
+        : 'normal';
+
+  if (isExpired) {
+    return (
+      <div
+        className={cn(
+          'flex items-center gap-1.5 rounded-md border border-red-500/30',
+          'bg-red-500/10 px-2 py-1 text-xs font-medium text-red-400',
+          className,
+        )}
+      >
+        <AlertTriangle className='size-3.5 animate-pulse' />
+        Time&apos;s up!
+      </div>
+    );
+  }
 
   return (
-    <div className={cn('flex items-center gap-2', className)}>
-      {isExpired ? (
-        <div className='flex items-center gap-1.5 rounded-md border border-red-500/30 bg-red-500/10 px-2 py-1 text-xs font-medium text-red-400'>
-          <AlertTriangle className='size-3.5 animate-pulse' />
-          Time's up!
-        </div>
-      ) : (
-        <div
-          className={cn(
-            'flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-mono font-medium transition-colors',
-            urgency === 'critical' &&
-              'border border-red-500/30 bg-red-500/10 text-red-400 animate-pulse',
-            urgency === 'warning' && 'text-yellow-400',
-            urgency === 'normal' && 'text-muted-foreground',
-          )}
-        >
-          <Clock className='size-3.5' />
-          <span>{displayTime}</span>
-        </div>
-      )}
+    <div className={cn('flex items-center gap-1.5', className)}>
+      <div
+        className={cn(
+          'flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-mono font-medium transition-colors',
+          urgency === 'critical' &&
+            'border border-red-500/30 bg-red-500/10 text-red-400 animate-pulse',
+          urgency === 'warning' && 'text-yellow-400',
+          urgency === 'normal' && 'text-muted-foreground',
+        )}
+      >
+        <Clock className='size-3.5' />
+        <span>{displayTime}</span>
+      </div>
 
-      {/* Timer pause/resume — only rendered for timed sessions */}
-      {isTimed && !isExpired && (
+      {/* Pause/resume timer controls — timed sessions only */}
+      {isTimed && (
         <button
           type='button'
           onClick={() =>

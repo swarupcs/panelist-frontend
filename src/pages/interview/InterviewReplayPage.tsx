@@ -1,6 +1,11 @@
 // src/pages/interview/InterviewReplayPage.tsx
-// Wires GET /interview/:sessionId/replay + POST /interview/replay/:replayId/progress
-// Full timeline player: step forward/back, playback speed, per-step detail panel.
+//
+// Full timeline player wired to:
+//   GET  /interview/:sessionId/replay
+//   POST /interview/replay/:replayId/progress
+//
+// Features: play/pause, step forward/back, scrubber, speed picker,
+// sidebar timeline, per-step detail panel.
 
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
@@ -19,11 +24,12 @@ import {
   Clock,
   Rewind,
   FastForward,
+  Trophy,
 } from 'lucide-react';
 import { useReplay } from '@/hooks/useInterview';
 import { useUpdateReplayProgress } from '@/hooks/useInterviewExtended';
 import { Button } from '@/components/ui/Button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
+import { Card, CardContent, CardHeader } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import { ScoreRing } from '@/components/common';
 import {
@@ -35,25 +41,29 @@ import {
 import { cn } from '@/lib/cn';
 import type { ReplayStep } from '@/types/interview-extended';
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+// ── Constants ──────────────────────────────────────────────────────────────
 
 const SPEEDS = [0.5, 1, 1.5, 2] as const;
 type Speed = (typeof SPEEDS)[number];
 
-function stepIcon(type: ReplayStep['type']) {
+// ms between auto-advances at 1× speed
+const BASE_DELAY = 3000;
+
+// ── Step helpers ───────────────────────────────────────────────────────────
+
+function StepIcon({ type }: { type: ReplayStep['type'] }) {
   switch (type) {
     case 'question':
       return <HelpCircle className='size-3.5' />;
     case 'answer':
       return <MessageSquare className='size-3.5' />;
     case 'hint':
-      return <Star className='size-3.5' />;
     case 'feedback':
       return <Star className='size-3.5' />;
   }
 }
 
-function stepColor(type: ReplayStep['type']) {
+function stepChipColor(type: ReplayStep['type']): string {
   switch (type) {
     case 'question':
       return 'text-blue-400 border-blue-500/20 bg-blue-500/10';
@@ -66,11 +76,12 @@ function stepColor(type: ReplayStep['type']) {
   }
 }
 
-// ── Step detail panel ─────────────────────────────────────────────────────────
+// ── Step detail panel ──────────────────────────────────────────────────────
 
 function StepDetail({ step }: { step: ReplayStep }) {
-  const d = step.data as any;
+  const d = step.data as Record<string, any>;
 
+  // ── Interview started ──────────────────────────────────────────────────
   if (step.type === 'question' && d.action === 'interview_started') {
     return (
       <div className='space-y-3'>
@@ -78,39 +89,30 @@ function StepDetail({ step }: { step: ReplayStep }) {
           Interview Started
         </p>
         <div className='grid grid-cols-2 gap-2 text-xs'>
-          <div className='rounded-lg border border-border bg-secondary/30 p-2'>
-            <p className='text-muted-foreground'>Type</p>
-            <p className='text-foreground font-medium'>
-              {formatInterviewType(d.sessionInfo?.type ?? '')}
-            </p>
-          </div>
-          <div className='rounded-lg border border-border bg-secondary/30 p-2'>
-            <p className='text-muted-foreground'>Difficulty</p>
-            <p className='text-foreground font-medium capitalize'>
-              {d.sessionInfo?.difficulty ?? '—'}
-            </p>
-          </div>
-          <div className='rounded-lg border border-border bg-secondary/30 p-2'>
-            <p className='text-muted-foreground'>Questions</p>
-            <p className='text-foreground font-medium'>
-              {d.sessionInfo?.totalQuestions ?? '—'}
-            </p>
-          </div>
-          <div className='rounded-lg border border-border bg-secondary/30 p-2'>
-            <p className='text-muted-foreground'>Timed</p>
-            <p className='text-foreground font-medium'>
-              {d.sessionInfo?.isTimed ? 'Yes' : 'No'}
-            </p>
-          </div>
+          {[
+            ['Type', formatInterviewType(d.sessionInfo?.type ?? '')],
+            ['Difficulty', d.sessionInfo?.difficulty ?? '—'],
+            ['Questions', d.sessionInfo?.totalQuestions ?? '—'],
+            ['Timed', d.sessionInfo?.isTimed ? 'Yes' : 'No'],
+          ].map(([label, val]) => (
+            <div
+              key={label}
+              className='rounded-lg border border-border bg-secondary/30 p-2'
+            >
+              <p className='text-muted-foreground'>{label}</p>
+              <p className='text-foreground font-medium capitalize'>{val}</p>
+            </div>
+          ))}
         </div>
       </div>
     );
   }
 
+  // ── Question ───────────────────────────────────────────────────────────
   if (step.type === 'question') {
     return (
       <div className='space-y-3'>
-        <div className='flex items-center gap-2'>
+        <div className='flex flex-wrap items-center gap-2'>
           <span className='text-xs font-semibold text-muted-foreground'>
             Question {(d.questionIndex ?? 0) + 1}
           </span>
@@ -133,7 +135,7 @@ function StepDetail({ step }: { step: ReplayStep }) {
         <p className='text-sm text-foreground leading-relaxed whitespace-pre-wrap'>
           {d.question}
         </p>
-        {d.hints?.length > 0 && (
+        {Array.isArray(d.hints) && d.hints.length > 0 && (
           <div className='rounded-lg border border-primary/20 bg-primary/5 p-3'>
             <p className='text-xs font-semibold text-primary mb-1'>
               Available Hints
@@ -151,10 +153,11 @@ function StepDetail({ step }: { step: ReplayStep }) {
     );
   }
 
+  // ── Answer ─────────────────────────────────────────────────────────────
   if (step.type === 'answer') {
     return (
       <div className='space-y-3'>
-        <div className='flex items-center gap-2'>
+        <div className='flex flex-wrap items-center gap-2'>
           <span className='text-xs font-semibold text-muted-foreground'>
             Answer — Q{(d.questionIndex ?? 0) + 1}
           </span>
@@ -186,9 +189,15 @@ function StepDetail({ step }: { step: ReplayStep }) {
     );
   }
 
+  // ── Interview completed ────────────────────────────────────────────────
   if (step.type === 'feedback' && d.action === 'interview_completed') {
     return (
       <div className='space-y-3 text-center'>
+        <div className='flex justify-center'>
+          <div className='rounded-full bg-primary/10 p-3'>
+            <Trophy className='size-8 text-primary' />
+          </div>
+        </div>
         <p className='text-sm font-semibold text-foreground'>
           Interview Completed
         </p>
@@ -198,10 +207,7 @@ function StepDetail({ step }: { step: ReplayStep }) {
           </div>
         )}
         {d.feedback && (
-          <div
-            className='text-left prose prose-sm prose-invert max-w-none
-                          prose-p:text-foreground prose-p:leading-relaxed'
-          >
+          <div className='text-left prose prose-sm prose-invert max-w-none prose-p:text-foreground prose-p:leading-relaxed'>
             <ReactMarkdown>{d.feedback}</ReactMarkdown>
           </div>
         )}
@@ -209,34 +215,29 @@ function StepDetail({ step }: { step: ReplayStep }) {
     );
   }
 
+  // ── Per-question feedback ──────────────────────────────────────────────
   if (step.type === 'feedback') {
     const score = Number(d.score ?? 0);
     return (
       <div className='space-y-3'>
-        <div className='flex items-center gap-3'>
-          <div>
-            <p className='text-xs text-muted-foreground mb-0.5'>
-              Q{(d.questionIndex ?? 0) + 1} Score
-            </p>
-            <p
-              className={cn(
-                'text-3xl font-bold tabular-nums',
-                getScoreColor(score),
-              )}
-            >
-              {score}
-              <span className='text-sm text-muted-foreground font-normal'>
-                /100
-              </span>
-            </p>
-          </div>
+        <div>
+          <p className='text-xs text-muted-foreground mb-0.5'>
+            Q{(d.questionIndex ?? 0) + 1} Score
+          </p>
+          <p
+            className={cn(
+              'text-3xl font-bold tabular-nums',
+              getScoreColor(score),
+            )}
+          >
+            {score}
+            <span className='text-sm text-muted-foreground font-normal'>
+              /100
+            </span>
+          </p>
         </div>
         {d.feedback && (
-          <div
-            className='prose prose-sm prose-invert max-w-none
-                          prose-p:text-foreground prose-p:leading-relaxed prose-p:my-0
-                          prose-strong:text-foreground'
-          >
+          <div className='prose prose-sm prose-invert max-w-none prose-p:text-foreground prose-p:leading-relaxed prose-p:my-0 prose-strong:text-foreground'>
             <ReactMarkdown>{d.feedback}</ReactMarkdown>
           </div>
         )}
@@ -244,14 +245,15 @@ function StepDetail({ step }: { step: ReplayStep }) {
     );
   }
 
+  // ── Fallback ───────────────────────────────────────────────────────────
   return (
-    <pre className='text-xs text-muted-foreground overflow-auto'>
+    <pre className='text-xs text-muted-foreground overflow-auto whitespace-pre-wrap'>
       {JSON.stringify(step.data, null, 2)}
     </pre>
   );
 }
 
-// ── Main page ─────────────────────────────────────────────────────────────────
+// ── Main page ──────────────────────────────────────────────────────────────
 
 export default function InterviewReplayPage() {
   const { sessionId } = useParams<{ sessionId: string }>();
@@ -265,11 +267,9 @@ export default function InterviewReplayPage() {
   const [speed, setSpeed] = useState<Speed>(1);
   const [replayId, setReplayId] = useState<string | null>(null);
 
-  // Store the replayId once received
+  // Capture replayId from the first response
   useEffect(() => {
-    if (replayData?.replayId && !replayId) {
-      setReplayId(replayData.replayId);
-    }
+    if (replayData?.replayId && !replayId) setReplayId(replayData.replayId);
   }, [replayData, replayId]);
 
   const timeline: ReplayStep[] = replayData?.recording?.timeline ?? [];
@@ -277,22 +277,24 @@ export default function InterviewReplayPage() {
 
   // Auto-advance when playing
   useEffect(() => {
-    if (!isPlaying || currentStep >= totalSteps - 1) {
-      if (currentStep >= totalSteps - 1) setIsPlaying(false);
+    if (!isPlaying) return;
+    if (currentStep >= totalSteps - 1) {
+      setIsPlaying(false);
       return;
     }
-    const delay = 3000 / speed;
-    const id = setTimeout(() => {
-      setCurrentStep((s) => s + 1);
-    }, delay);
+    const id = setTimeout(
+      () => setCurrentStep((s) => s + 1),
+      BASE_DELAY / speed,
+    );
     return () => clearTimeout(id);
   }, [isPlaying, currentStep, totalSteps, speed]);
 
-  // Sync progress to backend
+  // Sync progress to backend (debounced by useEffect dependency)
   useEffect(() => {
     if (replayId && currentStep > 0) {
       updateProgress.mutate({ replayId, currentStep });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentStep, replayId]);
 
   const goTo = useCallback(
@@ -302,6 +304,8 @@ export default function InterviewReplayPage() {
     },
     [totalSteps],
   );
+
+  // ── Loading / error ────────────────────────────────────────────────────
 
   if (isLoading) {
     return (
@@ -331,12 +335,12 @@ export default function InterviewReplayPage() {
 
   const session = replayData.recording.session;
   const activeStep = timeline[currentStep];
-  const progressPct =
-    totalSteps > 1 ? (currentStep / (totalSteps - 1)) * 100 : 0;
+
+  // ── Render ─────────────────────────────────────────────────────────────
 
   return (
     <div className='max-w-3xl mx-auto space-y-4 animate-fade-in'>
-      {/* Back + title */}
+      {/* Back + meta */}
       <div className='flex items-center gap-3'>
         <button
           type='button'
@@ -358,46 +362,53 @@ export default function InterviewReplayPage() {
         </div>
       </div>
 
-      {/* Player controls */}
+      {/* Player card */}
       <Card>
         <CardContent className='pt-4 space-y-3'>
-          {/* Progress bar (scrubber) */}
-          <div className='relative'>
-            <input
-              type='range'
-              min={0}
-              max={totalSteps - 1}
-              value={currentStep}
-              onChange={(e) => goTo(Number(e.target.value))}
-              className='w-full h-1.5 rounded-full appearance-none cursor-pointer
-                         bg-secondary accent-primary'
-            />
-          </div>
+          {/* Scrubber */}
+          <input
+            type='range'
+            min={0}
+            max={Math.max(totalSteps - 1, 0)}
+            value={currentStep}
+            onChange={(e) => goTo(Number(e.target.value))}
+            className='w-full h-1.5 rounded-full appearance-none cursor-pointer bg-secondary accent-primary'
+          />
 
-          <div className='flex items-center justify-between'>
+          <div className='flex items-center justify-between gap-2'>
             {/* Step counter */}
-            <span className='text-xs text-muted-foreground'>
-              Step {currentStep + 1} / {totalSteps}
+            <span className='text-xs text-muted-foreground tabular-nums'>
+              {currentStep + 1} / {totalSteps}
             </span>
 
-            {/* Controls */}
+            {/* Transport controls */}
             <div className='flex items-center gap-1'>
-              <button
-                type='button'
-                onClick={() => goTo(0)}
-                title='Go to start'
-                className='rounded-md p-1.5 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors'
-              >
-                <Rewind className='size-4' />
-              </button>
-              <button
-                type='button'
-                onClick={() => goTo(currentStep - 1)}
-                disabled={currentStep === 0}
-                className='rounded-md p-1.5 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors disabled:opacity-40'
-              >
-                <SkipBack className='size-4' />
-              </button>
+              {[
+                {
+                  icon: Rewind,
+                  action: () => goTo(0),
+                  title: 'Go to start',
+                  disabled: currentStep === 0,
+                },
+                {
+                  icon: SkipBack,
+                  action: () => goTo(currentStep - 1),
+                  title: 'Previous step',
+                  disabled: currentStep === 0,
+                },
+              ].map(({ icon: Icon, action, title, disabled }) => (
+                <button
+                  key={title}
+                  type='button'
+                  onClick={action}
+                  disabled={disabled}
+                  title={title}
+                  className='rounded-md p-1.5 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors disabled:opacity-40'
+                >
+                  <Icon className='size-4' />
+                </button>
+              ))}
+
               <button
                 type='button'
                 onClick={() => setIsPlaying((p) => !p)}
@@ -409,25 +420,35 @@ export default function InterviewReplayPage() {
                   <Play className='size-4' />
                 )}
               </button>
-              <button
-                type='button'
-                onClick={() => goTo(currentStep + 1)}
-                disabled={currentStep >= totalSteps - 1}
-                className='rounded-md p-1.5 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors disabled:opacity-40'
-              >
-                <SkipForward className='size-4' />
-              </button>
-              <button
-                type='button'
-                onClick={() => goTo(totalSteps - 1)}
-                title='Go to end'
-                className='rounded-md p-1.5 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors'
-              >
-                <FastForward className='size-4' />
-              </button>
+
+              {[
+                {
+                  icon: SkipForward,
+                  action: () => goTo(currentStep + 1),
+                  title: 'Next step',
+                  disabled: currentStep >= totalSteps - 1,
+                },
+                {
+                  icon: FastForward,
+                  action: () => goTo(totalSteps - 1),
+                  title: 'Go to end',
+                  disabled: currentStep >= totalSteps - 1,
+                },
+              ].map(({ icon: Icon, action, title, disabled }) => (
+                <button
+                  key={title}
+                  type='button'
+                  onClick={action}
+                  disabled={disabled}
+                  title={title}
+                  className='rounded-md p-1.5 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors disabled:opacity-40'
+                >
+                  <Icon className='size-4' />
+                </button>
+              ))}
             </div>
 
-            {/* Speed picker */}
+            {/* Speed */}
             <div className='flex items-center gap-1'>
               {SPEEDS.map((s) => (
                 <button
@@ -449,9 +470,9 @@ export default function InterviewReplayPage() {
         </CardContent>
       </Card>
 
-      {/* Main layout: timeline sidebar + active step detail */}
-      <div className='grid grid-cols-[200px_1fr] gap-4'>
-        {/* Timeline sidebar */}
+      {/* Timeline sidebar + step detail */}
+      <div className='grid grid-cols-[180px_1fr] gap-4'>
+        {/* Sidebar */}
         <div className='space-y-1 max-h-[520px] overflow-y-auto pr-1'>
           {timeline.map((step, i) => (
             <button
@@ -459,8 +480,7 @@ export default function InterviewReplayPage() {
               type='button'
               onClick={() => goTo(i)}
               className={cn(
-                'flex w-full items-center gap-2 rounded-lg border px-2.5 py-2 text-left',
-                'text-xs transition-colors',
+                'flex w-full items-center gap-2 rounded-lg border px-2.5 py-2 text-left text-xs transition-colors',
                 i === currentStep
                   ? 'border-primary/40 bg-primary/10 text-foreground'
                   : 'border-transparent text-muted-foreground hover:bg-secondary hover:text-foreground',
@@ -469,10 +489,12 @@ export default function InterviewReplayPage() {
               <span
                 className={cn(
                   'inline-flex items-center justify-center rounded-full border p-1',
-                  i === currentStep ? stepColor(step.type) : 'border-border',
+                  i === currentStep
+                    ? stepChipColor(step.type)
+                    : 'border-border',
                 )}
               >
-                {stepIcon(step.type)}
+                <StepIcon type={step.type} />
               </span>
               <span className='capitalize truncate'>
                 {step.type.replace('_', ' ')}
@@ -484,19 +506,19 @@ export default function InterviewReplayPage() {
           ))}
         </div>
 
-        {/* Active step detail */}
+        {/* Detail */}
         <Card className='self-start'>
-          {activeStep && (
+          {activeStep ? (
             <>
               <CardHeader className='pb-3'>
                 <div className='flex items-center gap-2'>
                   <span
                     className={cn(
                       'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium',
-                      stepColor(activeStep.type),
+                      stepChipColor(activeStep.type),
                     )}
                   >
-                    {stepIcon(activeStep.type)}
+                    <StepIcon type={activeStep.type} />
                     <span className='capitalize'>{activeStep.type}</span>
                   </span>
                   <span className='text-xs text-muted-foreground ml-auto'>
@@ -508,11 +530,14 @@ export default function InterviewReplayPage() {
                 <StepDetail step={activeStep} />
               </CardContent>
             </>
+          ) : (
+            <CardContent className='py-8 text-center text-sm text-muted-foreground'>
+              No steps available
+            </CardContent>
           )}
         </Card>
       </div>
 
-      {/* Navigation to results */}
       <div className='flex justify-end'>
         <Button
           variant='outline'

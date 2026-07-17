@@ -1,8 +1,7 @@
 // src/components/interview/CodeExecutionPanel.tsx
-// Wires POST /api/code/execute into the DSA interview session.
-// Shown when interview type === 'dsa'.
-// Allows picking language, writing code, running against built-in test cases,
-// and then submitting the code as the answer.
+//
+// DSA code editor with language switcher, test-case runner (POST /api/code/execute),
+// and a "Submit Code" button that calls the parent's onSubmit callback.
 
 import { useState } from 'react';
 import {
@@ -22,7 +21,7 @@ import type {
   TestCaseResult,
 } from '@/types/interview-extended';
 
-// ── Constants ──────────────────────────────────────────────────────────────
+// ── Language definitions ───────────────────────────────────────────────────
 
 const LANGUAGES: {
   value: ProgrammingLanguage;
@@ -45,7 +44,7 @@ function solution(nums, target) {
     value: 'PYTHON',
     label: 'Python',
     placeholder: `class Solution:
-    def solution(self, nums: List[int], target: int) -> List[int]:
+    def solution(self, nums, target):
         # your code here
         pass`,
   },
@@ -77,14 +76,13 @@ public:
   },
 ];
 
-// Default test cases shown when the question doesn't supply any
 const DEFAULT_TEST_CASES: TestCase[] = [
   { input: { nums: [2, 7, 11, 15], target: 9 }, expectedOutput: [0, 1] },
   { input: { nums: [3, 2, 4], target: 6 }, expectedOutput: [1, 2] },
   { input: { nums: [3, 3], target: 6 }, expectedOutput: [0, 1] },
 ];
 
-// ── Sub-components ─────────────────────────────────────────────────────────
+// ── Test case result row ───────────────────────────────────────────────────
 
 function TestCaseRow({
   result,
@@ -94,7 +92,6 @@ function TestCaseRow({
   index: number;
 }) {
   const [open, setOpen] = useState(false);
-
   return (
     <div
       className={cn(
@@ -170,11 +167,8 @@ function TestCaseRow({
 // ── Main component ─────────────────────────────────────────────────────────
 
 interface CodeExecutionPanelProps {
-  /** Called when user clicks "Submit Code as Answer" */
   onSubmit: (code: string) => void;
-  /** Pre-supplied test cases from the question (optional) */
   testCases?: TestCase[];
-  /** Whether the parent submit is loading */
   submitLoading?: boolean;
   disabled?: boolean;
 }
@@ -187,26 +181,24 @@ export function CodeExecutionPanel({
 }: CodeExecutionPanelProps) {
   const [language, setLanguage] = useState<ProgrammingLanguage>('JAVASCRIPT');
   const [code, setCode] = useState('');
-  const [showLangPicker, setShowLangPicker] = useState(false);
+  const [showLangMenu, setShowLangMenu] = useState(false);
 
   const executeCode = useExecuteCode();
-
   const activeLang = LANGUAGES.find((l) => l.value === language)!;
   const cases =
     testCases && testCases.length > 0 ? testCases : DEFAULT_TEST_CASES;
 
   const handleRun = () => {
-    if (!code.trim()) return;
+    if (!code.trim() || executeCode.isPending || disabled) return;
     executeCode.mutate({ code, language, testCases: cases });
   };
 
   const handleSubmit = () => {
-    if (!code.trim()) return;
+    if (!code.trim() || submitLoading || disabled) return;
     onSubmit(code);
   };
 
   const result = executeCode.data;
-  const isRunning = executeCode.isPending;
 
   return (
     <div className='space-y-3'>
@@ -216,12 +208,12 @@ export function CodeExecutionPanel({
         <div className='relative'>
           <button
             type='button'
-            onClick={() => setShowLangPicker((o) => !o)}
+            onClick={() => setShowLangMenu((o) => !o)}
             disabled={disabled}
             className={cn(
               'flex items-center gap-1.5 rounded-md border border-border bg-secondary',
               'px-3 py-1.5 text-xs font-medium text-foreground transition-colors',
-              'hover:bg-secondary/80 disabled:opacity-50',
+              'hover:bg-secondary/70 disabled:opacity-50',
             )}
           >
             <Terminal className='size-3.5 text-primary' />
@@ -229,20 +221,15 @@ export function CodeExecutionPanel({
             <ChevronDown className='size-3 text-muted-foreground' />
           </button>
 
-          {showLangPicker && (
-            <div
-              className={cn(
-                'absolute left-0 top-full z-10 mt-1 min-w-[130px] rounded-lg border',
-                'border-border bg-popover shadow-lg',
-              )}
-            >
+          {showLangMenu && (
+            <div className='absolute left-0 top-full z-10 mt-1 min-w-[130px] rounded-lg border border-border bg-popover shadow-lg'>
               {LANGUAGES.map((lang) => (
                 <button
                   key={lang.value}
                   type='button'
                   onClick={() => {
                     setLanguage(lang.value);
-                    setShowLangPicker(false);
+                    setShowLangMenu(false);
                   }}
                   className={cn(
                     'flex w-full items-center px-3 py-2 text-xs text-left',
@@ -257,25 +244,24 @@ export function CodeExecutionPanel({
           )}
         </div>
 
-        {/* Run button */}
+        {/* Run + Submit */}
         <div className='flex items-center gap-2'>
           <button
             type='button'
             onClick={handleRun}
-            disabled={!code.trim() || isRunning || disabled}
+            disabled={!code.trim() || executeCode.isPending || disabled}
             className={cn(
               'flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5',
-              'text-xs font-medium transition-colors',
-              'hover:bg-secondary hover:text-foreground text-muted-foreground',
-              'disabled:opacity-50',
+              'text-xs font-medium text-muted-foreground transition-colors',
+              'hover:bg-secondary hover:text-foreground disabled:opacity-50',
             )}
           >
-            {isRunning ? (
+            {executeCode.isPending ? (
               <Loader2 className='size-3.5 animate-spin' />
             ) : (
               <Play className='size-3.5' />
             )}
-            {isRunning ? 'Running…' : 'Run Tests'}
+            {executeCode.isPending ? 'Running…' : 'Run Tests'}
           </button>
 
           <button
@@ -298,24 +284,22 @@ export function CodeExecutionPanel({
         </div>
       </div>
 
-      {/* Code editor (textarea — upgrade to CodeMirror/Monaco if needed) */}
-      <div className='relative'>
-        <textarea
-          value={code}
-          onChange={(e) => setCode(e.target.value)}
-          placeholder={activeLang.placeholder}
-          disabled={disabled}
-          spellCheck={false}
-          className={cn(
-            'w-full min-h-[240px] resize-y rounded-lg border border-border',
-            'bg-[hsl(var(--card))] p-4 font-mono text-sm text-foreground',
-            'placeholder:text-muted-foreground/50 focus:outline-none',
-            'focus:ring-1 focus:ring-primary/50 disabled:opacity-50',
-          )}
-        />
-      </div>
+      {/* Code textarea */}
+      <textarea
+        value={code}
+        onChange={(e) => setCode(e.target.value)}
+        placeholder={activeLang.placeholder}
+        disabled={disabled}
+        spellCheck={false}
+        className={cn(
+          'w-full min-h-[240px] resize-y rounded-lg border border-border',
+          'bg-card p-4 font-mono text-sm text-foreground',
+          'placeholder:text-muted-foreground/40 focus:outline-none',
+          'focus:ring-1 focus:ring-primary/50 disabled:opacity-50',
+        )}
+      />
 
-      {/* Execution results */}
+      {/* Execution error */}
       {executeCode.isError && (
         <div className='flex items-center gap-2 rounded-lg border border-destructive/20 bg-destructive/5 px-3 py-2 text-xs text-destructive'>
           <AlertCircle className='size-3.5 shrink-0' />
@@ -324,9 +308,10 @@ export function CodeExecutionPanel({
         </div>
       )}
 
+      {/* Results */}
       {result && (
         <div className='space-y-2'>
-          {/* Summary bar */}
+          {/* Summary */}
           <div
             className={cn(
               'flex items-center justify-between rounded-lg border px-3 py-2 text-xs font-medium',
@@ -341,10 +326,7 @@ export function CodeExecutionPanel({
               ) : (
                 <XCircle className='size-3.5' />
               )}
-              <span>
-                {result.testCasesPassed}/{result.testCasesTotal} test cases
-                passed
-              </span>
+              {result.testCasesPassed}/{result.testCasesTotal} test cases passed
             </div>
             {result.success && (
               <span className='text-muted-foreground'>All tests passed ✓</span>

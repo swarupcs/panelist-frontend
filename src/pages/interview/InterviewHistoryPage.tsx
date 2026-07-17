@@ -1,6 +1,9 @@
 // src/pages/interview/InterviewHistoryPage.tsx
-// Lists recent sessions via GET /interview/replay/history
-// Each row links to results, replay, or compare.
+//
+// Lists recent sessions via GET /interview/replay/history (replay history
+// is the best available "session list" endpoint on this backend).
+// Each row: score ring, type, date, action buttons.
+// Select up to 2 rows → "Compare Selected" → /interview/compare?s1=&s2=
 
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -11,42 +14,34 @@ import {
   GitCompare,
   ChevronRight,
   Loader2,
-  Trophy,
-  Clock,
-  CheckCircle,
-  XCircle,
-  SkipForward,
   Filter,
 } from 'lucide-react';
 import { useRecentSessions } from '@/hooks/useInterviewExtended';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
+import { Card, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { Badge } from '@/components/ui/Badge';
-import { EmptyState, ScoreRing } from '@/components/common';
-import { PageHeader } from '@/components/common';
+import { EmptyState, ScoreRing, PageHeader } from '@/components/common';
 import {
   formatDate,
   formatInterviewType,
   getScoreColor,
-  getDifficultyBadge,
 } from '@/utils/formatters';
 import { cn } from '@/lib/cn';
 import type { ReplayHistoryItem } from '@/types/interview-extended';
 
-// ── Session row ───────────────────────────────────────────────────────────────
+// ── Session row ────────────────────────────────────────────────────────────
 
 function SessionRow({
   item,
   isSelected,
   onSelect,
-  onViewResults,
+  onResults,
   onReplay,
 }: {
   item: ReplayHistoryItem;
   isSelected: boolean;
   onSelect: (id: string) => void;
-  onViewResults: (sessionId: string) => void;
-  onReplay: (sessionId: string) => void;
+  onResults: (id: string) => void;
+  onReplay: (id: string) => void;
 }) {
   const score =
     item.session.score != null ? Math.round(Number(item.session.score)) : null;
@@ -61,13 +56,13 @@ function SessionRow({
       )}
     >
       <div className='flex items-center gap-4'>
-        {/* Select checkbox for comparison */}
+        {/* Checkbox */}
         <input
           type='checkbox'
           checked={isSelected}
           onChange={() => onSelect(item.sessionId)}
-          className='size-4 rounded border-border accent-primary cursor-pointer shrink-0'
           title='Select for comparison'
+          className='size-4 rounded border-border accent-primary cursor-pointer shrink-0'
         />
 
         {/* Score ring */}
@@ -101,8 +96,8 @@ function SessionRow({
           </div>
         </div>
 
-        {/* Actions */}
-        <div className='flex items-center gap-1.5 shrink-0'>
+        {/* Action buttons */}
+        <div className='flex items-center gap-1 shrink-0'>
           <button
             type='button'
             onClick={() => onReplay(item.sessionId)}
@@ -113,7 +108,7 @@ function SessionRow({
           </button>
           <button
             type='button'
-            onClick={() => onViewResults(item.sessionId)}
+            onClick={() => onResults(item.sessionId)}
             title='View results'
             className='rounded-md p-1.5 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors'
           >
@@ -121,7 +116,7 @@ function SessionRow({
           </button>
           <button
             type='button'
-            onClick={() => onViewResults(item.sessionId)}
+            onClick={() => onResults(item.sessionId)}
             className='flex items-center gap-1 rounded-md px-2 py-1 text-xs text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors'
           >
             Results <ChevronRight className='size-3' />
@@ -132,19 +127,20 @@ function SessionRow({
   );
 }
 
-// ── Main page ─────────────────────────────────────────────────────────────────
+// ── Main page ──────────────────────────────────────────────────────────────
 
 export default function InterviewHistoryPage() {
   const navigate = useNavigate();
   const { data: sessions, isLoading, isError, refetch } = useRecentSessions();
 
   const [selected, setSelected] = useState<string[]>([]);
-  const [typeFilter, setTypeFilter] = useState<string>('all');
+  const [typeFilter, setTypeFilter] = useState('all');
 
   const toggleSelect = (id: string) => {
     setSelected((prev) => {
       if (prev.includes(id)) return prev.filter((s) => s !== id);
-      if (prev.length >= 2) return [prev[1], id]; // keep only 2 at a time
+      // Keep max 2 for comparison
+      if (prev.length >= 2) return [prev[1], id];
       return [...prev, id];
     });
   };
@@ -154,12 +150,12 @@ export default function InterviewHistoryPage() {
     navigate(`/interview/compare?s1=${selected[0]}&s2=${selected[1]}`);
   };
 
+  const types = [...new Set(sessions?.map((s) => s.session.type) ?? [])];
+
   const filtered =
     sessions?.filter(
       (s) => typeFilter === 'all' || s.session.type === typeFilter,
     ) ?? [];
-
-  const types = [...new Set(sessions?.map((s) => s.session.type) ?? [])];
 
   return (
     <div className='max-w-2xl mx-auto space-y-6 animate-fade-in'>
@@ -177,9 +173,8 @@ export default function InterviewHistoryPage() {
         }
       />
 
-      {/* Filters + compare toolbar */}
+      {/* Filter bar + compare toolbar */}
       <div className='flex flex-wrap items-center justify-between gap-3'>
-        {/* Type filter */}
         <div className='flex items-center gap-2'>
           <Filter className='size-4 text-muted-foreground' />
           <div className='flex gap-1'>
@@ -201,7 +196,6 @@ export default function InterviewHistoryPage() {
           </div>
         </div>
 
-        {/* Compare button */}
         {selected.length > 0 && (
           <Button
             variant='outline'
@@ -218,15 +212,13 @@ export default function InterviewHistoryPage() {
         )}
       </div>
 
-      {selected.length > 0 && (
+      {selected.length === 1 && (
         <p className='text-xs text-muted-foreground'>
-          {selected.length === 1
-            ? 'Select one more session to compare.'
-            : 'Ready to compare. Click "Compare Selected".'}
+          Select one more session to compare.
         </p>
       )}
 
-      {/* Session list */}
+      {/* List */}
       {isLoading ? (
         <div className='flex justify-center py-12'>
           <Loader2 className='size-8 animate-spin text-primary' />
@@ -261,7 +253,7 @@ export default function InterviewHistoryPage() {
               item={item}
               isSelected={selected.includes(item.sessionId)}
               onSelect={toggleSelect}
-              onViewResults={(id) => navigate(`/interview/results/${id}`)}
+              onResults={(id) => navigate(`/interview/results/${id}`)}
               onReplay={(id) => navigate(`/interview/replay/${id}`)}
             />
           ))}

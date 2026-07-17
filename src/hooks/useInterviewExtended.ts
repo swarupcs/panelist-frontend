@@ -1,4 +1,5 @@
 // src/hooks/useInterviewExtended.ts
+//
 // Hooks for features that existed in the backend but had no frontend wiring.
 // Complements useInterview.ts — never duplicates existing exports.
 
@@ -36,7 +37,7 @@ export function useQuestionRatings(questionId: string | null) {
   });
 }
 
-// ── Replay (extended) ──────────────────────────────────────────────────────
+// ── Replay progress ────────────────────────────────────────────────────────
 
 export function useUpdateReplayProgress() {
   return useMutation({
@@ -56,6 +57,7 @@ export function useAdaptiveNextQuestion(sessionId: string | null) {
   return useQuery({
     queryKey: ['interview', 'adaptive', sessionId],
     queryFn: () => adaptiveApi.getNextQuestion(sessionId!),
-    enabled: false, // triggered manually
+    enabled: false, // triggered manually via refetch()
+    staleTime: 0,
   });
 }
