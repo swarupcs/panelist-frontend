@@ -1,0 +1,187 @@
+import { Trophy, Lock } from 'lucide-react'
+import { useAchievements, useLeaderboard } from '@/hooks/useAnalytics'
+import { PageHeader, LoadingScreen, ErrorState, EmptyState } from '@/components/common'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/Avatar'
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/Select'
+import { Badge } from '@/components/ui/Badge'
+import { formatRelative } from '@/utils/formatters'
+import { cn } from '@/lib/cn'
+import { useAuthStore } from '@/store/authStore'
+
+export default function AchievementsPage() {
+  const { data: achievements, isLoading, isError, refetch } = useAchievements()
+  const { data: leaderboard } = useLeaderboard(20)
+  const { user } = useAuthStore()
+
+  if (isLoading) return <LoadingScreen message="Loading achievements..." />
+  if (isError) return <ErrorState message="Failed to load achievements" onRetry={refetch} />
+
+  const unlockedIds = new Set(achievements?.map((a: any) => a.achievementId))
+
+  return (
+    <div className="space-y-6 animate-fade-in">
+      <PageHeader
+        title="Achievements"
+        description="Your badges, milestones, and leaderboard ranking"
+      />
+
+      <Tabs defaultValue="achievements">
+        <TabsList>
+          <TabsTrigger value="achievements">
+            Achievements
+            {achievements?.length ? (
+              <span className="ml-1.5 rounded-full bg-primary/20 px-1.5 py-0.5 text-xs text-primary">
+                {achievements.length}
+              </span>
+            ) : null}
+          </TabsTrigger>
+          <TabsTrigger value="leaderboard">Leaderboard</TabsTrigger>
+        </TabsList>
+
+        {/* Achievements Tab */}
+        <TabsContent value="achievements" className="space-y-4">
+          {!achievements?.length ? (
+            <EmptyState
+              icon={Trophy}
+              title="No achievements yet"
+              description="Complete interviews and reach milestones to unlock achievements"
+            />
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {achievements.map((ua: any) => (
+                <div
+                  key={ua.id}
+                  className="rounded-xl border border-border bg-card p-4 flex items-start gap-3 hover:border-primary/30 transition-colors"
+                >
+                  <div className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-yellow-500/10 text-2xl">
+                    {ua.achievement.icon}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="font-semibold text-sm text-foreground">{ua.achievement.title}</p>
+                      <Badge variant="warning" className="text-xs shrink-0">+{ua.achievement.points}pts</Badge>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
+                      {ua.achievement.description}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {formatRelative(ua.unlockedAt)}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Locked hints */}
+          <div>
+            <p className="text-sm font-medium text-muted-foreground mb-3">More to unlock</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {[
+                { icon: '🎯', title: 'First Steps', desc: 'Complete your first interview' },
+                { icon: '🔥', title: 'Week Streak', desc: '7-day practice streak' },
+                { icon: '💯', title: 'Century Club', desc: 'Solve 100 problems' },
+                { icon: '⭐', title: 'Perfectionist', desc: 'Get a perfect score' },
+                { icon: '🏆', title: 'Interview Master', desc: 'Complete 100 interviews' },
+                { icon: '👑', title: 'Consistency King', desc: '10 perfect scores' },
+              ]
+                .filter((_, i) => !achievements || achievements.length <= i)
+                .slice(0, 3)
+                .map((item, i) => (
+                  <div key={i} className="rounded-xl border border-border/50 bg-card/50 p-4 flex items-start gap-3 opacity-50">
+                    <div className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-secondary text-2xl grayscale">
+                      {item.icon}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <p className="font-semibold text-sm text-muted-foreground">{item.title}</p>
+                        <Lock className="size-3 text-muted-foreground shrink-0" />
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-0.5">{item.desc}</p>
+                    </div>
+                  </div>
+                ))}
+            </div>
+          </div>
+        </TabsContent>
+
+        {/* Leaderboard Tab */}
+        <TabsContent value="leaderboard">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <Trophy className="size-4 text-yellow-400" />
+                Global Leaderboard
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {!leaderboard?.length ? (
+                <EmptyState icon={Trophy} title="No rankings yet" description="Complete interviews to appear on the leaderboard" />
+              ) : (
+                <div className="space-y-1">
+                  {leaderboard.map((entry: any, index: number) => {
+                    const isCurrentUser = entry.userId === user?.id
+                    const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : null
+
+                    return (
+                      <div
+                        key={entry.userId}
+                        className={cn(
+                          'flex items-center gap-3 rounded-lg px-3 py-2.5 transition-colors',
+                          isCurrentUser
+                            ? 'bg-primary/10 border border-primary/20'
+                            : 'hover:bg-secondary',
+                        )}
+                      >
+                        {/* Rank */}
+                        <div className="w-8 text-center shrink-0">
+                          {medal ? (
+                            <span className="text-lg">{medal}</span>
+                          ) : (
+                            <span className="text-sm font-bold text-muted-foreground">#{entry.rank}</span>
+                          )}
+                        </div>
+
+                        {/* Avatar */}
+                        <Avatar className="size-8 shrink-0">
+                          <AvatarImage src={entry.profilePicture || undefined} />
+                          <AvatarFallback className="text-xs">
+                            {entry.name?.slice(0, 2).toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+
+                        {/* Name */}
+                        <div className="flex-1 min-w-0">
+                          <p className={cn('text-sm font-medium truncate', isCurrentUser ? 'text-primary' : 'text-foreground')}>
+                            {entry.name}
+                            {isCurrentUser && <span className="ml-1 text-xs text-muted-foreground">(you)</span>}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            🔥 {entry.currentStreak}d streak
+                          </p>
+                        </div>
+
+                        {/* Stats */}
+                        <div className="text-right shrink-0">
+                          <p className="text-sm font-bold text-foreground">{entry.problemsSolved}</p>
+                          <p className="text-xs text-muted-foreground">solved</p>
+                        </div>
+                        <div className="text-right shrink-0 hidden sm:block">
+                          <p className={cn('text-sm font-bold', entry.averageScore >= 70 ? 'text-green-400' : 'text-yellow-400')}>
+                            {Math.round(entry.averageScore)}
+                          </p>
+                          <p className="text-xs text-muted-foreground">avg</p>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+    </div>
+  )
+}
