@@ -5,7 +5,15 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { interviewApi } from '@/api/interview.api';
-import { useInterviewStore } from '@/store/interviewStore';
+import { useAppDispatch, useAppSelector } from '@/store/hooks';
+import {
+  startSession,
+  setCurrentQuestion,
+  recordAnswer,
+  completeSession,
+  abandonSession,
+  setPaused,
+} from '@/store/interviewSlice';
 import { queryClient } from '@/lib/queryClient';
 import type {
   StartInterviewRequest,
@@ -17,20 +25,22 @@ import type {
 // ── Start ──────────────────────────────────────────────────────────────────
 
 export function useStartInterview() {
-  const { startSession } = useInterviewStore();
+  const dispatch = useAppDispatch();
   const navigate = useNavigate();
 
   return useMutation({
     mutationFn: (data: StartInterviewRequest) =>
       interviewApi.startInterview(data),
     onSuccess: (data, variables) => {
-      startSession({
-        sessionId: data.sessionId,
-        type: data.type as InterviewType,
-        difficulty: (variables.difficulty ?? 'medium') as Difficulty,
-        currentQuestion: data.currentQuestion,
-        totalQuestions: data.totalQuestions,
-      });
+      dispatch(
+        startSession({
+          sessionId: data.sessionId,
+          type: data.type as InterviewType,
+          difficulty: (variables.difficulty ?? 'medium') as Difficulty,
+          currentQuestion: data.currentQuestion,
+          totalQuestions: data.totalQuestions,
+        }),
+      );
       navigate(`/interview/${data.sessionId}`);
     },
   });
@@ -39,27 +49,32 @@ export function useStartInterview() {
 // ── Submit answer ──────────────────────────────────────────────────────────
 
 export function useSubmitAnswer() {
-  const {
-    recordAnswer,
-    setCurrentQuestion,
-    completeSession,
-    currentQuestionIndex,
-  } = useInterviewStore();
+  const dispatch = useAppDispatch();
+  const currentQuestionIndex = useAppSelector(
+    (state) => state.interview.currentQuestionIndex,
+  );
 
   return useMutation({
     mutationFn: (data: SubmitAnswerRequest) => interviewApi.submitAnswer(data),
     onSuccess: (data, variables) => {
-      recordAnswer(
-        variables.sessionId,
-        variables.answer,
-        data.score,
-        data.feedback,
+      dispatch(
+        recordAnswer({
+          questionId: variables.sessionId,
+          answer: variables.answer,
+          score: data.score,
+          feedback: data.feedback,
+        }),
       );
 
       if (data.nextQuestion) {
-        setCurrentQuestion(data.nextQuestion, currentQuestionIndex + 1);
+        dispatch(
+          setCurrentQuestion({
+            question: data.nextQuestion,
+            index: currentQuestionIndex + 1,
+          }),
+        );
       } else {
-        completeSession(0); // real score fetched from /results
+        dispatch(completeSession(0)); // real score fetched from /results
         queryClient.invalidateQueries({ queryKey: ['analytics'] });
         queryClient.invalidateQueries({ queryKey: ['progress'] });
       }
@@ -70,24 +85,36 @@ export function useSubmitAnswer() {
 // ── Skip question ──────────────────────────────────────────────────────────
 
 export function useSkipQuestion() {
-  const {
-    recordAnswer,
-    setCurrentQuestion,
-    completeSession,
-    currentQuestion,
-    currentQuestionIndex,
-  } = useInterviewStore();
+  const dispatch = useAppDispatch();
+  const currentQuestion = useAppSelector(
+    (state) => state.interview.currentQuestion,
+  );
+  const currentQuestionIndex = useAppSelector(
+    (state) => state.interview.currentQuestionIndex,
+  );
 
   return useMutation({
     mutationFn: (sessionId: string) => interviewApi.skipQuestion(sessionId),
     onSuccess: (data) => {
       if (currentQuestion) {
-        recordAnswer(currentQuestion.id, '[SKIPPED]', 0, 'Question skipped');
+        dispatch(
+          recordAnswer({
+            questionId: currentQuestion.id,
+            answer: '[SKIPPED]',
+            score: 0,
+            feedback: 'Question skipped',
+          }),
+        );
       }
       if (data.nextQuestion) {
-        setCurrentQuestion(data.nextQuestion, currentQuestionIndex + 1);
+        dispatch(
+          setCurrentQuestion({
+            question: data.nextQuestion,
+            index: currentQuestionIndex + 1,
+          }),
+        );
       } else {
-        completeSession(0);
+        dispatch(completeSession(0));
         queryClient.invalidateQueries({ queryKey: ['analytics'] });
         queryClient.invalidateQueries({ queryKey: ['progress'] });
       }
@@ -98,13 +125,13 @@ export function useSkipQuestion() {
 // ── End interview ──────────────────────────────────────────────────────────
 
 export function useEndInterview() {
-  const { abandonSession } = useInterviewStore();
+  const dispatch = useAppDispatch();
   const navigate = useNavigate();
 
   return useMutation({
     mutationFn: (sessionId: string) => interviewApi.endInterview(sessionId),
     onSuccess: (_data, sessionId) => {
-      abandonSession();
+      dispatch(abandonSession());
       // Clear setup flags so a new session starts clean
       sessionStorage.removeItem('interview_isTimed');
       sessionStorage.removeItem('interview_adaptiveMode');
@@ -157,18 +184,18 @@ export function useTimerStatus(sessionId: string | null, enabled = false) {
 // ── Pause / resume ─────────────────────────────────────────────────────────
 
 export function usePauseSession() {
-  const { setPaused } = useInterviewStore();
+  const dispatch = useAppDispatch();
   return useMutation({
     mutationFn: (sessionId: string) => interviewApi.pauseSession(sessionId),
-    onSuccess: () => setPaused(true),
+    onSuccess: () => dispatch(setPaused(true)),
   });
 }
 
 export function useResumeSession() {
-  const { setPaused } = useInterviewStore();
+  const dispatch = useAppDispatch();
   return useMutation({
     mutationFn: (sessionId: string) => interviewApi.resumeSession(sessionId),
-    onSuccess: () => setPaused(false),
+    onSuccess: () => dispatch(setPaused(false)),
   });
 }
 

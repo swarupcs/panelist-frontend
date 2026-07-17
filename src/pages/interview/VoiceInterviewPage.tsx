@@ -119,10 +119,10 @@ export default function VoiceInterviewPage() {
   // ── Render ──────────────────────────────────────────────────────────────────
 
   return (
-    <div className='min-h-screen bg-background flex flex-col'>
+    <div className='min-h-screen bg-gradient-to-br from-background via-background/95 to-secondary/10 flex flex-col'>
 
       {/* ── Top bar ─────────────────────────────────────────────────────── */}
-      <header className='border-b border-border/50 bg-card/40 backdrop-blur-md'>
+      <header className='border-b border-border/50 bg-background/40 backdrop-blur-xl shadow-sm'>
         <div className='max-w-4xl mx-auto px-4 py-3 flex items-center justify-between gap-4'>
           <div className='flex items-center gap-3'>
             <div className='flex items-center gap-1.5 text-xs text-muted-foreground'>
@@ -188,8 +188,8 @@ export default function VoiceInterviewPage() {
 
         {/* ── CONNECTING ───────────────────────────────────────────────── */}
         {isConnecting && (
-          <div className='flex flex-col items-center gap-4 text-center animate-fade-in'>
-            <div className='rounded-full bg-primary/10 p-6'>
+          <div className='flex flex-col items-center gap-5 text-center animate-fade-in'>
+            <div className='rounded-full bg-primary/10 p-8 shadow-inner'>
               <Loader2 className='size-10 text-primary animate-spin' />
             </div>
             <p className='text-lg font-semibold text-foreground'>Connecting to your interview…</p>

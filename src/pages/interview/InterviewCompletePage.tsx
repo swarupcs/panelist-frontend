@@ -1,6 +1,7 @@
 import { useParams, Link } from 'react-router-dom'
 import { Trophy, RotateCcw, BarChart3, Home, CheckCircle, XCircle } from 'lucide-react'
-import { useInterviewStore } from '@/store/interviewStore'
+import { useAppDispatch, useAppSelector } from '@/store/hooks'
+import { resetSession } from '@/store/interviewSlice'
 import { ScoreRing } from '@/components/common'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
@@ -10,7 +11,10 @@ import { cn } from '@/lib/cn'
 
 export default function InterviewCompletePage() {
   const { sessionId } = useParams()
-  const { score, type, answers, totalQuestions, resetSession } = useInterviewStore()
+  const dispatch = useAppDispatch()
+  const { score, type, answers, totalQuestions } = useAppSelector(state => state.interview)
+
+  const handleReset = () => dispatch(resetSession())
 
   const finalScore = score ?? 0
   const answeredCount = Object.keys(answers).length
@@ -60,7 +64,7 @@ export default function InterviewCompletePage() {
           </div>
 
           <div className="flex flex-wrap justify-center gap-3">
-            <Link to="/interview" onClick={resetSession}>
+            <Link to="/interview" onClick={handleReset}>
               <Button variant="gradient" size="lg" className="gap-2">
                 <RotateCcw className="size-4" />
                 Practice Again
@@ -72,7 +76,7 @@ export default function InterviewCompletePage() {
                 View Analytics
               </Button>
             </Link>
-            <Link to="/dashboard" onClick={resetSession}>
+            <Link to="/dashboard" onClick={handleReset}>
               <Button variant="ghost" size="lg" className="gap-2">
                 <Home className="size-4" />
                 Dashboard

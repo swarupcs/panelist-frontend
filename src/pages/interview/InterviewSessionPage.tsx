@@ -42,7 +42,7 @@ import {
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { useInterviewStore } from '@/store/interviewStore';
+import { useAppSelector } from '@/store/hooks';
 import {
   useSubmitAnswer,
   useRequestHint,
@@ -217,7 +217,7 @@ export default function InterviewSessionPage() {
     isPaused,
     isCompleted,
     type: sessionType,
-  } = useInterviewStore();
+  } = useAppSelector((state) => state.interview);
 
   const submitAnswer = useSubmitAnswer();
   const requestHint = useRequestHint(sessionId!);
@@ -396,9 +396,9 @@ export default function InterviewSessionPage() {
   // ── Render ─────────────────────────────────────────────────────────────
 
   return (
-    <div className='max-w-3xl mx-auto space-y-4 animate-fade-in'>
+    <div className='max-w-3xl mx-auto space-y-5 animate-fade-in'>
       {/* ── Header bar ───────────────────────────────────────────────────── */}
-      <div className='flex items-center justify-between'>
+      <div className='flex items-center justify-between rounded-2xl border border-border/50 bg-background/40 backdrop-blur-md p-4 shadow-sm'>
         <div className='flex items-center gap-3'>
           <span className='text-sm text-muted-foreground'>
             Question {currentQuestionIndex + 1} of {totalQuestions}
@@ -483,7 +483,7 @@ export default function InterviewSessionPage() {
 
       {/* FEAT-4: Shortcuts legend */}
       {showShortcuts && phase === 'answering' && (
-        <div className='rounded-lg border border-border bg-secondary/30 px-4 py-2.5'>
+        <div className='rounded-xl border border-border/50 bg-secondary/20 backdrop-blur-md px-4 py-3 shadow-sm'>
           <ShortcutsLegend visible />
         </div>
       )}
@@ -510,13 +510,13 @@ export default function InterviewSessionPage() {
       {phase === 'answering' && currentQuestion && (
         <>
           {/* Question card */}
-          <Card>
+          <Card className='border-border/50 bg-background/60 backdrop-blur-xl shadow-lg'>
             <CardHeader className='pb-3'>
               <div className='flex flex-wrap gap-2'>
-                <Badge variant='outline'>{currentQuestion.category}</Badge>
+                <Badge variant='outline' className='bg-background/50 backdrop-blur-sm'>{currentQuestion.category}</Badge>
                 <span
                   className={cn(
-                    'inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold',
+                    'inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold backdrop-blur-sm bg-background/50',
                     getDifficultyBadge(currentQuestion.difficulty),
                   )}
                 >
@@ -572,8 +572,8 @@ export default function InterviewSessionPage() {
 
           {/* Answer area */}
           {!isPaused && (
-            <Card>
-              <CardContent className='pt-4 space-y-3'>
+            <Card className='border-border/50 bg-background/60 backdrop-blur-xl shadow-lg overflow-hidden'>
+              <CardContent className='pt-5 space-y-4'>
                 {/* DSA tab switcher */}
                 {isDSA && (
                   <div className='flex items-center gap-1 rounded-lg border border-border bg-secondary/30 p-1 w-fit'>

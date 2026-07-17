@@ -74,6 +74,13 @@ export class VoiceAgentClient {
   private accumulatedTranscript = '';
   /** Ping interval to keep WS alive */
   private pingInterval: ReturnType<typeof setInterval> | null = null;
+  /** Reconnection state */
+  private reconnectAttempts = 0;
+  private readonly maxReconnectAttempts = 5;
+  private sessionId: string | null = null;
+  private token: string | null = null;
+  private reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
+  private intentionalDisconnect = false;
 
   constructor(
     sttProvider: ISTTProvider,
@@ -89,12 +96,29 @@ export class VoiceAgentClient {
 
   // ── Lifecycle ─────────────────────────────────────────────────────────────
 
-  async connect(sessionId: string, token: string): Promise<void> {
-    this.updatePhase('connecting');
+  async connect(sessionId: string, token: string, isReconnect = false): Promise<void> {
+    this.sessionId = sessionId;
+    this.token = token;
+    this.intentionalDisconnect = false;
+
+    if (!isReconnect) {
+      this.reconnectAttempts = 0;
+      this.updatePhase('connecting');
+    }
+
+    if (this.ws) {
+      this.ws.close();
+    }
 
     this.ws = new WebSocket(this.wsUrl);
 
     this.ws.onopen = () => {
+      this.reconnectAttempts = 0;
+      if (isReconnect && this.state.phase === 'error') {
+        // If we successfully reconnected, revert the error phase back to the previous stable state
+        // For simplicity, we just set to ready, but ideally it resumes where it left off
+        this.updatePhase('ready');
+      }
       this.send({ type: 'JOIN_SESSION', sessionId, token });
       // Ping every 25s to prevent proxy timeouts
       this.pingInterval = setInterval(() => this.send({ type: 'PING' }), 25_000);
@@ -110,23 +134,54 @@ export class VoiceAgentClient {
     };
 
     this.ws.onerror = () => {
-      this.updatePhase('error', 'WebSocket connection failed. Check that the backend is running.');
+      console.error('[VoiceAgentClient] WebSocket error observed.');
     };
 
     this.ws.onclose = (ev) => {
       this.clearPing();
+      if (this.intentionalDisconnect) return;
+
       if (this.state.phase !== 'completed' && this.state.phase !== 'error') {
         console.warn('[VoiceAgentClient] WebSocket closed unexpectedly:', ev.code, ev.reason);
+        this.attemptReconnect();
       }
     };
   }
 
+  private attemptReconnect() {
+    if (this.reconnectAttempts >= this.maxReconnectAttempts) {
+      this.updatePhase('error', 'Connection lost. Max reconnect attempts reached.');
+      return;
+    }
+
+    this.reconnectAttempts++;
+    console.log(`[VoiceAgentClient] Reconnecting... Attempt ${this.reconnectAttempts} of ${this.maxReconnectAttempts}`);
+    this.updatePhase('connecting', 'Connection lost. Reconnecting...');
+
+    if (this.reconnectTimeout) clearTimeout(this.reconnectTimeout);
+    
+    // Exponential backoff: 1s, 2s, 4s, 8s...
+    const delay = Math.min(1000 * Math.pow(2, this.reconnectAttempts - 1), 10000);
+    this.reconnectTimeout = setTimeout(() => {
+      if (this.sessionId && this.token) {
+        this.connect(this.sessionId, this.token, true);
+      }
+    }, delay);
+  }
+
   disconnect(): void {
+    this.intentionalDisconnect = true;
     this.clearPing();
+    if (this.reconnectTimeout) {
+      clearTimeout(this.reconnectTimeout);
+      this.reconnectTimeout = null;
+    }
     this.stt.abort();
     this.tts.stop();
-    this.ws?.close();
-    this.ws = null;
+    if (this.ws) {
+      this.ws.close();
+      this.ws = null;
+    }
   }
 
   // ── Actions ───────────────────────────────────────────────────────────────

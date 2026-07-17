@@ -33,7 +33,8 @@ import {
   FileText,
   Download,
 } from 'lucide-react';
-import { useInterviewStore } from '@/store/interviewStore';
+import { useAppDispatch, useAppSelector } from '@/store/hooks';
+import { resetSession } from '@/store/interviewSlice';
 import { useSessionResults } from '@/hooks/useInterview';
 import { interviewApi } from '@/api/interview.api';
 import { ScoreRing } from '@/components/common';
@@ -299,11 +300,11 @@ function WeakAreaPanel({
 export default function InterviewResultsPage() {
   const { sessionId } = useParams<{ sessionId: string }>();
   const navigate = useNavigate();
-  const { resetSession } = useInterviewStore();
+  const dispatch = useAppDispatch();
 
   useEffect(() => {
-    resetSession();
-  }, [resetSession]);
+    dispatch(resetSession());
+  }, [dispatch]);
 
   // Fetch results. If question scores are null but overallScore > 0 (answers were
   // submitted), retry up to 3 times at 2 s intervals — the backend persistSession()
