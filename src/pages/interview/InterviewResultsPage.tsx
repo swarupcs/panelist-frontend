@@ -176,7 +176,9 @@ function QuestionRow({ q, index }: { q: QuestionResult; index: number }) {
       {/* EXT-1: Question rating — only for non-skipped questions */}
       {!skipped && (
         <div className='pl-6 pt-1 border-t border-border/30'>
-          <QuestionRating questionId={q.id} compact />
+          {/* fromQuestionBank={false} — session questions are LLM-generated,
+              they have no QuestionBank row so rating is not applicable */}
+          <QuestionRating questionId={q.id} compact fromQuestionBank={false} />
         </div>
       )}
     </div>

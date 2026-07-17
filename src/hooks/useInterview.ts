@@ -255,5 +255,9 @@ export function useRateQuestion() {
       rating: number;
       comment?: string;
     }) => interviewApi.rateQuestion(questionId, rating, comment),
+
+    // Don't let React Query treat 422 as a thrown/unhandled error.
+    // The component's onError callback handles it by hiding the widget.
+    throwOnError: false,
   });
 }

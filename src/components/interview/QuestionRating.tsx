@@ -1,6 +1,11 @@
 // src/components/interview/QuestionRating.tsx
-// Star-rating widget wired to POST /interview/questions/:questionId/rate
-// Shown inline on the results page per question row.
+//
+// FIX-3: Added `fromQuestionBank` prop (default false).
+// When false, the widget renders nothing — no API call is ever made.
+// The results page always passes false because InterviewSession questions
+// are LLM-generated and never exist in QuestionBank.
+// Only topic/company practice pages that serve real QuestionBank questions
+// should pass fromQuestionBank={true}.
 
 import { useState } from 'react';
 import { Star, Loader2, CheckCircle2 } from 'lucide-react';
@@ -10,6 +15,12 @@ import { useRateQuestion } from '@/hooks/useInterview';
 interface QuestionRatingProps {
   questionId: string;
   compact?: boolean;
+  /**
+   * Set true only when the questionId is a QuestionBank.id (e.g. topic/company practice).
+   * For InterviewSession results (LLM-generated questions) leave false or omit.
+   * Default: false — renders nothing, no API call made.
+   */
+  fromQuestionBank?: boolean;
 }
 
 const LABELS = ['Too easy', 'Easy', 'Just right', 'Hard', 'Too hard'];
@@ -17,7 +28,22 @@ const LABELS = ['Too easy', 'Easy', 'Just right', 'Hard', 'Too hard'];
 export function QuestionRating({
   questionId,
   compact = false,
+  fromQuestionBank = false,
 }: QuestionRatingProps) {
+  // Guard first — no render, no API call, no errors
+  if (!fromQuestionBank) return null;
+
+  return <QuestionRatingInner questionId={questionId} compact={compact} />;
+}
+
+// Inner component only mounts when fromQuestionBank is true
+function QuestionRatingInner({
+  questionId,
+  compact,
+}: {
+  questionId: string;
+  compact: boolean;
+}) {
   const [hovered, setHovered] = useState(0);
   const [selected, setSelected] = useState(0);
   const [comment, setComment] = useState('');
@@ -26,31 +52,33 @@ export function QuestionRating({
 
   const rateQuestion = useRateQuestion();
 
+  const submitRating = (rating: number, commentText?: string) => {
+    rateQuestion.mutate(
+      { questionId, rating, comment: commentText || undefined },
+      {
+        onSuccess: () => setSubmitted(true),
+        onError: () => {
+          setSelected(0);
+          setShowComment(false);
+        },
+      },
+    );
+  };
+
   const handleRate = (rating: number) => {
     if (submitted) return;
     setSelected(rating);
     if (!compact) {
       setShowComment(true);
     } else {
-      // Compact mode: submit immediately without comment
-      rateQuestion.mutate(
-        { questionId, rating },
-        { onSuccess: () => setSubmitted(true) },
-      );
+      submitRating(rating);
     }
   };
 
   const handleSubmitWithComment = () => {
     if (!selected) return;
-    rateQuestion.mutate(
-      { questionId, rating: selected, comment: comment || undefined },
-      {
-        onSuccess: () => {
-          setSubmitted(true);
-          setShowComment(false);
-        },
-      },
-    );
+    submitRating(selected, comment || undefined);
+    setShowComment(false);
   };
 
   if (submitted) {
@@ -101,7 +129,6 @@ export function QuestionRating({
         )}
       </div>
 
-      {/* Optional comment — shown in non-compact mode after star selection */}
       {showComment && !compact && (
         <div className='space-y-2 animate-fade-in'>
           <textarea
