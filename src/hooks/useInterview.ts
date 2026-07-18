@@ -3,6 +3,7 @@
 // All other hooks unchanged from the previous version.
 
 import { useMutation, useQuery } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 import { interviewApi } from '@/api/interview.api';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
@@ -42,6 +43,18 @@ export function useStartInterview() {
         }),
       );
       navigate(`/interview/${data.sessionId}`);
+    },
+    // Without this a failed start did nothing visible at all: the button
+    // stopped spinning and the page sat there. The backend's messages are
+    // already candidate-facing — "you have no pending topics for review", for
+    // instance — so they are shown as-is rather than replaced with something
+    // vaguer.
+    onError: (error: unknown) => {
+      const message =
+        (error as { response?: { data?: { error?: { message?: string } } } })
+          ?.response?.data?.error?.message ??
+        'Could not start the interview. Please try again.';
+      toast.error(message);
     },
   });
 }

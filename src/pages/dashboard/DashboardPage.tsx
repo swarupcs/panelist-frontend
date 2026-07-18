@@ -39,6 +39,7 @@ import { Badge } from '@/components/ui/badge';
 import { ScoreRing } from '@/components/common';
 import { ActivityHeatmap } from '@/components/dashboard/ActivityHeatmap';
 import { StreakWidget } from '@/components/dashboard/StreakWidget';
+import { DueReviewsWidget } from '@/components/dashboard/DueReviewsWidget';
 import {
   formatScore,
   formatPercent,
@@ -476,6 +477,7 @@ export default function DashboardPage() {
           )}
 
           {/* Daily Quests */}
+          <DueReviewsWidget />
           <DailyQuestsWidget />
 
           {/* History shortcut */}
