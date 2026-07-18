@@ -6,15 +6,16 @@
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { useState, useRef, useEffect } from 'react';
 import {
-  Play,
-  CheckCircle2,
-  XCircle,
-  ChevronDown,
-  Terminal,
-  Loader2,
   AlertCircle,
+  CheckCircle2,
+  ChevronDown,
   Clock,
-  Cpu
+  Cpu,
+  Loader2,
+  Lock,
+  Play,
+  Terminal,
+  XCircle,
 } from 'lucide-react';
 import Editor, { useMonaco } from '@monaco-editor/react';
 import { cn } from '@/lib/cn';
@@ -103,6 +104,11 @@ function TestCaseRow({
   index: number;
 }) {
   const [open, setOpen] = useState(false);
+  // The backend redacts hidden cases by replacing input and expected output
+  // with this marker. Rendering it verbatim reads as though the test genuinely
+  // received the string "[hidden]", which is confusing when a candidate is
+  // trying to work out why a case failed.
+  const isHidden = result.input === '[hidden]';
   return (
     <div
       className={cn(
@@ -131,6 +137,12 @@ function TestCaseRow({
           >
             Test {index + 1}
           </span>
+          {isHidden && (
+            <span className='inline-flex items-center gap-1 rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground'>
+              <Lock className='size-2.5' />
+              Hidden
+            </span>
+          )}
           <div className="flex items-center gap-2 ml-2">
             {result.executionTime != null && (
               <span className='flex items-center gap-1 text-muted-foreground'>
@@ -154,7 +166,25 @@ function TestCaseRow({
         />
       </button>
 
-      {open && (
+      {open && isHidden && (
+        <div className='border-t border-border/50 px-3 py-2 space-y-1.5 bg-black/10'>
+          <p className='text-muted-foreground'>
+            This case is hidden — it counts towards your score, but its input is
+            not shown. Make sure your solution handles edge cases you have not
+            been given.
+          </p>
+          {result.error && (
+            <div>
+              <span className='text-muted-foreground'>Error: </span>
+              <code className='text-red-400 whitespace-pre-wrap font-mono text-[11px] block mt-1 p-2 rounded bg-red-950/30 border border-red-500/20'>
+                {result.error}
+              </code>
+            </div>
+          )}
+        </div>
+      )}
+
+      {open && !isHidden && (
         <div className='border-t border-border/50 px-3 py-2 space-y-1.5 bg-black/10'>
           <div>
             <span className='text-muted-foreground'>Input: </span>

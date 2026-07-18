@@ -11,19 +11,20 @@ import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import {
-  Play,
+  AlertTriangle,
+  ChevronDown,
+  ChevronLeft,
+  Clock,
+  FastForward,
+  HelpCircle,
+  Loader2,
+  MessageSquare,
   Pause,
+  Play,
+  Rewind,
   SkipBack,
   SkipForward,
-  ChevronLeft,
-  MessageSquare,
-  HelpCircle,
   Star,
-  Loader2,
-  AlertTriangle,
-  Clock,
-  Rewind,
-  FastForward,
   Trophy,
 } from 'lucide-react';
 import { useReplay } from '@/hooks/useInterview';
@@ -39,6 +40,8 @@ import {
   getScoreColor,
 } from '@/utils/formatters';
 import { cn } from '@/lib/cn';
+import { useTranscript } from '@/hooks/usePanelist';
+import { TranscriptTimeline } from '@/components/interview/TranscriptTimeline';
 import type { ReplayStep } from '@/types/interview-extended';
 
 // ── Constants ──────────────────────────────────────────────────────────────
@@ -539,6 +542,13 @@ export default function InterviewReplayPage() {
         </Card>
       </div>
 
+      {/* The player above is reconstructed from the question rows, which hold
+          questions, answers and scores. The event log holds what actually
+          happened — every code submission with its real test results, drawings,
+          hints and follow-ups — so it is shown here in full rather than left
+          visible only to recruiters. */}
+      <FullTranscript sessionId={sessionId ?? ''} />
+
       <div className='flex justify-end'>
         <Button
           variant='outline'
@@ -549,5 +559,48 @@ export default function InterviewReplayPage() {
         </Button>
       </div>
     </div>
+  );
+}
+
+/**
+ * The session's event log, collapsed by default so it does not compete with
+ * the player for attention.
+ */
+function FullTranscript({ sessionId }: { sessionId: string }) {
+  const [open, setOpen] = useState(false);
+  const { data, isLoading } = useTranscript(sessionId, open);
+
+  return (
+    <Card>
+      <button
+        type='button'
+        onClick={() => setOpen((o) => !o)}
+        className='flex w-full items-center justify-between px-4 py-3 text-left hover:bg-muted/40 transition-colors'
+      >
+        <div>
+          <p className='text-sm font-medium text-foreground'>Full transcript</p>
+          <p className='text-xs text-muted-foreground'>
+            Every submission, test result and drawing from this session
+          </p>
+        </div>
+        <ChevronDown
+          className={cn('size-4 text-muted-foreground transition-transform', open && 'rotate-180')}
+        />
+      </button>
+
+      {open && (
+        <CardContent className='pt-0'>
+          {isLoading ? (
+            <p className='text-sm text-muted-foreground py-4'>Loading transcript…</p>
+          ) : data && data.events.length > 0 ? (
+            <TranscriptTimeline events={data.events} />
+          ) : (
+            <p className='text-sm text-muted-foreground py-4'>
+              No events were recorded for this session.
+            </p>
+          )}
+        </CardContent>
+      )}
+    </Card>
   );
 }
