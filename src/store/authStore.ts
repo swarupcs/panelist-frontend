@@ -12,12 +12,14 @@
 // synchronously. ProtectedRoute waits (shows LoadingScreen) until
 // isInitialized is true before making any auth decision.
 
+import axios from 'axios';
 import { create } from 'zustand';
 import {
   getStorageItem,
   setStorageItem,
   removeStorageItem,
 } from '@/utils/formatters';
+import { clearAccessToken, setAccessToken } from '@/api/access-token';
 import type { AuthTokens, User } from '../types';
 
 interface AuthState {
@@ -30,8 +32,11 @@ interface AuthState {
   setTokens: (tokens: AuthTokens) => void;
   setAuth: (user: User, tokens: AuthTokens) => void;
   clearAuth: () => void;
-  initFromStorage: () => void;
+  initAuth: () => Promise<void>;
 }
+
+/** Guards against overlapping refreshes; see initAuth. */
+let initInFlight: Promise<void> | null = null;
 
 export const useAuthStore = create<AuthState>((set) => ({
   user: null,
@@ -45,31 +50,80 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   setTokens: (tokens) => {
-    setStorageItem('auth_tokens', tokens);
+    // Held in memory only. The refresh token is not stored at all — it lives
+    // in an httpOnly cookie the browser manages and this code cannot read.
+    setAccessToken(tokens.accessToken);
     set({ tokens });
   },
 
   setAuth: (user, tokens) => {
     setStorageItem('auth_user', user);
-    setStorageItem('auth_tokens', tokens);
+    setAccessToken(tokens.accessToken);
     set({ user, tokens, isAuthenticated: true });
   },
 
   clearAuth: () => {
     removeStorageItem('auth_user');
+    // Left over from when tokens were persisted. Removed on every sign-out so
+    // an existing session does not keep a stale credential in storage.
     removeStorageItem('auth_tokens');
+    clearAccessToken();
     set({ user: null, tokens: null, isAuthenticated: false });
   },
 
-  // FIX: always sets isInitialized: true so ProtectedRoute unblocks,
-  // regardless of whether tokens were found.
-  initFromStorage: () => {
-    const user = getStorageItem<User>('auth_user');
-    const tokens = getStorageItem<AuthTokens>('auth_tokens');
-    if (user && tokens) {
-      set({ user, tokens, isAuthenticated: true, isInitialized: true });
-    } else {
-      set({ isInitialized: true });
-    }
+  /**
+   * Restore the session on boot.
+   *
+   * The refresh cookie is the source of truth, not localStorage. A stored user
+   * is only a display convenience and must never decide whether someone is
+   * signed in — if it did, clearing site data would sign out a user whose
+   * cookie is perfectly valid, and a stale entry would show a signed-in shell
+   * the API then rejects.
+   *
+   * So: exchange the cookie for an access token, then ask the API who this is.
+   *
+   * isInitialized is always set at the end, whether or not that succeeds,
+   * because ProtectedRoute blocks on it and would otherwise hang forever on a
+   * loading screen.
+   */
+  initAuth: async () => {
+    // The refresh token is rotated on every use, so two concurrent calls make
+    // the second one present a token the server has already retired and fail.
+    // React StrictMode double-invokes effects in development, which is exactly
+    // that case — it used to log the user out on the following reload.
+    if (initInFlight) return initInFlight;
+
+    initInFlight = (async () => {
+      const apiBase = (import.meta.env.VITE_API_URL as string) || '/api';
+
+      try {
+        const { data } = await axios.post(
+          `${apiBase}/auth/refresh`,
+          {},
+          { withCredentials: true },
+        );
+        const tokens: AuthTokens = data.data.tokens;
+        setAccessToken(tokens.accessToken);
+
+        const me = await axios.get(`${apiBase}/auth/me`, {
+          withCredentials: true,
+          headers: { Authorization: `Bearer ${tokens.accessToken}` },
+        });
+        const user: User = me.data.data;
+
+        // Kept so the shell can render a name before the first request
+        // resolves. It is not consulted when deciding authentication.
+        setStorageItem('auth_user', user);
+        set({ user, tokens, isAuthenticated: true, isInitialized: true });
+      } catch {
+        removeStorageItem('auth_user');
+        clearAccessToken();
+        set({ user: null, tokens: null, isAuthenticated: false, isInitialized: true });
+      } finally {
+        initInFlight = null;
+      }
+    })();
+
+    return initInFlight;
   },
 }));

@@ -24,7 +24,7 @@ const LEVELS = [
 
 export default function OnboardingPage() {
   const navigate = useNavigate();
-  const { user, initFromStorage } = useAuthStore();
+  const { user, initAuth } = useAuthStore();
   const [step, setStep] = useState(1);
   const [windowSize, setWindowSize] = useState({ width: window.innerWidth, height: window.innerHeight });
 
@@ -66,7 +66,7 @@ export default function OnboardingPage() {
         parsed.hasOnboarded = true;
         localStorage.setItem('auth_user', JSON.stringify(parsed));
         // Force zustand to reload from storage to instantly reflect changes
-        initFromStorage();
+        void initAuth();
       }
 
       setIsGenerating(false);

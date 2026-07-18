@@ -14,8 +14,10 @@ export const authApi = {
     return res.data.data
   },
 
-  logout: async (refreshToken: string): Promise<void> => {
-    await api.post('/auth/logout', { refreshToken })
+  // The refresh token is an httpOnly cookie, so it is not passed in: the
+  // browser attaches it and the API clears it in the response.
+  logout: async (): Promise<void> => {
+    await api.post('/auth/logout', {})
   },
 
   refreshToken: async (refreshToken: string): Promise<{ tokens: AuthTokens }> => {

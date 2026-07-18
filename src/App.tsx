@@ -127,9 +127,9 @@ function AppRoutes() {
 }
 
 function AuthInitializer({ children }: { children: React.ReactNode }) {
-  const { initFromStorage } = useAuthStore();
+  const { initAuth } = useAuthStore();
   useEffect(() => {
-    initFromStorage();
+    void initAuth();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   return <>{children}</>;

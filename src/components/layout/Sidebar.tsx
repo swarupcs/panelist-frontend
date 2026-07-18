@@ -118,8 +118,9 @@ export function Sidebar() {
 
   const handleLogout = async () => {
     try {
-      const tokens = getStorageItem<AuthTokens>('auth_tokens');
-      if (tokens?.refreshToken) await authApi.logout(tokens.refreshToken);
+      // No token passed: the refresh token is an httpOnly cookie the browser
+      // sends with the request, so this code neither has nor needs it.
+      await authApi.logout();
     } catch {
       // ignore
     }
@@ -207,8 +208,9 @@ export function MobileNav() {
 
   const handleLogout = async () => {
     try {
-      const tokens = getStorageItem<AuthTokens>('auth_tokens');
-      if (tokens?.refreshToken) await authApi.logout(tokens.refreshToken);
+      // No token passed: the refresh token is an httpOnly cookie the browser
+      // sends with the request, so this code neither has nor needs it.
+      await authApi.logout();
     } catch {
       // ignore
     }

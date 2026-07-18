@@ -1,5 +1,6 @@
 import axios, { AxiosError, type InternalAxiosRequestConfig } from 'axios'
-import { getStorageItem, setStorageItem, removeStorageItem } from '@/utils/formatters'
+import { removeStorageItem } from '@/utils/formatters'
+import { clearAccessToken, getAccessToken, setAccessToken } from './access-token'
 import type { AuthTokens } from '../types'
 
 
@@ -9,15 +10,19 @@ export const axiosInstance = axios.create({
   baseURL: BASE_URL,
   headers: { 'Content-Type': 'application/json' },
   timeout: 30000,
+  // Required for the httpOnly refresh cookie to reach the API. The API must
+  // name this origin explicitly in its CORS config — browsers refuse to send
+  // credentials to a wildcard origin.
+  withCredentials: true,
 })
 
 // ── Request interceptor — inject token ─────────────────────────────────────
 
 axiosInstance.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    const tokens = getStorageItem<AuthTokens>('auth_tokens')
-    if (tokens?.accessToken) {
-      config.headers['Authorization'] = `Bearer ${tokens.accessToken}`
+    const token = getAccessToken()
+    if (token) {
+      config.headers['Authorization'] = `Bearer ${token}`
     }
     return config
   },
@@ -61,15 +66,17 @@ axiosInstance.interceptors.response.use(
       isRefreshing = true
 
       try {
-        const tokens = getStorageItem<AuthTokens>('auth_tokens')
-        if (!tokens?.refreshToken) throw new Error('No refresh token')
-
-        const response = await axios.post(`${BASE_URL}/auth/refresh`, {
-          refreshToken: tokens.refreshToken,
-        })
+        // No token in the body: the refresh token travels as an httpOnly
+        // cookie the browser attaches itself, so it is never exposed to this
+        // code and cannot be read by anything else running on the page.
+        const response = await axios.post(
+          `${BASE_URL}/auth/refresh`,
+          {},
+          { withCredentials: true },
+        )
 
         const newTokens: AuthTokens = response.data.data.tokens
-        setStorageItem('auth_tokens', newTokens)
+        setAccessToken(newTokens.accessToken)
 
         axiosInstance.defaults.headers.common['Authorization'] =
           `Bearer ${newTokens.accessToken}`
@@ -79,7 +86,7 @@ axiosInstance.interceptors.response.use(
         return axiosInstance(originalRequest)
       } catch (refreshError) {
         processQueue(refreshError, null)
-        removeStorageItem('auth_tokens')
+        clearAccessToken()
         removeStorageItem('auth_user')
         window.location.href = '/login'
         return Promise.reject(refreshError)

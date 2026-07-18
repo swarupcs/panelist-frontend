@@ -53,14 +53,16 @@ export function useRegister() {
 }
 
 export function useLogout() {
-  const { tokens, clearAuth } = useAuthStore()
+  const { clearAuth } = useAuthStore()
   const navigate = useNavigate()
 
   return useMutation({
-    mutationFn: () => {
-      if (tokens?.refreshToken) return authApi.logout(tokens.refreshToken)
-      return Promise.resolve()
-    },
+    // Always called. The server is the only thing that can clear the refresh
+    // cookie, and it needs the request to do it. This previously skipped the
+    // call when no refresh token was held in memory — which, now that tokens
+    // are not stored client-side, would be every time, leaving the cookie in
+    // place on sign-out.
+    mutationFn: () => authApi.logout(),
     onSettled: () => {
       clearAuth()
       queryClient.clear()
