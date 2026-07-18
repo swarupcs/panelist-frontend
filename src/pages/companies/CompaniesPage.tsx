@@ -1,21 +1,22 @@
 // src/pages/companies/CompaniesPage.tsx
 import { useState } from 'react';
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useQueryClient, useQuery, useMutation } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import {
-  Building2,
-  Search,
-  ChevronRight,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   Loader2,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   Star,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   Users,
-  Play,
+  Building2,
+  ChevronRight,
   Filter,
+  MessageSquarePlus,
+  Play,
+  Search,
+  Target,
   X,
-  Target
 } from 'lucide-react';
 import { companyApi } from '@/api/company.api';
  
@@ -30,6 +31,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/cn';
 import { useAuthStore } from '@/store/authStore';
 import { useGeneratePath } from '@/hooks/useLearning';
+import { ShareExperienceDialog } from '@/components/company/ShareExperienceDialog';
 
 // ── Difficulty color ───────────────────────────────────────────────────────
 
@@ -190,6 +192,8 @@ function CompanyDetail({
   onClose: () => void;
 }) {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const [sharingExperience, setSharingExperience] = useState(false);
 
   const { data: companyData, isLoading: companyLoading } = useQuery({
     queryKey: ['company', slug],
@@ -301,6 +305,18 @@ function CompanyDetail({
                   ) : null,
                 )}
               </div>
+
+              {/* Contribute an interview experience. The list already shows a
+                  count of these; until now the only way to add one was a
+                  direct API call. */}
+              <Button
+                variant='outline'
+                className='w-full gap-2'
+                onClick={() => setSharingExperience(true)}
+              >
+                <MessageSquarePlus className='size-4' />
+                Share your interview experience
+              </Button>
 
               {/* Practice button */}
               <div className='flex gap-2'>
@@ -459,6 +475,16 @@ function CompanyDetail({
           )}
         </div>
       </div>
+
+      {companyData?.company && (
+        <ShareExperienceDialog
+          slug={slug}
+          companyName={companyData.company.name}
+          isOpen={sharingExperience}
+          onClose={() => setSharingExperience(false)}
+          onSubmitted={() => queryClient.invalidateQueries({ queryKey: ['company', slug] })}
+        />
+      )}
     </div>
   );
 }

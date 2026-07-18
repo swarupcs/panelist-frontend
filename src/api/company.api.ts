@@ -58,4 +58,27 @@ export const companyApi = {
     const res = await api.get('/companies/readiness');
     return res.data.data;
   },
+
+  /**
+   * Contribute an interview experience.
+   *
+   * `rounds` is stored as JSON on the backend; a list of round descriptions is
+   * what the read side displays.
+   */
+  addExperience: async (
+    slug: string,
+    data: {
+      position: string
+      experienceLevel: string
+      rounds: string[]
+      outcome: string
+      difficulty: 'EASY' | 'MEDIUM' | 'HARD' | 'VERY_HARD'
+      preparation: string
+      tips?: string
+      isAnonymous?: boolean
+    },
+  ): Promise<{ experience: unknown }> => {
+    const res = await api.post(`/companies/${slug}/experience`, data)
+    return res.data.data
+  },
 };
