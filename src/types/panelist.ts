@@ -54,6 +54,18 @@ export interface SubmitCodeResponse {
   followUp?: string;
   timeComplexity?: string;
   spaceComplexity?: string;
+  /**
+   * A graded submission also advances the interview, so the next question
+   * arrives with the feedback — no second call needed.
+   */
+  nextQuestion?: {
+    id: string;
+    question: string;
+    difficulty?: string;
+    category?: string;
+    hints?: string[];
+  } | null;
+  sessionCompleted?: boolean;
 }
 
 // ── Drawing submission ─────────────────────────────────────────────────────

@@ -23,25 +23,27 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
-  Lightbulb,
-  Send,
-  Pause,
-  Play,
-  CheckCircle2,
-  AlertCircle,
-  SkipForward,
-  XCircle,
-  ChevronRight,
-  Trophy,
-  Loader2,
-  Code2,
-  AlignLeft,
-  Keyboard,
-  Zap,
-  PenTool,
-  Box,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   Timer,
+  AlertCircle,
+  AlignLeft,
+  Box,
+  CheckCircle2,
+  ChevronRight,
+  Code2,
+  Keyboard,
+  Lightbulb,
+  Loader2,
+  MessageSquare,
+  Pause,
+  PenTool,
+  Play,
+  Send,
+  SkipForward,
+  Terminal,
+  Trophy,
+  XCircle,
+  Zap,
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -63,6 +65,7 @@ import { Badge } from '@/components/ui/badge';
 import { LoadingScreen } from '@/components/common';
 import { SessionTimer, TimedBadge } from '@/components/interview/SessionTimer';
 import { CodeExecutionPanel } from '@/components/interview/CodeExecutionPanel';
+import { useSubmitCode } from '@/hooks/usePanelist';
 import { getDifficultyBadge } from '@/utils/formatters';
 import { MultiFileEditor } from '@/components/interview/MultiFileEditor';
 import { cn } from '@/lib/cn';
@@ -81,6 +84,15 @@ interface FeedbackState {
   spaceComplexity?: string;
   optimizationSuggestions?: string[];
   communicationScore?: number;
+  /** Real sandbox results — present only for executed code submissions. */
+  execution?: {
+    passed: number;
+    total: number;
+    allPassed: boolean;
+    compileError?: string;
+  };
+  /** Adaptive follow-up generated from the actual submission. */
+  followUp?: string;
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -234,6 +246,7 @@ export default function InterviewSessionPage() {
   } = useAppSelector((state) => state.interview);
 
   const submitAnswer = useSubmitAnswer();
+  const submitCode = useSubmitCode(sessionId ?? '');
   const requestHint = useRequestHint(sessionId!);
   const pauseSession = usePauseSession();
   const resumeSession = useResumeSession();
@@ -262,6 +275,43 @@ export default function InterviewSessionPage() {
   }, [currentQuestionIndex, phase]);
 
   // ── Handlers ──────────────────────────────────────────────────────────
+
+  /**
+   * DSA code goes through the session-aware endpoint so it is actually executed
+   * against the question's stored test cases, rather than being read by the
+   * model as prose. That single call runs the sandbox, evaluates against the
+   * real results, records the transcript and advances the interview, so no
+   * separate submitAnswer is needed — calling both would grade the same code
+   * twice and report two different scores.
+   */
+  const handleCodeSubmit = useCallback(
+    (code: string) => {
+      if (!sessionId) return;
+
+      submitCode.mutate(
+        { code, questionIndex: currentQuestionIndex, final: true },
+        {
+          onSuccess: (data) => {
+            setPendingFeedback({
+              score: data.score ?? 0,
+              feedback: data.evaluation ?? '',
+              timeComplexity: data.timeComplexity,
+              spaceComplexity: data.spaceComplexity,
+              followUp: data.followUp,
+              execution: {
+                passed: data.execution.testCasesPassed,
+                total: data.execution.testCasesTotal,
+                allPassed: data.execution.success,
+                compileError: data.execution.compileError,
+              },
+            });
+            setPhase(data.sessionCompleted ? 'completed' : 'feedback');
+          },
+        },
+      );
+    },
+    [sessionId, currentQuestionIndex, submitCode],
+  );
 
   const handleSubmit = useCallback(
     async (codeOverride?: string) => {
@@ -433,7 +483,7 @@ export default function InterviewSessionPage() {
   const progress =
     totalQuestions > 0 ? (currentQuestionIndex / totalQuestions) * 100 : 0;
   const hintsExhausted = hints.length >= (currentQuestion?.hints?.length ?? 0);
-  const isSubmitting = submitAnswer.isPending;
+  const isSubmitting = submitAnswer.isPending || submitCode.isPending;
   const isPauseLoading = pauseSession.isPending || resumeSession.isPending;
 
   // ── Render ─────────────────────────────────────────────────────────────
@@ -657,7 +707,7 @@ export default function InterviewSessionPage() {
                 {isDSA && answerTab === 'code' ? (
                   <>
                     <CodeExecutionPanel
-                      onSubmit={(code) => handleSubmit(code)}
+                      onSubmit={(code) => handleCodeSubmit(code)}
                       testCases={
                         // eslint-disable-next-line @typescript-eslint/no-explicit-any
                         (currentQuestion as any).testCases ?? undefined
@@ -870,6 +920,34 @@ export default function InterviewSessionPage() {
                 </div>
               </div>
 
+              {/* Real sandbox results. Shown above the prose because this is
+                  the objective fact the assessment is reasoning about — the
+                  candidate should see what actually ran before reading why. */}
+              {pendingFeedback.execution && (
+                <div className='rounded-lg border border-border/60 overflow-hidden'>
+                  <div className='flex items-center justify-between gap-3 px-4 py-2.5 bg-muted/40'>
+                    <span className='text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2'>
+                      <Terminal className='size-3.5' />
+                      Test results
+                    </span>
+                    <span
+                      className={
+                        pendingFeedback.execution.allPassed
+                          ? 'text-xs font-semibold tabular-nums rounded-md px-2 py-0.5 bg-green-500/15 text-green-400'
+                          : 'text-xs font-semibold tabular-nums rounded-md px-2 py-0.5 bg-red-500/15 text-red-400'
+                      }
+                    >
+                      {pendingFeedback.execution.passed}/{pendingFeedback.execution.total} passed
+                    </span>
+                  </div>
+                  {pendingFeedback.execution.compileError && (
+                    <p className='px-4 py-2 text-xs text-red-400 border-t border-border/40'>
+                      Compilation failed — no test case ran.
+                    </p>
+                  )}
+                </div>
+              )}
+
               <div>
                 <p className='text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2'>
                   Feedback
@@ -878,6 +956,19 @@ export default function InterviewSessionPage() {
                   {pendingFeedback.feedback}
                 </p>
               </div>
+
+              {/* The interviewer's follow-up, tied to this specific submission. */}
+              {pendingFeedback.followUp && (
+                <div className='rounded-lg border border-primary/20 bg-primary/5 p-4'>
+                  <p className='text-xs font-semibold uppercase tracking-wider text-primary mb-2 flex items-center gap-2'>
+                    <MessageSquare className='size-4' />
+                    Interviewer asks
+                  </p>
+                  <p className='text-sm text-foreground leading-relaxed'>
+                    {pendingFeedback.followUp}
+                  </p>
+                </div>
+              )}
 
               {(pendingFeedback.timeComplexity || pendingFeedback.spaceComplexity) && (
                 <div className='flex items-center gap-3 pt-2'>
