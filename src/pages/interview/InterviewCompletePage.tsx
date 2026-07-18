@@ -1,5 +1,5 @@
 import { useParams, Link } from 'react-router-dom'
-import { Trophy, RotateCcw, BarChart3, Home, CheckCircle, XCircle } from 'lucide-react'
+import { Trophy, RotateCcw, BarChart3, Home, CheckCircle, XCircle, Briefcase } from 'lucide-react'
 import { useAppDispatch, useAppSelector } from '@/store/hooks'
 import { resetSession } from '@/store/interviewSlice'
 import { ScoreRing } from '@/components/common'
@@ -11,9 +11,9 @@ import { Badge } from '@/components/ui/badge'
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { formatInterviewType, formatScore, getDifficultyBadge } from '@/utils/formatters'
 import { cn } from '@/lib/cn'
+import { InterviewReportPanel } from '@/components/interview/InterviewReportPanel'
 
 export default function InterviewCompletePage() {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { sessionId } = useParams()
   const dispatch = useAppDispatch()
    
@@ -91,6 +91,29 @@ export default function InterviewCompletePage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* The end-of-session report — the reason the candidate is here. */}
+      {sessionId && <InterviewReportPanel sessionId={sessionId} />}
+
+      {/* What a hiring team would see for this same session. */}
+      {sessionId && (
+        <Link to={`/recruiter/sessions/${sessionId}`} className="block">
+          <Card className="transition hover:border-primary/40">
+            <CardContent className="flex items-center justify-between gap-3 py-4">
+              <div className="flex items-center gap-3">
+                <Briefcase className="size-4 text-muted-foreground" />
+                <div>
+                  <p className="text-sm font-medium">See the recruiter&rsquo;s view</p>
+                  <p className="text-xs text-muted-foreground">
+                    The same session, framed as a hiring decision
+                  </p>
+                </div>
+              </div>
+              <span className="text-xs text-muted-foreground">Open →</span>
+            </CardContent>
+          </Card>
+        </Link>
+      )}
 
       {/* Answer Breakdown */}
       {Object.entries(answers).length > 0 && (

@@ -11,27 +11,29 @@
 
 import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
+import { InterviewReportPanel } from '@/components/interview/InterviewReportPanel';
 import ReactMarkdown from 'react-markdown';
 import {
-  Trophy,
-  RotateCcw,
-  BarChart3,
-  Home,
-  CheckCircle,
-  XCircle,
-  Clock,
-  Lightbulb,
-  SkipForward,
   AlertTriangle,
+  ArrowRight,
+  BarChart3,
+  Briefcase,
+  CheckCircle,
+  Clock,
+  Download,
+  FileText,
+  HelpCircle,
+  Home,
+  Lightbulb,
   Loader2,
   Play,
-  ArrowRight,
-  Target,
-  HelpCircle,
+  RotateCcw,
   Share2,
-  FileText,
-  Download,
+  SkipForward,
+  Target,
+  Trophy,
+  XCircle,
 } from 'lucide-react';
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
@@ -602,6 +604,31 @@ export default function InterviewResultsPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* The end-of-session report: rating, rubric and what to practise next.
+          Placed above the per-question breakdown because it is the judgement
+          on the session as a whole, and the breakdown is the detail behind it. */}
+      {sessionId && <InterviewReportPanel sessionId={sessionId} />}
+
+      {/* The same session, framed as a hiring decision. */}
+      {sessionId && (
+        <Link to={`/recruiter/sessions/${sessionId}`} className='block'>
+          <Card className='transition hover:border-primary/40'>
+            <CardContent className='flex items-center justify-between gap-3 py-4'>
+              <div className='flex items-center gap-3'>
+                <Briefcase className='size-4 text-muted-foreground' />
+                <div>
+                  <p className='text-sm font-medium'>See the recruiter&rsquo;s view</p>
+                  <p className='text-xs text-muted-foreground'>
+                    The same session, framed as a hiring decision
+                  </p>
+                </div>
+              </div>
+              <span className='text-xs text-muted-foreground'>Open →</span>
+            </CardContent>
+          </Card>
+        </Link>
+      )}
 
       {/* Weak areas panel — only when we have real failed questions */}
       {failedQs.length >= 2 && (
