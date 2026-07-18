@@ -730,6 +730,8 @@ export default function InterviewSessionPage() {
                 {isDSA && answerTab === 'code' ? (
                   <>
                     <CodeExecutionPanel
+                      sessionId={sessionId}
+                      questionIndex={currentQuestionIndex}
                       onSubmit={(code, language) => handleCodeSubmit(code, language)}
                       testCases={
                         // eslint-disable-next-line @typescript-eslint/no-explicit-any

@@ -19,6 +19,7 @@ import {
 import Editor, { useMonaco } from '@monaco-editor/react';
 import { cn } from '@/lib/cn';
 import { useExecuteCode } from '@/hooks/useInterviewExtended';
+import { useSubmitCode } from '@/hooks/usePanelist';
 import type {
   ProgrammingLanguage,
   TestCase,
@@ -188,6 +189,15 @@ interface CodeExecutionPanelProps {
   testCases?: TestCase[];
   submitLoading?: boolean;
   disabled?: boolean;
+  /**
+   * When set, Run executes inside the interview session: the run is recorded on
+   * the transcript and graded against the question's stored test cases rather
+   * than whatever the client passes. Without it the panel falls back to the
+   * standalone execution endpoint, which is fine for a scratchpad but leaves no
+   * trace of the attempt.
+   */
+  sessionId?: string;
+  questionIndex?: number;
 }
 
 export function CodeExecutionPanel({
@@ -195,6 +205,8 @@ export function CodeExecutionPanel({
   testCases,
   submitLoading = false,
   disabled = false,
+  sessionId,
+  questionIndex,
 }: CodeExecutionPanelProps) {
   const [language, setLanguage] = useState<ProgrammingLanguage>('JAVASCRIPT');
   const [codeMap, setCodeMap] = useState<Partial<Record<ProgrammingLanguage, string>>>({});
@@ -202,6 +214,9 @@ export function CodeExecutionPanel({
   const monaco = useMonaco();
   
   const executeCode = useExecuteCode();
+  // Trial run inside the session — executes and returns results, but does not
+  // spend an evaluation. The interviewer only weighs in on a real submission.
+  const trialRun = useSubmitCode(sessionId ?? '');
   const activeLang = LANGUAGES.find((l) => l.value === language)!;
   const cases = testCases && testCases.length > 0 ? testCases : DEFAULT_TEST_CASES;
 
@@ -249,8 +264,19 @@ export function CodeExecutionPanel({
     setCodeMap(prev => ({ ...prev, [language]: value || '' }));
   };
 
+  const isRunning = executeCode.isPending || trialRun.isPending;
+
   const handleRun = () => {
-    if (!currentCode.trim() || executeCode.isPending || disabled) return;
+    if (!currentCode.trim() || isRunning || disabled) return;
+
+    if (sessionId) {
+      // Test cases are resolved server-side from the question, so they are the
+      // same ones the submission is graded against and the client cannot hand
+      // itself an easier suite.
+      trialRun.mutate({ code: currentCode, language, questionIndex, final: false });
+      return;
+    }
+
     executeCode.mutate({ code: currentCode, language, testCases: cases });
   };
 
@@ -259,7 +285,8 @@ export function CodeExecutionPanel({
     onSubmit(currentCode, language);
   };
 
-  const result = executeCode.data;
+  // Both paths report the same execution shape; the session run nests it.
+  const result = sessionId ? trialRun.data?.execution : executeCode.data;
 
   return (
     <div className='space-y-3 flex flex-col h-full'>
@@ -310,19 +337,19 @@ export function CodeExecutionPanel({
           <button
             type='button'
             onClick={handleRun}
-            disabled={!currentCode.trim() || executeCode.isPending || disabled}
+            disabled={!currentCode.trim() || isRunning || disabled}
             className={cn(
               'flex flex-1 sm:flex-none justify-center items-center gap-1.5 rounded-md border border-border px-3 py-1.5',
               'text-xs font-medium text-muted-foreground transition-colors',
               'hover:bg-secondary hover:text-foreground disabled:opacity-50',
             )}
           >
-            {executeCode.isPending ? (
+            {isRunning ? (
               <Loader2 className='size-3.5 animate-spin' />
             ) : (
               <Play className='size-3.5' />
             )}
-            {executeCode.isPending ? 'Running…' : 'Run Tests'}
+            {isRunning ? 'Running…' : 'Run Tests'}
           </button>
 
           <button
@@ -380,13 +407,13 @@ export function CodeExecutionPanel({
       </div>
 
       {/* Execution error */}
-      {executeCode.isError && (
+      {(sessionId ? trialRun.isError : executeCode.isError) && (
         <div className='flex items-center gap-2 rounded-lg border border-destructive/20 bg-destructive/5 px-3 py-2 text-xs text-destructive shrink-0'>
           <AlertCircle className='size-3.5 shrink-0' />
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          {(executeCode.error as any)?.response?.data?.error?.message ??
+          {((sessionId ? trialRun.error : executeCode.error) as any)?.response?.data?.error?.message ??
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            (executeCode.error as any)?.message ??
+            ((sessionId ? trialRun.error : executeCode.error) as any)?.message ??
             'Code execution failed'}
         </div>
       )}
