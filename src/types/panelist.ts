@@ -21,6 +21,12 @@ export interface SubmitCodeRequest {
   questionIndex?: number;
   /** false = trial run: executes and returns results, but no AI evaluation. */
   final?: boolean;
+  /**
+   * Hold the interview on this question so the follow-up can be put to the
+   * candidate. The caller must then answer or skip it via answerFollowUp,
+   * which advances the session.
+   */
+  awaitFollowUp?: boolean;
 }
 
 /**
@@ -65,6 +71,21 @@ export interface SubmitCodeResponse {
     category?: string;
     hints?: string[];
   } | null;
+  sessionCompleted?: boolean;
+  /** True when the caller must now conduct the follow-up turn. */
+  awaitingFollowUp?: boolean;
+}
+
+export interface AnswerFollowUpRequest {
+  answer?: string;
+  questionIndex?: number;
+  /** Record that the candidate had nothing to add, and move on. */
+  skipped?: boolean;
+}
+
+export interface AnswerFollowUpResponse {
+  recorded: boolean;
+  nextQuestion?: { id: string; question: string } | null;
   sessionCompleted?: boolean;
 }
 

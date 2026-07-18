@@ -64,7 +64,7 @@ import { Badge } from '@/components/ui/badge';
 import { LoadingScreen } from '@/components/common';
 import { SessionTimer, TimedBadge } from '@/components/interview/SessionTimer';
 import { CodeExecutionPanel } from '@/components/interview/CodeExecutionPanel';
-import { useSubmitCode } from '@/hooks/usePanelist';
+import { useAnswerFollowUp, useSubmitCode } from '@/hooks/usePanelist';
 import { DrawingCanvas } from '@/components/interview/DrawingCanvas';
 import type { SubmitDrawingResponse } from '@/types/panelist';
 import type { ProgrammingLanguage } from '@/types/interview-extended';
@@ -249,6 +249,8 @@ export default function InterviewSessionPage() {
 
   const submitAnswer = useSubmitAnswer();
   const submitCode = useSubmitCode(sessionId ?? '');
+  const answerFollowUp = useAnswerFollowUp(sessionId ?? '');
+  const [followUpReply, setFollowUpReply] = useState('');
   const requestHint = useRequestHint(sessionId!);
   const pauseSession = usePauseSession();
   const resumeSession = useResumeSession();
@@ -294,7 +296,7 @@ export default function InterviewSessionPage() {
       // session, so switching language mid-question grades in the runtime the
       // candidate actually wrote in.
       submitCode.mutate(
-        { code, language, questionIndex: currentQuestionIndex, final: true },
+        { code, language, questionIndex: currentQuestionIndex, final: true, awaitFollowUp: true },
         {
           onSuccess: (data) => {
             setPendingFeedback({
@@ -334,6 +336,35 @@ export default function InterviewSessionPage() {
       setPhase(result.sessionCompleted ? 'completed' : 'feedback');
     },
     [],
+  );
+
+  /**
+   * Answer the interviewer's follow-up, or skip it. Either way the server
+   * records the turn and advances, so the next question comes back from here
+   * rather than from a second call.
+   */
+  const handleFollowUp = useCallback(
+    (skipped: boolean) => {
+      if (!sessionId) return;
+      const reply = followUpReply.trim();
+      if (!skipped && !reply) return;
+
+      answerFollowUp.mutate(
+        { answer: skipped ? undefined : reply, questionIndex: currentQuestionIndex, skipped },
+        {
+          onSuccess: (data) => {
+            setFollowUpReply('');
+            setPendingFeedback(null);
+            setAnswer('');
+            setHints([]);
+            setShowHints(false);
+            setTimeSpent(0);
+            setPhase(data.sessionCompleted ? 'completed' : 'answering');
+          },
+        },
+      );
+    },
+    [sessionId, followUpReply, currentQuestionIndex, answerFollowUp],
   );
 
   const handleSubmit = useCallback(
@@ -1001,16 +1032,44 @@ export default function InterviewSessionPage() {
                 </p>
               </div>
 
-              {/* The interviewer's follow-up, tied to this specific submission. */}
+              {/* The interviewer's follow-up — an actual turn, not a notice.
+                  The session is held on this question until it is answered or
+                  skipped, so the reply is recorded against the right question. */}
               {pendingFeedback.followUp && (
-                <div className='rounded-lg border border-primary/20 bg-primary/5 p-4'>
-                  <p className='text-xs font-semibold uppercase tracking-wider text-primary mb-2 flex items-center gap-2'>
+                <div className='rounded-lg border border-primary/20 bg-primary/5 p-4 space-y-3'>
+                  <p className='text-xs font-semibold uppercase tracking-wider text-primary flex items-center gap-2'>
                     <MessageSquare className='size-4' />
                     Interviewer asks
                   </p>
                   <p className='text-sm text-foreground leading-relaxed'>
                     {pendingFeedback.followUp}
                   </p>
+
+                  <Textarea
+                    value={followUpReply}
+                    onChange={(e) => setFollowUpReply(e.target.value)}
+                    placeholder='Answer in your own words…'
+                    className='min-h-[90px] text-sm resize-y bg-background'
+                    disabled={answerFollowUp.isPending}
+                  />
+
+                  <div className='flex flex-wrap items-center gap-2'>
+                    <Button
+                      onClick={() => handleFollowUp(false)}
+                      disabled={!followUpReply.trim() || answerFollowUp.isPending}
+                      className='gap-2'
+                    >
+                      {answerFollowUp.isPending && <Loader2 className='size-4 animate-spin' />}
+                      Answer &amp; continue
+                    </Button>
+                    <TextButton
+                      onClick={() => handleFollowUp(true)}
+                      disabled={answerFollowUp.isPending}
+                      className='text-muted-foreground hover:text-foreground'
+                    >
+                      Nothing to add — skip
+                    </TextButton>
+                  </div>
                 </div>
               )}
 
@@ -1048,16 +1107,24 @@ export default function InterviewSessionPage() {
                 </div>
               )}
 
-              <div className='flex justify-end pt-1'>
-                <Button
-                  variant='gradient'
-                  size='sm'
-                  onClick={handleNextQuestion}
-                  className='gap-1.5'
-                >
-                  Next Question <ChevronRight className='size-4' />
-                </Button>
-              </div>
+              {/* Hidden while a follow-up is outstanding. The server holds the
+                  interview on this question until the follow-up is answered or
+                  skipped, so advancing here would move the UI on while the
+                  session stayed put — and the next submission would be graded
+                  against the wrong question. The follow-up's own buttons are
+                  the way forward in that state. */}
+              {!pendingFeedback.followUp && (
+                <div className='flex justify-end pt-1'>
+                  <Button
+                    variant='gradient'
+                    size='sm'
+                    onClick={handleNextQuestion}
+                    className='gap-1.5'
+                  >
+                    Next Question <ChevronRight className='size-4' />
+                  </Button>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>

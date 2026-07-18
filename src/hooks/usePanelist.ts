@@ -4,7 +4,11 @@
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { panelistApi, recruiterApi } from '@/api/panelist.api';
-import type { SubmitCodeRequest, SubmitDrawingRequest } from '@/types/panelist';
+import type {
+  AnswerFollowUpRequest,
+  SubmitCodeRequest,
+  SubmitDrawingRequest,
+} from '@/types/panelist';
 
 export const panelistKeys = {
   transcript: (sessionId: string) => ['panelist', 'transcript', sessionId] as const,
@@ -22,6 +26,18 @@ export function useSubmitCode(sessionId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (data: SubmitCodeRequest) => panelistApi.submitCode(sessionId, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: panelistKeys.transcript(sessionId) });
+    },
+  });
+}
+
+/** Answer or skip the follow-up; the session advances server-side. */
+export function useAnswerFollowUp(sessionId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data: AnswerFollowUpRequest) =>
+      panelistApi.answerFollowUp(sessionId, data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: panelistKeys.transcript(sessionId) });
     },

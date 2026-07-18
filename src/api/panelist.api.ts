@@ -10,6 +10,8 @@
 
 import api from './axios';
 import type {
+  AnswerFollowUpRequest,
+  AnswerFollowUpResponse,
   InterviewReport,
   RecruiterDossier,
   SubmitCodeRequest,
@@ -32,6 +34,18 @@ export const panelistApi = {
     data: SubmitCodeRequest,
   ): Promise<SubmitCodeResponse> => {
     const res = await api.post(`/panelist/sessions/${sessionId}/code`, data);
+    return res.data.data;
+  },
+
+  /**
+   * Answer (or skip) the interviewer's follow-up. Records the reply and
+   * advances the interview.
+   */
+  answerFollowUp: async (
+    sessionId: string,
+    data: AnswerFollowUpRequest,
+  ): Promise<AnswerFollowUpResponse> => {
+    const res = await api.post(`/panelist/sessions/${sessionId}/follow-up`, data);
     return res.data.data;
   },
 
