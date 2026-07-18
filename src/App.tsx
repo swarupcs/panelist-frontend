@@ -17,6 +17,8 @@ import { LoadingScreen } from '@/components/common';
 import LoginPage from '@/pages/auth/LoginPage';
 import RegisterPage from '@/pages/auth/RegisterPage';
 import ForgotPasswordPage from '@/pages/auth/ForgotPasswordPage';
+import ResetPasswordPage from '@/pages/auth/ResetPasswordPage';
+import OAuthCallbackPage from '@/pages/auth/OAuthCallbackPage';
 
 const OnboardingPage = lazy(() => import('@/pages/onboarding/OnboardingPage'));
 const DashboardPage = lazy(() => import('@/pages/dashboard/DashboardPage'));
@@ -66,7 +68,13 @@ function AppRoutes() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
         </Route>
+
+        {/* Outside GuestRoute: this page signs the user in, and a GuestRoute
+            would bounce it to /dashboard mid-exchange, before it can send a
+            new user to onboarding. */}
+        <Route path="/auth/callback" element={<OAuthCallbackPage />} />
 
         {/* Public pages - viewable by anyone */}
         <Route path="/scorecard/:token" element={<PublicScorecardPage />} />
