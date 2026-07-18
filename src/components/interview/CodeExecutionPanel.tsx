@@ -184,7 +184,7 @@ function TestCaseRow({
 // ── Main component ─────────────────────────────────────────────────────────
 
 interface CodeExecutionPanelProps {
-  onSubmit: (code: string) => void;
+  onSubmit: (code: string, language: ProgrammingLanguage) => void;
   testCases?: TestCase[];
   submitLoading?: boolean;
   disabled?: boolean;
@@ -256,7 +256,7 @@ export function CodeExecutionPanel({
 
   const handleSubmit = () => {
     if (!currentCode.trim() || submitLoading || disabled) return;
-    onSubmit(currentCode);
+    onSubmit(currentCode, language);
   };
 
   const result = executeCode.data;

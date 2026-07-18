@@ -67,6 +67,7 @@ import { CodeExecutionPanel } from '@/components/interview/CodeExecutionPanel';
 import { useSubmitCode } from '@/hooks/usePanelist';
 import { DrawingCanvas } from '@/components/interview/DrawingCanvas';
 import type { SubmitDrawingResponse } from '@/types/panelist';
+import type { ProgrammingLanguage } from '@/types/interview-extended';
 import { getDifficultyBadge } from '@/utils/formatters';
 import { MultiFileEditor } from '@/components/interview/MultiFileEditor';
 import { cn } from '@/lib/cn';
@@ -286,11 +287,14 @@ export default function InterviewSessionPage() {
    * twice and report two different scores.
    */
   const handleCodeSubmit = useCallback(
-    (code: string) => {
+    (code: string, language: ProgrammingLanguage) => {
       if (!sessionId) return;
 
+      // Sent explicitly rather than relying on the language stored on the
+      // session, so switching language mid-question grades in the runtime the
+      // candidate actually wrote in.
       submitCode.mutate(
-        { code, questionIndex: currentQuestionIndex, final: true },
+        { code, language, questionIndex: currentQuestionIndex, final: true },
         {
           onSuccess: (data) => {
             setPendingFeedback({
@@ -726,7 +730,7 @@ export default function InterviewSessionPage() {
                 {isDSA && answerTab === 'code' ? (
                   <>
                     <CodeExecutionPanel
-                      onSubmit={(code) => handleCodeSubmit(code)}
+                      onSubmit={(code, language) => handleCodeSubmit(code, language)}
                       testCases={
                         // eslint-disable-next-line @typescript-eslint/no-explicit-any
                         (currentQuestion as any).testCases ?? undefined
