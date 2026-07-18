@@ -6,7 +6,7 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Copy, Loader2, EyeOff, Shield } from 'lucide-react';
-import { useAuthStore } from '@/store/authStore';
+import api from '@/api/axios';
 
 interface ShareScorecardModalProps {
   isOpen: boolean;
@@ -15,7 +15,6 @@ interface ShareScorecardModalProps {
 }
 
 export function ShareScorecardModal({ isOpen, onClose, sessionId }: ShareScorecardModalProps) {
-  const { tokens } = useAuthStore();
   const [isGenerating, setIsGenerating] = useState(false);
   const [shareUrl, setShareUrl] = useState('');
   const [copied, setCopied] = useState(false);
@@ -33,26 +32,25 @@ export function ShareScorecardModal({ isOpen, onClose, sessionId }: ShareScoreca
     setCopied(false);
 
     try {
-      const response = await fetch(`${process.env.VITE_API_URL || 'http://localhost:3000'}/api/share/generate/${sessionId}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${tokens?.accessToken}`,
-        },
-        body: JSON.stringify({
-          isBlindMode,
-          password: password || undefined,
-          expiresInDays: expiresInDays === 'never' ? undefined : parseInt(expiresInDays, 10),
-        }),
+      // Goes through the shared client rather than raw fetch. That reads
+      // process.env, which does not exist in the browser under Vite — the URL
+      // silently fell back to localhost:3000 and the request never reached the
+      // API. It also attaches the access token and retries once on 401, neither
+      // of which a bare fetch does.
+      const { data } = await api.post(`/share/generate/${sessionId}`, {
+        isBlindMode,
+        password: password || undefined,
+        expiresInDays: expiresInDays === 'never' ? undefined : parseInt(expiresInDays, 10),
       });
-
-      const data = await response.json();
-      if (!data.success) throw new Error(data.error?.message || 'Failed to generate link');
 
       setShareUrl(data.data.url);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
-      setError(err.message);
+      setError(
+        err?.response?.data?.error?.message ??
+          err?.message ??
+          'Failed to generate link',
+      );
     } finally {
       setIsGenerating(false);
     }

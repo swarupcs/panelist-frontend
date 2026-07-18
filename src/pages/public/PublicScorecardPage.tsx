@@ -24,7 +24,16 @@ export default function PublicScorecardPage() {
       const headers: HeadersInit = {};
       if (pwd) headers['x-share-password'] = pwd;
 
-      const res = await fetch(`${process.env.VITE_API_URL || 'http://localhost:3000'}/api/share/${token}`, { headers });
+      // import.meta.env, not process.env — the latter does not exist in the
+      // browser under Vite, so this silently fell back to localhost:3000 and a
+      // shared scorecard never loaded anywhere but a dev machine.
+      //
+      // Deliberately raw fetch rather than the shared API client: this page is
+      // public, and the client's 401 handler would try to refresh and bounce a
+      // signed-out visitor to the login page. Here a 401 just means the
+      // scorecard is password protected.
+      const base = (import.meta.env.VITE_API_URL as string) || '/api';
+      const res = await fetch(`${base}/share/${token}`, { headers });
       const result = await res.json();
 
       if (!result.success) {
