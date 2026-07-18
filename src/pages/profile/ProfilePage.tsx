@@ -29,6 +29,7 @@ import {
 import { cn } from '@/lib/cn';
 import type { UserPreferences } from '@/types';
 import { AccountSecurityCard } from '@/components/profile/AccountSecurityCard';
+import { DocumentsCard } from '@/components/profile/DocumentsCard';
 
 // ── Avatar ─────────────────────────────────────────────────────────────────
 
@@ -628,6 +629,9 @@ export default function ProfilePage() {
           </Card>
         ))}
       </div>
+
+      {/* Files attached to the account. */}
+      <DocumentsCard />
 
       {/* How this account signs in — provider, password, disconnect. */}
       <AccountSecurityCard />
