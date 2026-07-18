@@ -6,6 +6,7 @@ import {
   CalendarDays, Share2, ChevronRight,
   Code2, Network, Users, Monitor, Rocket, Server,
 } from 'lucide-react';
+import { Seo } from '@/components/common/Seo';
 import { getBlogPost, getRelatedPosts } from '@/data/blog-posts';
 
 const iconMap: Record<string, React.ElementType> = {
@@ -38,46 +39,27 @@ export default function BlogPostPage() {
     window.scrollTo(0, 0);
   }, [slug]);
 
-  useEffect(() => {
-    if (post) {
-      document.title = `${post.title} — InterviewCoach.ai Blog`;
-      // Update meta description
-      let meta = document.querySelector('meta[name="description"]');
-      if (!meta) {
-        meta = document.createElement('meta');
-        meta.setAttribute('name', 'description');
-        document.head.appendChild(meta);
-      }
-      meta.setAttribute('content', post.excerpt);
 
-      // Add structured data (JSON-LD) for SEO
-      let script = document.querySelector('#blog-jsonld') as HTMLScriptElement | null;
-      if (!script) {
-        script = document.createElement('script');
-        script.id = 'blog-jsonld';
-        script.type = 'application/ld+json';
-        document.head.appendChild(script);
-      }
-      script.textContent = JSON.stringify({
+  const seo = post ? (
+    <Seo
+      title={post.title}
+      description={post.excerpt}
+      path={`/blog/${post.slug}`}
+      type="article"
+      publishedTime={post.publishedAt}
+      author={post.author.name}
+      jsonLd={{
         '@context': 'https://schema.org',
         '@type': 'BlogPosting',
         headline: post.title,
         description: post.excerpt,
         author: { '@type': 'Organization', name: post.author.name },
         datePublished: post.publishedAt,
-        publisher: {
-          '@type': 'Organization',
-          name: 'InterviewCoach.ai',
-        },
+        publisher: { '@type': 'Organization', name: 'Panelist' },
         keywords: post.tags.join(', '),
-      });
-
-      return () => {
-        const el = document.querySelector('#blog-jsonld');
-        if (el) el.remove();
-      };
-    }
-  }, [post]);
+      }}
+    />
+  ) : null;
 
   if (!post) {
     return (
@@ -106,6 +88,8 @@ export default function BlogPostPage() {
   };
 
   return (
+    <>
+      {seo}
     <div className="min-h-screen bg-background text-foreground">
       {/* Navbar */}
       <nav className="fixed top-0 left-0 right-0 z-50 backdrop-blur-xl bg-background/70 border-b border-border/40">
@@ -279,5 +263,6 @@ export default function BlogPostPage() {
         </div>
       </footer>
     </div>
+    </>
   );
 }

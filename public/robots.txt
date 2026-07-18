@@ -1,0 +1,44 @@
+# Panelist
+#
+# Everything behind authentication is disallowed. Those pages render nothing
+# useful to a crawler without a session, and letting them be crawled spends
+# crawl budget that should go to the content that can actually rank.
+
+User-agent: *
+
+# Public, indexable
+Allow: /$
+Allow: /blog
+Allow: /forum
+Allow: /groups
+Allow: /u/
+
+# Authenticated app — no value to a crawler
+Disallow: /dashboard
+Disallow: /interview
+Disallow: /recruiter
+Disallow: /admin
+Disallow: /analytics
+Disallow: /settings
+Disallow: /profile
+Disallow: /onboarding
+Disallow: /learning
+Disallow: /topics
+Disallow: /companies
+Disallow: /gamification
+Disallow: /srs
+Disallow: /p2p
+
+# Auth screens — nothing to index, and indexing them sends users to a login
+# page from search results instead of to the content they searched for.
+Disallow: /login
+Disallow: /register
+Disallow: /forgot-password
+Disallow: /reset-password
+
+# Shared scorecards are semi-private: the URL is the only access control, so
+# they must not be discoverable through search. They still need og: tags for
+# link previews, which is a separate concern from indexing.
+Disallow: /scorecard/
+
+Sitemap: https://panelist.app/sitemap.xml

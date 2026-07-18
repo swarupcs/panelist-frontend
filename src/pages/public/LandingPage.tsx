@@ -1,4 +1,5 @@
 // src/pages/public/LandingPage.tsx
+import { Seo } from '@/components/common/Seo';
 import { Link } from 'react-router-dom';
 import {
   Brain, Mic, Code2, BarChart3, Target, Trophy,
@@ -152,6 +153,11 @@ const stats = [
 export default function LandingPage() {
   return (
     <div className="min-h-screen bg-background text-foreground overflow-x-hidden">
+      <Seo
+        title="Panelist — AI technical interviews with real code execution"
+        description="Practise technical interviews with an AI that runs your code against real test cases, reviews your system design drawings, and scores you against a rubric tied to what you actually said."
+        path="/"
+      />
       {/* ─── Navbar ──────────────────────────────────────────────────────── */}
       <nav className="fixed top-0 left-0 right-0 z-50 backdrop-blur-xl bg-background/70 border-b border-border/40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">

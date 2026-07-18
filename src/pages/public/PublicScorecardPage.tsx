@@ -1,3 +1,4 @@
+import { Seo } from '@/components/common/Seo';
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
@@ -105,6 +106,17 @@ export default function PublicScorecardPage() {
   const finalScore = Math.round(session.score ?? 0);
 
   return (
+    <>
+      {/* Indexing is off: the URL is the only access control on a shared
+          scorecard, so it must not be discoverable through search. The og:
+          tags still matter — they are what makes the link preview when a
+          candidate shares their result. */}
+      <Seo
+        title={`Interview scorecard — ${finalScore}/100`}
+        description={`${formatInterviewType(session.type)} interview on Panelist — scored ${finalScore} out of 100 with real code execution and AI assessment.`}
+        path={`/scorecard/${token ?? ''}`}
+        noIndex
+      />
     <div className='min-h-screen bg-background text-foreground py-12 px-4'>
       <div className='max-w-3xl mx-auto space-y-8'>
         
@@ -206,5 +218,6 @@ export default function PublicScorecardPage() {
 
       </div>
     </div>
+    </>
   );
 }

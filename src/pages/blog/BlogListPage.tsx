@@ -5,6 +5,7 @@ import {
   Brain, ArrowRight, Clock, Tag, CalendarDays,
   Code2, Network, Users, Monitor, Rocket, Server,
 } from 'lucide-react';
+import { Seo } from '@/components/common/Seo';
 import { blogPosts } from '@/data/blog-posts';
 
 const iconMap: Record<string, React.ElementType> = {
@@ -27,16 +28,17 @@ const categoryColors: Record<string, string> = {
 };
 
 export default function BlogListPage() {
-  useEffect(() => {
-    document.title = 'Blog — AI Interview Coach | DSA, System Design & Interview Tips';
-    const meta = document.querySelector('meta[name="description"]');
-    if (meta) meta.setAttribute('content', 'Expert guides on DSA, system design, behavioral interviews, and career growth. Free articles to help you ace your next tech interview.');
-  }, []);
 
   const featured = blogPosts[0];
   const rest = blogPosts.slice(1);
 
   return (
+    <>
+      <Seo
+        title="Blog — DSA, System Design & Interview Tips"
+        description="Expert guides on DSA, system design, behavioral interviews, and career growth. Free articles to help you ace your next tech interview."
+        path="/blog"
+      />
     <div className="min-h-screen bg-background text-foreground">
       {/* Navbar */}
       <nav className="fixed top-0 left-0 right-0 z-50 backdrop-blur-xl bg-background/70 border-b border-border/40">
@@ -191,5 +193,6 @@ export default function BlogListPage() {
         </div>
       </footer>
     </div>
+    </>
   );
 }
