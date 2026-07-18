@@ -20,9 +20,19 @@ import { useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  Mic, MicOff, Volume2, VolumeX, Pause, Play,
-  Lightbulb, XCircle, Trophy, ChevronRight,
-  AlertCircle, Loader2, Cpu,
+  Mic,
+  AlertCircle,
+  ChevronRight,
+  Cpu,
+  Lightbulb,
+  Loader2,
+  MicOff,
+  Pause,
+  Play,
+  Trophy,
+  Volume2,
+  VolumeX,
+  XCircle,
 } from 'lucide-react';
 import { useVoiceInterview }     from '@/hooks/useVoiceInterview';
 import { WaveformVisualizer }    from '@/components/interview/voice/WaveformVisualizer';
@@ -104,6 +114,12 @@ export default function VoiceInterviewPage() {
       return () => clearTimeout(timer);
     }
   }, [isCompleted, sessionId, navigate]);
+
+  // The Web Speech API reports a denied or unavailable microphone as
+  // "not-allowed" / "service-not-allowed"; getUserMedia raises NotAllowedError.
+  const micBlocked = /not-allowed|NotAllowedError|permission/i.test(
+    `${state.errorMessage ?? ''} ${errors.join(' ')}`,
+  );
 
   // Waveform mode
   const waveMode =
@@ -199,19 +215,63 @@ export default function VoiceInterviewPage() {
         )}
 
         {/* ── ERROR ────────────────────────────────────────────────────── */}
-        {isError && (
+        {/* A blocked microphone is the most common failure here and it is
+            recoverable — the candidate grants permission and carries on. Sending
+            them back to setup would throw away a session that is perfectly
+            healthy, so it gets its own state with instructions and a retry. */}
+        {isError && micBlocked && (
+          <div className='flex flex-col items-center gap-4 text-center animate-fade-in'>
+            <div className='rounded-full bg-yellow-500/10 p-6'>
+              <MicOff className='size-10 text-yellow-400' />
+            </div>
+            <p className='text-lg font-semibold text-foreground'>
+              Microphone access is blocked
+            </p>
+            <p className='text-sm text-muted-foreground max-w-sm'>
+              This interview is spoken, so the browser needs permission to use your
+              microphone. Allow it from the icon in the address bar, then try again.
+              Your session is still open — nothing has been lost.
+            </p>
+            <div className='flex flex-wrap items-center justify-center gap-2'>
+              <button
+                onClick={() => window.location.reload()}
+                className='rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors'
+              >
+                I&rsquo;ve allowed it — retry
+              </button>
+              <button
+                onClick={() => navigate(`/interview/${sessionId}`)}
+                className='rounded-lg border border-border px-4 py-2 text-sm font-medium hover:bg-secondary transition-colors'
+              >
+                Continue by typing instead
+              </button>
+            </div>
+          </div>
+        )}
+
+        {isError && !micBlocked && (
           <div className='flex flex-col items-center gap-4 text-center animate-fade-in'>
             <div className='rounded-full bg-destructive/10 p-6'>
               <AlertCircle className='size-10 text-destructive' />
             </div>
             <p className='text-lg font-semibold text-foreground'>Voice session error</p>
             <p className='text-sm text-destructive max-w-sm'>{state.errorMessage}</p>
-            <button
-              onClick={() => navigate('/interview')}
-              className='rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors'
-            >
-              Back to Setup
-            </button>
+            <div className='flex flex-wrap items-center justify-center gap-2'>
+              {sessionId && (
+                <button
+                  onClick={() => navigate(`/interview/${sessionId}`)}
+                  className='rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors'
+                >
+                  Continue by typing instead
+                </button>
+              )}
+              <button
+                onClick={() => navigate('/interview')}
+                className='rounded-lg border border-border px-4 py-2 text-sm font-medium hover:bg-secondary transition-colors'
+              >
+                Back to Setup
+              </button>
+            </div>
           </div>
         )}
 
