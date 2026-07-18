@@ -17,6 +17,7 @@ import type {
   AdminAIQuestionStats,
   AdminAIQuestion,
   Pagination,
+  GenerateQuestionsRequest,
 } from '@/types/admin'
 
 // ── Dashboard ──────────────────────────────────────────────────────────────
@@ -244,6 +245,27 @@ export const adminAIQuestionApi = {
 
   getQuestion: async (questionId: string): Promise<{ question: AdminAIQuestion }> => {
     const res = await api.get(`/ai-questions/${questionId}`)
+    return res.data.data
+  },
+
+  /**
+   * Generate new questions into the review queue.
+   *
+   * Until this existed the queue could only be filled from outside the app, so
+   * the review screen had nothing to review unless someone seeded the database
+   * by hand.
+   */
+  generate: async (data: GenerateQuestionsRequest): Promise<{ questionIds: string[] }> => {
+    const res = await api.post('/ai-questions/generate', data)
+    return res.data.data
+  },
+
+  /** Generate variations of a question that already exists. */
+  generateSimilar: async (
+    questionId: string,
+    count = 3,
+  ): Promise<{ questionIds: string[] }> => {
+    const res = await api.post(`/ai-questions/${questionId}/similar`, { count })
     return res.data.data
   },
 }

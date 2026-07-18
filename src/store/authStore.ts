@@ -109,7 +109,11 @@ export const useAuthStore = create<AuthState>((set) => ({
           withCredentials: true,
           headers: { Authorization: `Bearer ${tokens.accessToken}` },
         });
-        const user: User = me.data.data;
+        // /auth/me wraps the user: { success, data: { user } }. Reading
+        // me.data.data yields that wrapper, not the user, and storing it broke
+        // every component reading user.name — the sidebar threw and took the
+        // whole page down.
+        const user: User = me.data.data.user ?? me.data.data;
 
         // Kept so the shell can render a name before the first request
         // resolves. It is not consulted when deciding authentication.

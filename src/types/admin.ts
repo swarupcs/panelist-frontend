@@ -412,3 +412,29 @@ export type AdminTab =
 
 export type UserFilterStatus = 'all' | 'active' | 'banned' | 'suspended' | 'inactive'
 export type UserSortField    = 'createdAt' | 'lastLogin' | 'email' | 'name'
+
+
+// ── AI question generation ───────────────────────────────────────────────────
+
+/** Mirrors the backend GenerationType enum. */
+export type GenerationType =
+  | 'SIMILAR'
+  | 'VARIATION'
+  | 'FROM_TOPIC'
+  | 'FROM_COMPANY'
+  | 'FOLLOW_UP'
+  | 'EASIER'
+  | 'HARDER'
+  | 'PERSONALIZED'
+  | 'RESUME_DEEP_DIVE'
+
+export interface GenerateQuestionsRequest {
+  generationType: GenerationType
+  /** Required by SIMILAR, VARIATION, FOLLOW_UP, EASIER and HARDER. */
+  baseQuestionId?: string
+  topicId?: string
+  companyId?: string
+  difficulty?: 'EASY' | 'MEDIUM' | 'HARD'
+  category?: string
+  count?: number
+}

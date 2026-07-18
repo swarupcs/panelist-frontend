@@ -1,7 +1,9 @@
 // src/hooks/useAdmin.ts  (FULL REPLACEMENT)
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { adminUserApi, adminAnalyticsApi, adminStatsApi, adminAIQuestionApi } from '@/api/admin.api'
-import type { UserFilterStatus, UserSortField } from '@/types/admin'
+import type { UserFilterStatus, UserSortField,
+  GenerateQuestionsRequest,
+} from '@/types/admin'
 
 // ── Query Keys ─────────────────────────────────────────────────────────────
 
@@ -344,6 +346,35 @@ export function useApproveAIQuestion(onSuccess?: () => void) {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: adminKeys.aiQuestions() })
       onSuccess?.()
+    },
+  })
+}
+
+// ── AI question generation ───────────────────────────────────────────────────
+
+/**
+ * Generate questions into the review queue.
+ *
+ * Invalidates the pending list so newly generated questions appear without a
+ * manual refresh — the whole point is to see them queued for review.
+ */
+export function useGenerateQuestions() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (data: GenerateQuestionsRequest) => adminAIQuestionApi.generate(data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin', 'ai-questions'] })
+    },
+  })
+}
+
+export function useGenerateSimilar() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ questionId, count }: { questionId: string; count?: number }) =>
+      adminAIQuestionApi.generateSimilar(questionId, count),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin', 'ai-questions'] })
     },
   })
 }

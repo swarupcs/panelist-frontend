@@ -9,17 +9,17 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { LoadingScreen, ErrorState } from '@/components/common'
 import {
-  useAdminAIPendingQuestions, useAdminAIStats,
+  useAdminAIPendingQuestions, useAdminAIStats, useGenerateQuestions,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   useAdminAIQuestion, useApproveAIQuestion,
 } from '@/hooks/useAdmin'
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { formatRelative, formatNumber } from '@/utils/formatters'
 import { cn } from '@/lib/cn'
-import type { AdminAIQuestion } from '@/types/admin'
+import type { AdminAIQuestion, GenerationType } from '@/types/admin'
 
 // ── Sub-tabs ───────────────────────────────────────────────────────────────
-type AITab = 'pending' | 'stats'
+type AITab = 'pending' | 'generate' | 'stats'
 
 export function AdminAIQuestionsTab() {
   const [tab,        setTab       ] = useState<AITab>('pending')
@@ -30,8 +30,9 @@ export function AdminAIQuestionsTab() {
       {/* Tab bar */}
       <div className="flex gap-1 border-b border-border">
         {[
-          { id: 'pending' as AITab, label: 'Pending Review', icon: Clock      },
-          { id: 'stats'   as AITab, label: 'Statistics',     icon: BarChart3  },
+          { id: 'pending'  as AITab, label: 'Pending Review', icon: Clock      },
+          { id: 'generate' as AITab, label: 'Generate',       icon: Sparkles   },
+          { id: 'stats'    as AITab, label: 'Statistics',     icon: BarChart3  },
         ].map((t) => {
           const Icon = t.icon
           return (
@@ -48,6 +49,7 @@ export function AdminAIQuestionsTab() {
       </div>
 
       {tab === 'pending' && <PendingQuestionsTab limit={pendingLimit} onLimitChange={setPendingLimit} />}
+      {tab === 'generate' && <GenerateQuestionsTab onGenerated={() => setTab('pending')} />}
       {tab === 'stats'   && <AIStatsTab />}
     </div>
   )
@@ -408,5 +410,161 @@ function AIStatsTab() {
         </CardContent>
       </Card>
     </div>
+  )
+}
+
+// ── Generate ───────────────────────────────────────────────────────────────
+
+/**
+ * Fills the review queue.
+ *
+ * Without this the queue could only be populated from outside the app, so the
+ * review screen next door had nothing to review unless the database was seeded
+ * by hand.
+ */
+function GenerateQuestionsTab({ onGenerated }: { onGenerated: () => void }) {
+  const [generationType, setGenerationType] = useState<GenerationType>('FROM_TOPIC')
+  const [difficulty, setDifficulty] = useState<'EASY' | 'MEDIUM' | 'HARD'>('MEDIUM')
+  const [category, setCategory] = useState('')
+  const [baseQuestionId, setBaseQuestionId] = useState('')
+  const [count, setCount] = useState(3)
+
+  const generate = useGenerateQuestions()
+
+  // These modes derive from an existing question, so they cannot run without
+  // one — asking for it up front is clearer than a server-side rejection.
+  const needsBaseQuestion = ['SIMILAR', 'VARIATION', 'FOLLOW_UP', 'EASIER', 'HARDER'].includes(
+    generationType,
+  )
+  const canSubmit = !generate.isPending && (!needsBaseQuestion || baseQuestionId.trim().length > 0)
+
+  const handleGenerate = () => {
+    if (!canSubmit) return
+    generate.mutate(
+      {
+        generationType,
+        difficulty,
+        count,
+        category: category.trim() || undefined,
+        baseQuestionId: needsBaseQuestion ? baseQuestionId.trim() : undefined,
+      },
+      { onSuccess: onGenerated },
+    )
+  }
+
+  const errorMessage = generate.isError
+    ? ((generate.error as { response?: { data?: { error?: { message?: string } } } })?.response
+        ?.data?.error?.message ?? 'Generation failed.')
+    : null
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base flex items-center gap-2">
+          <Sparkles className="size-4 text-primary" />
+          Generate questions
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <p className="text-sm text-muted-foreground">
+          Generated questions land in the review queue as drafts. Nothing reaches
+          candidates until it is approved.
+        </p>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <label className="space-y-1.5 text-sm">
+            <span className="font-medium">Type</span>
+            <select
+              value={generationType}
+              onChange={(e) => setGenerationType(e.target.value as GenerationType)}
+              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+            >
+              <option value="FROM_TOPIC">From topic</option>
+              <option value="FROM_COMPANY">From company</option>
+              <option value="PERSONALIZED">Personalised</option>
+              <option value="SIMILAR">Similar to an existing question</option>
+              <option value="VARIATION">Variation of an existing question</option>
+              <option value="FOLLOW_UP">Follow-up to an existing question</option>
+              <option value="EASIER">Easier version</option>
+              <option value="HARDER">Harder version</option>
+            </select>
+          </label>
+
+          <label className="space-y-1.5 text-sm">
+            <span className="font-medium">Difficulty</span>
+            <select
+              value={difficulty}
+              onChange={(e) => setDifficulty(e.target.value as 'EASY' | 'MEDIUM' | 'HARD')}
+              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+            >
+              <option value="EASY">Easy</option>
+              <option value="MEDIUM">Medium</option>
+              <option value="HARD">Hard</option>
+            </select>
+          </label>
+
+          <label className="space-y-1.5 text-sm">
+            <span className="font-medium">
+              Category <span className="text-muted-foreground">(optional)</span>
+            </span>
+            <input
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+              placeholder="ARRAYS, SCALABILITY…"
+              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+            />
+          </label>
+
+          <label className="space-y-1.5 text-sm">
+            <span className="font-medium">How many</span>
+            <input
+              type="number"
+              min={1}
+              max={10}
+              value={count}
+              onChange={(e) => setCount(Math.min(10, Math.max(1, Number(e.target.value) || 1)))}
+              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+            />
+          </label>
+        </div>
+
+        {needsBaseQuestion && (
+          <label className="space-y-1.5 text-sm block">
+            <span className="font-medium">Base question ID</span>
+            <input
+              value={baseQuestionId}
+              onChange={(e) => setBaseQuestionId(e.target.value)}
+              placeholder="The question this one is derived from"
+              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+            />
+          </label>
+        )}
+
+        {errorMessage && (
+          <p className="rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
+            {errorMessage}
+          </p>
+        )}
+
+        <div className="flex items-center gap-3">
+          <Button onClick={handleGenerate} disabled={!canSubmit} className="gap-2">
+            {generate.isPending ? (
+              <>
+                <RefreshCw className="size-4 animate-spin" />
+                Generating…
+              </>
+            ) : (
+              <>
+                <Sparkles className="size-4" />
+                Generate {count}
+              </>
+            )}
+          </Button>
+          <span className="text-xs text-muted-foreground">
+            Each question is a model call, so this takes a few seconds.
+          </span>
+        </div>
+      </CardContent>
+    </Card>
   )
 }
