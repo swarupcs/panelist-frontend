@@ -35,6 +35,17 @@ export const recordingApi = {
     })
   },
 
+  /**
+   * Delete a recording, and the file behind it.
+   *
+   * Only the person who was recorded can do this — consent that cannot be
+   * withdrawn is not really consent.
+   */
+  remove: async (recordingId: string): Promise<{ deleted: boolean }> => {
+    const res = await api.delete(`/interview/recordings/${recordingId}`)
+    return res.data.data
+  },
+
   complete: async (recordingId: string, durationSeconds: number) => {
     const res = await api.post(`/interview/recordings/${recordingId}/complete`, {
       durationSeconds,

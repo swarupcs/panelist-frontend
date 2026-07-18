@@ -16,9 +16,12 @@
 // at the cost of downloading it all before playback starts.
 
 import { useEffect, useRef, useState } from 'react';
-import { CircleAlert, Loader2, Video, VideoOff } from 'lucide-react';
+import { CircleAlert, Loader2, Trash2, Video, VideoOff } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
 import api from '@/api/axios';
+import { recordingApi } from '@/api/recording.api';
 import type { RecruiterDossier } from '@/types/panelist';
 
 type Recording = NonNullable<RecruiterDossier['recording']>;
@@ -49,10 +52,36 @@ function Shell({ children }: { children: React.ReactNode }) {
   );
 }
 
-export function RecordingPlayer({ recording }: { recording: Recording | null }) {
+interface RecordingPlayerProps {
+  recording: Recording | null;
+  /**
+   * Whether the viewer is the person who was recorded. Only they may delete
+   * it: a recruiter removing an assessment recording is a different act, and
+   * the person the recording is of decides whether it exists.
+   */
+  canDelete?: boolean;
+  onDeleted?: () => void;
+}
+
+export function RecordingPlayer({ recording, canDelete, onDeleted }: RecordingPlayerProps) {
   const [blobUrl, setBlobUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [confirming, setConfirming] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const objectUrlRef = useRef<string | null>(null);
+
+  const handleDelete = async () => {
+    if (!recording) return;
+    setDeleting(true);
+    try {
+      await recordingApi.remove(recording.id);
+      toast.success('Recording deleted.');
+      onDeleted?.();
+    } catch {
+      toast.error('Could not delete the recording.');
+      setDeleting(false);
+    }
+  };
 
   const playable = recording?.status === 'READY' || recording?.status === 'INTERRUPTED';
 
@@ -165,12 +194,41 @@ export function RecordingPlayer({ recording }: { recording: Recording | null }) 
           </div>
         )}
 
-        <p className="text-xs text-muted-foreground">
-          {[duration, formatSize(recording.sizeBytes),
-            `consent given ${new Date(recording.consentedAt).toLocaleString()}`]
-            .filter(Boolean)
-            .join(' · ')}
-        </p>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <p className="text-xs text-muted-foreground">
+            {[duration, formatSize(recording.sizeBytes),
+              `consent given ${new Date(recording.consentedAt).toLocaleString()}`]
+              .filter(Boolean)
+              .join(' · ')}
+          </p>
+
+          {/* The withdrawal side of consent. Confirmed inline rather than in a
+              dialog, and the confirm button says what it does — this deletes
+              the video itself, not a reference to it. */}
+          {canDelete && (
+            confirming ? (
+              <span className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground">Delete permanently?</span>
+                <Button size="sm" variant="destructive" onClick={handleDelete} disabled={deleting}>
+                  {deleting ? <Loader2 className="size-3.5 animate-spin" /> : 'Delete'}
+                </Button>
+                <Button size="sm" variant="ghost" onClick={() => setConfirming(false)} disabled={deleting}>
+                  Keep
+                </Button>
+              </span>
+            ) : (
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => setConfirming(true)}
+                className="gap-1.5 text-muted-foreground hover:text-destructive"
+              >
+                <Trash2 className="size-3.5" />
+                Delete recording
+              </Button>
+            )
+          )}
+        </div>
       </div>
     </Shell>
   );

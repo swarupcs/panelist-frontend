@@ -67,7 +67,7 @@ function formatDuration(seconds: number | null) {
 export default function RecruiterSessionPage() {
   const { sessionId = '' } = useParams();
   const [tab, setTab] = useState<Tab>('overview');
-  const { data, isLoading, isError, error } = useRecruiterDossier(sessionId);
+  const { data, isLoading, isError, error, refetch } = useRecruiterDossier(sessionId);
 
   const finalSubmission = useMemo<RecruiterCodeSubmission | undefined>(
     () => data?.codeSubmissions.filter((s) => s.final).at(-1) ?? data?.codeSubmissions.at(-1),
@@ -102,7 +102,7 @@ export default function RecruiterSessionPage() {
     );
   }
 
-  const { session, candidate, report, reportError, codeSubmissions, drawings, transcript, recording } = data;
+  const { session, candidate, report, reportError, codeSubmissions, drawings, transcript, recording, viewerIsOwner } = data;
   const rating = report?.overallRating ?? 0;
 
   return (
@@ -283,7 +283,11 @@ export default function RecruiterSessionPage() {
 
       {tab === 'recording' && (
         <section>
-          <RecordingPlayer recording={recording} />
+          <RecordingPlayer
+            recording={recording}
+            canDelete={viewerIsOwner}
+            onDeleted={() => refetch()}
+          />
         </section>
       )}
 
