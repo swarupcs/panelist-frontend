@@ -49,4 +49,13 @@ export const authApi = {
     const res = await api.post('/auth/set-password', { newPassword })
     return res.data.data
   },
+
+  /**
+   * Disconnect the linked provider. The server refuses if no password is set,
+   * since that would leave the account with no way to sign in.
+   */
+  unlinkOAuth: async (): Promise<{ message: string }> => {
+    const res = await api.delete('/auth/oauth/unlink')
+    return res.data.data
+  },
 }
