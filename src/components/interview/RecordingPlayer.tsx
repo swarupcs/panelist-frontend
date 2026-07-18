@@ -2,16 +2,18 @@
 //
 // Plays back a session recording in the recruiter view.
 //
-// The stream endpoint is authenticated, so the file cannot simply be set as a
-// <video src>: a browser fetching a video does not attach the Authorization
-// header, and the access token is held in memory rather than a cookie. The
-// recording is fetched with the header, turned into a blob URL, and played
-// from that.
+// Two paths, depending on where the recording is stored.
 //
-// The cost is that playback waits for the whole file. That is acceptable here
-// — a recruiter opens one recording deliberately — and the alternative, a
-// signed URL, means a credential in a link that could be forwarded to someone
-// who should not have it.
+// In ImageKit, the server hands back a short-lived signed CDN URL after
+// checking who is asking. That plays directly, so the browser can seek and
+// stream rather than waiting for the whole file — which for an hour-long
+// interview is the difference between usable and not. The link is forwardable
+// until it expires, which is the trade for range support; the window is small.
+//
+// On local disk, the stream endpoint is authenticated and a <video src> does
+// not send the Authorization header — the access token lives in memory, not a
+// cookie. So the file is fetched with the header and played from a blob URL,
+// at the cost of downloading it all before playback starts.
 
 import { useEffect, useRef, useState } from 'react';
 import { CircleAlert, Loader2, Video, VideoOff } from 'lucide-react';
@@ -60,6 +62,18 @@ export function RecordingPlayer({ recording }: { recording: Recording | null }) 
 
     (async () => {
       try {
+        // Ask where to play from. A URL means the CDN can serve it directly.
+        const { data } = await api.get(`/interview/recordings/${recording.id}/playback`);
+        const signedUrl: string | null = data?.data?.url ?? null;
+
+        if (cancelled) return;
+
+        if (signedUrl) {
+          setBlobUrl(signedUrl);
+          return;
+        }
+
+        // Local disk: fetch with the header and play from a blob.
         const res = await api.get(recording.streamUrl.replace(/^\/api/, ''), {
           responseType: 'blob',
         });
