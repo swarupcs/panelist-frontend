@@ -233,6 +233,20 @@ export const fileApi = {
     const res = await api.get(`/files/${fileId}/url`)
     return res.data.data
   },
+
+  /**
+   * Text extracted from the document when it was uploaded.
+   *
+   * `text` is null when the file could not be read — a scanned PDF, or a
+   * legacy .doc — and `extractionReason` says which, so the UI can explain it
+   * rather than showing an empty box.
+   */
+  getFileText: async (
+    fileId: string,
+  ): Promise<{ id: string; originalName: string; text: string | null; extractionReason?: string }> => {
+    const res = await api.get(`/files/${fileId}/text`)
+    return res.data.data
+  },
 }
 
 // ── Resume ─────────────────────────────────────────────────────────────────

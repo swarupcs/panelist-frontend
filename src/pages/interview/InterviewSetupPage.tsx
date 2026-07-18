@@ -3,7 +3,7 @@
 // custom toggle that works reliably in dark mode without extra dependencies.
 
 import { useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import { 
   Code2, 
   Layers, 
@@ -46,6 +46,8 @@ import { useStartInterview } from '@/hooks/useInterview';
 import type { InterviewType, Difficulty } from '@/types';
 import { cn } from '@/lib/cn';
 import { Loader2 } from 'lucide-react';
+import { FileSearch } from 'lucide-react';
+import { ResumePicker } from '@/components/interview/ResumePicker';
 
 // ── Static data ────────────────────────────────────────────────────────────
 
@@ -318,7 +320,13 @@ function AdvancedOption({
 
 export default function InterviewSetupPage() {
   const [searchParams] = useSearchParams();
-  const initialType = (searchParams.get('type') as InterviewType) || 'dsa';
+  // The resume review page hands the text over in navigation state rather than
+  // the query string: a resume is long and personal, and query strings end up
+  // in history, server logs and Referer headers.
+  const location = useLocation();
+  const carried = (location.state ?? {}) as { resumeText?: string; type?: InterviewType };
+
+  const initialType = carried.type || (searchParams.get('type') as InterviewType) || 'dsa';
 
   const [selectedType, setSelectedType] = useState<InterviewType>(initialType);
   const [selectedDifficulty, setSelectedDifficulty] =
@@ -330,7 +338,7 @@ export default function InterviewSetupPage() {
   const [adaptiveMode, setAdaptiveMode] = useState(false);
   const [stressMode, setStressMode] = useState(false);
   const [aiPersona, setAiPersona] = useState<'supportive' | 'strict' | 'default'>('default');
-  const [resumeText, setResumeText] = useState('');
+  const [resumeText, setResumeText] = useState(carried.resumeText ?? '');
 
   const startInterview = useStartInterview();
 
@@ -449,16 +457,38 @@ export default function InterviewSetupPage() {
               <FileText className='size-4 text-blue-400' /> Resume Context
             </CardTitle>
             <CardDescription>
-              Paste your resume text below. Our AI will analyze your experience and generate highly specific technical questions based on your past projects.
+              Upload your resume and we&rsquo;ll read it — questions are built from
+              your own projects and the tools you actually used.
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <textarea
-              value={resumeText}
-              onChange={(e) => setResumeText(e.target.value)}
-              placeholder="Paste your resume text here (e.g. 'Senior Frontend Engineer at Google. Developed micro-frontends using React, Webpack...')"
-              className="w-full min-h-[200px] rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-            />
+            {/* Already chosen on the review page — no reason to ask again. */}
+            {/* The review page is where this flow is meant to start. Offered
+                rather than enforced: someone who just wants to practise should
+                not have to sit through an analysis first. */}
+            {!carried.resumeText && (
+              <Link
+                to="/interview/resume"
+                className="mb-3 flex items-center gap-2 text-xs text-primary hover:underline"
+              >
+                <FileSearch className="size-3.5" />
+                Review your resume first
+              </Link>
+            )}
+
+            {carried.resumeText ? (
+              <div className="flex items-start gap-3 rounded-lg border border-primary/30 bg-primary/5 p-3">
+                <FileText className="mt-0.5 size-4 shrink-0 text-primary" />
+                <div className="min-w-0">
+                  <p className="text-sm font-medium">Using the resume you just reviewed</p>
+                  <p className="text-xs text-muted-foreground">
+                    {carried.resumeText.length.toLocaleString()} characters of context
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <ResumePicker onTextChange={setResumeText} />
+            )}
           </CardContent>
         </Card>
       )}

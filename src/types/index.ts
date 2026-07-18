@@ -501,6 +501,9 @@ export interface FileUpload {
   thumbnailUrl?: string;
   category: string;
   createdAt: string;
+  /** Resumes: whether readable text was pulled out of the document on upload. */
+  hasExtractedText?: boolean;
+  metadata?: { extractionReason?: string } | null;
 }
 
 // ============================================================
