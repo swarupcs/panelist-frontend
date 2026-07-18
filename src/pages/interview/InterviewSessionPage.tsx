@@ -301,6 +301,30 @@ export default function InterviewSessionPage() {
     if (isCompleted && phase !== 'completed') setPhase('completed');
   }, [isCompleted, phase]);
 
+  // Stop recording the moment the interview is over.
+  //
+  // Only the explicit End button did this before, so a session that finished
+  // by running out of questions left the recorder running: the candidate went
+  // on sharing their screen after the interview had ended, chunks kept
+  // uploading, and the recording was never finalised — the recruiter view
+  // showed "still being recorded" indefinitely.
+  useEffect(() => {
+    if (phase === 'completed' && recorder.isRecording) {
+      void recorder.stop();
+    }
+  }, [phase, recorder]);
+
+  // Leaving the page ends capture too. Without this, navigating away leaves
+  // the screen share live until the tab itself is closed.
+  useEffect(() => {
+    return () => {
+      void recorder.stopSilently();
+    };
+    // Deliberately once: this is unmount cleanup, and depending on `recorder`
+    // would tear the recording down on every re-render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Reset answer tab on new question
   useEffect(() => {
     if (phase === 'answering') setAnswerTab('text');

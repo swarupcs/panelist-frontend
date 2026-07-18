@@ -141,11 +141,32 @@ export function useSessionRecorder(sessionId: string | undefined) {
     return true
   }, [sessionId, stop])
 
+  /**
+   * Release the capture without waiting for the server.
+   *
+   * For unmount: the component is going away, so there is nothing to await
+   * into, but the screen share must stop regardless — leaving it live after
+   * the user has navigated away is a privacy problem, not an untidy one. The
+   * server marks an unfinalised recording as interrupted, so what was captured
+   * stays playable.
+   */
+  const stopSilently = useCallback(() => {
+    const recorder = recorderRef.current
+    if (recorder && recorder.state !== 'inactive') {
+      recorder.requestData()
+      recorder.stop()
+    }
+    streamRef.current?.getTracks().forEach((track) => track.stop())
+    recorderRef.current = null
+    streamRef.current = null
+  }, [])
+
   return {
     state,
     isRecording: state === 'recording',
     uploadFailures,
     start,
     stop,
+    stopSilently,
   }
 }
