@@ -3,14 +3,18 @@
 // Sign-in method: which OAuth provider is connected, setting a password, and
 // disconnecting the provider.
 //
-// Deliberately does NOT offer to connect a provider. The backend route for that
-// exists but is a stub — it validates its input and returns "linked
-// successfully" without linking anything. A button here would tell the user
-// their account was connected when nothing had happened, which is worse than
-// not offering it. Unlinking and setting a password are both real.
+// Connecting now works, so this offers it. It previously did not: the backend
+// route was a stub that replied "linked successfully" without linking, and a
+// button here would have told users their account was connected when nothing
+// had happened.
+//
+// The connect buttons are full-page navigations, not fetches. Linking is an
+// OAuth round trip through Google or GitHub, and the result comes back as a
+// redirect to /profile carrying either ?linked= or ?linkError=.
 
-import { useState } from 'react';
-import { AlertCircle, Check, KeyRound, Loader2, Unlink } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { AlertCircle, Check, KeyRound, Link as LinkIcon, Loader2, Unlink } from 'lucide-react';
 import { toast } from 'sonner';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -24,9 +28,11 @@ const PROVIDER_LABELS: Record<string, string> = {
 };
 
 export function AccountSecurityCard() {
-  const { user } = useAuthStore();
+  const { user, setUser } = useAuthStore();
   const provider = (user as { oauthProvider?: string | null } | null)?.oauthProvider ?? null;
 
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [linking, setLinking] = useState<string | null>(null);
   const [password, setPassword] = useState('');
   const [settingPassword, setSettingPassword] = useState(false);
   const [unlinking, setUnlinking] = useState(false);
@@ -34,6 +40,44 @@ export function AccountSecurityCard() {
   // exists. This tracks it only within the session, to hide the form again
   // after it is set.
   const [passwordJustSet, setPasswordJustSet] = useState(false);
+
+  // The link happens during a redirect, so the outcome arrives as a query
+  // parameter. Reported once and then stripped, otherwise a refresh would
+  // re-announce a link that happened minutes ago.
+  useEffect(() => {
+    const linked = searchParams.get('linked');
+    const linkError = searchParams.get('linkError');
+    if (!linked && !linkError) return;
+
+    if (linked) {
+      toast.success(`${PROVIDER_LABELS[linked] ?? linked} connected.`);
+      // The stored user still says no provider is connected, so re-read it —
+      // otherwise the card keeps offering to connect what was just connected.
+      void authApi.me().then(({ user: fresh }) => setUser(fresh)).catch(() => {});
+    } else if (linkError) {
+      toast.error(linkError);
+    }
+
+    searchParams.delete('linked');
+    searchParams.delete('linkError');
+    setSearchParams(searchParams, { replace: true });
+  }, [searchParams, setSearchParams]);
+
+  const handleConnect = async (target: 'google' | 'github') => {
+    setLinking(target);
+    try {
+      const { url } = await authApi.startOAuthLink(target);
+      // Leaves the app: the provider's consent screen has to render in the
+      // browser and it redirects back here when it is done.
+      window.location.href = url;
+    } catch (err: unknown) {
+      const message =
+        (err as { response?: { data?: { error?: { message?: string } } } })?.response?.data?.error
+          ?.message ?? 'Could not start the connection.';
+      toast.error(message);
+      setLinking(null);
+    }
+  };
 
   const handleSetPassword = async () => {
     if (password.length < 8) {
@@ -103,6 +147,37 @@ export function AccountSecurityCard() {
             </Button>
           )}
         </div>
+
+        {/* Only when nothing is connected. The schema holds one provider per
+            account, so the server refuses a second one — offering a button
+            that always fails would be worse than not offering it. */}
+        {!provider && (
+          <div className="space-y-2 border-t border-border pt-4">
+            <p className="text-sm font-medium">Connect an account</p>
+            <p className="text-xs text-muted-foreground">
+              Sign in with one click next time. You can still use your password.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {(['google', 'github'] as const).map((target) => (
+                <Button
+                  key={target}
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleConnect(target)}
+                  disabled={linking !== null}
+                  className="gap-2"
+                >
+                  {linking === target ? (
+                    <Loader2 className="size-3.5 animate-spin" />
+                  ) : (
+                    <LinkIcon className="size-3.5" />
+                  )}
+                  {PROVIDER_LABELS[target]}
+                </Button>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Offered whether or not a provider is connected: someone signed in
             through Google has no password at all, and the server will refuse to

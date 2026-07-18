@@ -54,6 +54,18 @@ export const authApi = {
    * Disconnect the linked provider. The server refuses if no password is set,
    * since that would leave the account with no way to sign in.
    */
+  /**
+   * Begin connecting a provider.
+   *
+   * Returns a URL to navigate to rather than completing anything: OAuth is a
+   * browser redirect the user walks through, and the link is written when the
+   * provider redirects back.
+   */
+  startOAuthLink: async (provider: 'google' | 'github'): Promise<{ url: string }> => {
+    const res = await api.post('/auth/oauth/link', { provider })
+    return res.data.data
+  },
+
   unlinkOAuth: async (): Promise<{ message: string }> => {
     const res = await api.delete('/auth/oauth/unlink')
     return res.data.data
