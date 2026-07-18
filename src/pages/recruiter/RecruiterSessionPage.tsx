@@ -20,19 +20,22 @@ import {
   Sparkles,
   TrendingUp,
   User,
+  Video,
 } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { useRecruiterDossier } from '@/hooks/usePanelist';
 import { RubricBreakdown } from '@/components/interview/RubricBreakdown';
 import { TranscriptTimeline } from '@/components/interview/TranscriptTimeline';
+import { RecordingPlayer } from '@/components/interview/RecordingPlayer';
 import type { RecruiterCodeSubmission } from '@/types/panelist';
 
-type Tab = 'overview' | 'code' | 'design' | 'transcript';
+type Tab = 'overview' | 'code' | 'design' | 'recording' | 'transcript';
 
 const TABS: Array<{ id: Tab; label: string; icon: typeof FileText }> = [
   { id: 'overview', label: 'Assessment', icon: Sparkles },
   { id: 'code', label: 'Code', icon: Code2 },
   { id: 'design', label: 'System design', icon: PenTool },
+  { id: 'recording', label: 'Recording', icon: Video },
   { id: 'transcript', label: 'Transcript', icon: FileText },
 ];
 
@@ -99,7 +102,7 @@ export default function RecruiterSessionPage() {
     );
   }
 
-  const { session, candidate, report, reportError, codeSubmissions, drawings, transcript } = data;
+  const { session, candidate, report, reportError, codeSubmissions, drawings, transcript, recording } = data;
   const rating = report?.overallRating ?? 0;
 
   return (
@@ -275,6 +278,12 @@ export default function RecruiterSessionPage() {
               </div>
             </Panel>
           ))}
+        </section>
+      )}
+
+      {tab === 'recording' && (
+        <section>
+          <RecordingPlayer recording={recording} />
         </section>
       )}
 

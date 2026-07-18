@@ -73,6 +73,8 @@ import { MultiFileEditor } from '@/components/interview/MultiFileEditor';
 import { cn } from '@/lib/cn';
 import { Progress } from '@/components/ui/progress';
 import { Textarea } from '@/components/ui/textarea';
+import { useSessionRecorder } from '@/hooks/useSessionRecorder';
+import { RecordingConsent } from '@/components/interview/RecordingConsent';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -256,6 +258,32 @@ export default function InterviewSessionPage() {
   const resumeSession = useResumeSession();
   const skipQuestion = useSkipQuestion();
   const endInterview = useEndInterview();
+
+  // Recording. Asked once per session; declining is remembered for the session
+  // so the dialog does not reappear on every re-render or reload.
+  const recorder = useSessionRecorder(sessionId);
+  const [consentAsked, setConsentAsked] = useState(
+    () => sessionStorage.getItem(`recording-asked-${sessionId}`) === 'true',
+  );
+  const [startingRecording, setStartingRecording] = useState(false);
+
+  const rememberAsked = () => {
+    if (sessionId) sessionStorage.setItem(`recording-asked-${sessionId}`, 'true');
+    setConsentAsked(true);
+  };
+
+  const handleAcceptRecording = async () => {
+    setStartingRecording(true);
+    const started = await recorder.start();
+    setStartingRecording(false);
+    // Only remember once the question has actually been answered — a browser
+    // picker dismissed by accident should get another chance.
+    if (started) rememberAsked();
+  };
+
+  const handleDeclineRecording = () => {
+    rememberAsked();
+  };
 
   const isDSA = sessionType === 'dsa';
   const isSystemDesign = sessionType === 'system_design';
@@ -455,6 +483,9 @@ export default function InterviewSessionPage() {
 
   const handleEnd = () => {
     if (!sessionId) return;
+    // Finalise before ending, so the recording is marked complete rather than
+    // interrupted and the last chunks are flushed.
+    void recorder.stop();
     endInterview.mutate(sessionId);
   };
 
@@ -544,6 +575,16 @@ export default function InterviewSessionPage() {
 
   return (
     <div className='max-w-3xl mx-auto space-y-5 animate-fade-in'>
+      {/* Asked once, before the interview gets going. Not shown again after an
+          answer either way — being re-asked to be recorded mid-interview is
+          pressure, not a question. */}
+      <RecordingConsent
+        isOpen={!consentAsked && phase === 'answering' && !isCompleted}
+        onAccept={handleAcceptRecording}
+        onDecline={handleDeclineRecording}
+        isStarting={startingRecording}
+      />
+
       {/* ── Header bar ───────────────────────────────────────────────────── */}
       <div className='flex flex-col md:flex-row items-start md:items-center justify-between gap-4 md:gap-0 rounded-2xl border border-border/50 bg-background/40 backdrop-blur-md p-4 shadow-sm'>
         <div className='flex flex-wrap items-center gap-3'>
@@ -553,6 +594,14 @@ export default function InterviewSessionPage() {
           <Progress value={progress} className='w-32 h-1.5' />
           {/* Mode badges */}
           <TimedBadge sessionId={sessionId ?? ''} isTimed={isTimed} />
+          {/* Always visible while capture runs. Someone being recorded should
+              never have to wonder whether they still are. */}
+          {recorder.isRecording && (
+            <span className="flex items-center gap-1.5 text-xs text-rose-400" title="This session is being recorded">
+              <span className="size-2 animate-pulse rounded-full bg-rose-500" />
+              Recording
+            </span>
+          )}
           {adaptiveMode && (
             <span className='flex items-center gap-1 text-xs text-yellow-400'>
               <Zap className='size-3' /> Adaptive

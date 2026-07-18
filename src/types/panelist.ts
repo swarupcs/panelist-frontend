@@ -224,6 +224,19 @@ export interface RecruiterDossier {
     totalQuestions: number;
   };
   candidate: { id: string; name: string | null; email: string };
+  /**
+   * Null when the candidate was never recorded — they declined, or the session
+   * predates recording. That is a legitimate outcome, not a missing file.
+   */
+  recording: {
+    id: string;
+    status: 'RECORDING' | 'READY' | 'INTERRUPTED' | 'FAILED';
+    durationSeconds: number | null;
+    sizeBytes: number;
+    consentedAt: string;
+    completedAt: string | null;
+    streamUrl: string;
+  } | null;
   questions: Array<{
     questionIndex: number;
     question: string;
