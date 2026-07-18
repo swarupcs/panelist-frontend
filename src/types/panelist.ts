@@ -94,6 +94,15 @@ export interface SubmitDrawingResponse {
     components: string[];
     connections: string[];
   };
+  /** A graded design also advances the interview, as a code submission does. */
+  nextQuestion?: {
+    id: string;
+    question: string;
+    difficulty?: string;
+    category?: string;
+    hints?: string[];
+  } | null;
+  sessionCompleted?: boolean;
 }
 
 // ── Transcript ─────────────────────────────────────────────────────────────

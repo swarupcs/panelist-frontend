@@ -49,7 +49,6 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Tldraw, Editor } from 'tldraw';
 import 'tldraw/tldraw.css';
-import { Excalidraw } from '@excalidraw/excalidraw';
 import { useAppSelector } from '@/store/hooks';
 import {
   useSubmitAnswer,
@@ -66,6 +65,8 @@ import { LoadingScreen } from '@/components/common';
 import { SessionTimer, TimedBadge } from '@/components/interview/SessionTimer';
 import { CodeExecutionPanel } from '@/components/interview/CodeExecutionPanel';
 import { useSubmitCode } from '@/hooks/usePanelist';
+import { DrawingCanvas } from '@/components/interview/DrawingCanvas';
+import type { SubmitDrawingResponse } from '@/types/panelist';
 import { getDifficultyBadge } from '@/utils/formatters';
 import { MultiFileEditor } from '@/components/interview/MultiFileEditor';
 import { cn } from '@/lib/cn';
@@ -311,6 +312,24 @@ export default function InterviewSessionPage() {
       );
     },
     [sessionId, currentQuestionIndex, submitCode],
+  );
+
+  /**
+   * A submitted design is evaluated and advances the interview in one call,
+   * exactly as a code submission does, so its result flows into the same
+   * feedback panel rather than a second one inside the canvas.
+   */
+  const handleDesignEvaluated = useCallback(
+    (result: SubmitDrawingResponse) => {
+      setPendingFeedback({
+        score: result.score,
+        feedback: result.evaluation,
+        followUp: result.followUp,
+        optimizationSuggestions: result.gaps,
+      });
+      setPhase(result.sessionCompleted ? 'completed' : 'feedback');
+    },
+    [],
   );
 
   const handleSubmit = useCallback(
@@ -762,7 +781,7 @@ export default function InterviewSessionPage() {
                               : 'text-muted-foreground hover:text-foreground'
                           )}
                         >
-                          Excalidraw
+                          Design canvas
                         </button>
                         <button
                           type="button"
@@ -774,20 +793,39 @@ export default function InterviewSessionPage() {
                               : 'text-muted-foreground hover:text-foreground'
                           )}
                         >
-                          Tldraw
+                          Scratch sketch
                         </button>
                       </div>
                     </div>
-                    <div style={{ height: '500px', width: '100%', position: 'relative', display: 'flex' }} className='border border-border rounded-lg overflow-hidden bg-background'>
+                    <div
+                      style={
+                        whiteboardType === 'excalidraw'
+                          ? { minHeight: '560px', width: '100%', display: 'flex' }
+                          : { height: '500px', width: '100%', position: 'relative', display: 'flex' }
+                      }
+                      className={cn(
+                        'bg-background',
+                        whiteboardType === 'tldraw' &&
+                          'border border-border rounded-lg overflow-hidden',
+                      )}
+                    >
                       {whiteboardType === 'excalidraw' ? (
-                        <Excalidraw theme="dark" />
+                        <DrawingCanvas
+                          sessionId={sessionId ?? ''}
+                          question={currentQuestion?.question}
+                          questionIndex={currentQuestionIndex}
+                          onEvaluated={handleDesignEvaluated}
+                          className='w-full'
+                        />
                       ) : (
                         <Tldraw onMount={(editor) => setEditor(editor)} />
                       )}
                     </div>
                     <div className='flex justify-between items-center mt-4'>
                       <p className='text-xs text-muted-foreground'>
-                        💡 Use the whiteboard to sketch your architecture. Switch back to the Text or Editor tab to write and submit your final answer.
+                        {whiteboardType === 'excalidraw'
+                          ? 'Label your components and connect them with arrows — unlabelled or unconnected shapes cannot be read by the interviewer.'
+                          : 'Scratch sketching only. Switch back to the Text or Editor tab to write and submit your final answer.'}
                       </p>
                       <TextButton
                         onClick={handleSkip}
