@@ -279,7 +279,7 @@ export default function LandingPage() {
                   <div className="size-3 rounded-full bg-yellow-500/70" />
                   <div className="size-3 rounded-full bg-green-500/70" />
                 </div>
-                <span className="text-xs text-muted-foreground ml-2 font-mono">AI Interview Coach — Mock Session</span>
+                <span className="text-xs text-muted-foreground ml-2 font-mono">Panelist — Mock Session</span>
               </div>
               {/* Terminal content */}
               <div className="p-6 sm:p-8 text-left font-mono text-sm space-y-3">

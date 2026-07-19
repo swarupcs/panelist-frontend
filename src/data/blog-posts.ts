@@ -96,7 +96,7 @@ export const blogPosts: BlogPost[] = [
 <li><strong>Explain your thinking.</strong> Interviewers care more about your approach than a perfect solution.</li>
 </ul>
 
-<p><strong>Ready to practice?</strong> Our AI Interview Coach adapts question difficulty to your level and gives instant feedback on your solutions — just like a real interviewer.</p>
+<p><strong>Ready to practice?</strong> Panelist adapts question difficulty to your level and gives instant feedback on your solutions — just like a real interviewer.</p>
 `,
   },
   {

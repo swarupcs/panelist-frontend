@@ -132,7 +132,7 @@ export default function PublicScorecardPage() {
         {/* Brand / Header */}
         <div className='flex items-center justify-between'>
           <div className='font-bold text-xl tracking-tight'>
-            AI Interview <span className='text-primary'>Coach</span>
+            <span className='text-primary'>Panelist</span>
           </div>
           {isBlindMode && (
             <div className='flex items-center gap-1.5 text-xs font-medium text-amber-500 bg-amber-500/10 px-2.5 py-1 rounded-full'>

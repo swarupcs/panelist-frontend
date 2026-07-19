@@ -106,10 +106,10 @@ function Logo({ collapsed }: { collapsed?: boolean }) {
       {!collapsed && (
         <div>
           <p className='text-sm font-bold text-foreground leading-tight'>
-            AI Interview
+            Panelist
           </p>
           <p className='text-[10px] text-muted-foreground leading-tight'>
-            Coach
+            Interviews
           </p>
         </div>
       )}

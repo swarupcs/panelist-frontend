@@ -47,7 +47,7 @@ export default function LoginPage() {
           </div>
           <div className="text-center">
             <h1 className="text-2xl font-bold text-foreground">Welcome back</h1>
-            <p className="text-sm text-muted-foreground mt-1">Sign in to your AI Interview Coach</p>
+            <p className="text-sm text-muted-foreground mt-1">Sign in to Panelist</p>
           </div>
         </div>
 

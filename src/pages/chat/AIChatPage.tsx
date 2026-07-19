@@ -1,5 +1,5 @@
 // src/pages/chat/AIChatPage.tsx
-// Wires POST /api/query — the multi-agent AI interview coach conversation.
+// Wires POST /api/query — the multi-agent Panelist coach conversation.
 // Agents: DSA, System Design, Behavioral, Resume Review, Learning Support.
 // Add route: <Route path="/chat" element={<AIChatPage />} /> in App.tsx
 
@@ -312,7 +312,7 @@ export default function AIChatPage() {
           </div>
           <div>
             <h1 className='text-base font-bold text-foreground'>
-              AI Interview Coach
+              Panelist Coach
             </h1>
             <p className='text-xs text-muted-foreground'>
               Multi-agent system · DSA, System Design, Behavioral, Resume,
