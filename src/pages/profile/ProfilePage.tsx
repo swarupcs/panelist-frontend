@@ -8,7 +8,6 @@ import {
   History,
   Download,
   Trash2,
-  ChevronRight,
   CheckCircle2,
   AlertTriangle,
   Loader2,
@@ -20,7 +19,6 @@ import { userApi } from '@/api/user.api';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { PageHeader } from '@/components/common';
 import {
   formatDateTime,
   formatRelative,
@@ -457,9 +455,12 @@ function DeleteAccountSection() {
 
 export default function ProfilePage() {
   const { user } = useAuthStore();
+  // Opens on a section rather than on nothing. As an accordion the page
+  // started fully collapsed, so the first thing it showed was four closed
+  // rows and no settings at all.
   const [activeSection, setActiveSection] = useState<
-    'password' | 'preferences' | 'history' | 'publicProfile' | null
-  >(null);
+    'password' | 'preferences' | 'history' | 'publicProfile'
+  >('publicProfile');
 
   const { data: historyData, isLoading: histLoading } = useQuery({
     queryKey: ['user', 'login-history'],
@@ -492,18 +493,21 @@ export default function ProfilePage() {
   ] as const;
 
   return (
-    <div className='max-w-xl mx-auto space-y-6 animate-fade-in'>
-      <PageHeader
-        title='Profile'
-        description='Manage your account and preferences'
-      />
-
-      {/* Profile card */}
-      <Card>
-        <CardContent className='pt-6 pb-6'>
-          <div className='flex flex-col sm:flex-row items-center sm:items-start gap-5'>
+    <div className='animate-fade-in w-full space-y-5'>
+      {/* ── Identity ──
+          The heading and the profile card said the same thing twice: one
+          announced "Profile", the other showed whose. Merged into the hero
+          the rest of the app opens with, so the page starts with the account
+          itself rather than a label for it. */}
+      <section className='relative overflow-hidden rounded-2xl border border-border/60 bg-gradient-to-br from-primary/10 via-card to-accent/10 p-5 sm:p-6'>
+        <div
+          aria-hidden
+          className='pointer-events-none absolute -right-20 -top-24 size-64 rounded-full bg-primary/20 blur-3xl'
+        />
+        <div className='relative'>
+          <div className='flex flex-col items-center gap-5 sm:flex-row sm:items-start'>
             <Avatar name={user.name} picture={user.profilePicture} />
-            <div className='flex-1 text-center sm:text-left space-y-2'>
+            <div className='flex-1 space-y-2 text-center sm:text-left'>
               <div>
                 <h2 className='text-xl font-bold text-foreground'>
                   {user.name}
@@ -554,41 +558,43 @@ export default function ProfilePage() {
               )}
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </section>
 
-      {/* Section accordion */}
-      <div className='space-y-2'>
-        {SECTIONS.map(({ key, label, icon: Icon }) => (
-          <Card key={key}>
+      {/* Settings: a nav beside a panel, rather than an accordion.
+          Opening a section used to push everything under it down the page, so
+          the same control sat somewhere different depending on what else was
+          open. Here the list stays put and only the panel changes. */}
+      <div className='grid items-start gap-5 lg:grid-cols-[220px_minmax(0,1fr)]'>
+        <nav className='flex gap-1 overflow-x-auto lg:sticky lg:top-6 lg:flex-col lg:overflow-visible'>
+          {SECTIONS.map(({ key, label, icon: Icon }) => (
             <button
+              key={key}
               type='button'
-              onClick={() =>
-                setActiveSection(activeSection === key ? null : key)
-              }
-              className='flex w-full items-center justify-between p-4'
+              aria-current={activeSection === key ? 'page' : undefined}
+              onClick={() => setActiveSection(key)}
+              className={cn(
+                'flex shrink-0 items-center gap-2.5 rounded-xl border px-3 py-2.5 text-left text-sm font-medium transition-colors',
+                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                activeSection === key
+                  ? 'border-primary/30 bg-primary/10 text-primary'
+                  : 'border-transparent text-muted-foreground hover:bg-secondary/50 hover:text-foreground',
+              )}
             >
-              <div className='flex items-center gap-3'>
-                <Icon className='size-4 text-muted-foreground' />
-                <span className='text-sm font-medium text-foreground'>
-                  {label}
-                </span>
-              </div>
-              <ChevronRight
-                className={cn(
-                  'size-4 text-muted-foreground transition-transform',
-                  activeSection === key && 'rotate-90',
-                )}
-              />
+              <Icon className='size-4 shrink-0' />
+              {label}
             </button>
+          ))}
+        </nav>
 
-            {activeSection === key && (
-              <CardContent className='pt-0 pb-4 border-t border-border'>
-                {key === 'publicProfile' && <PublicProfileForm />}
-                {key === 'preferences' && <PreferencesForm />}
-                {key === 'password' && <ChangePasswordForm />}
-                {key === 'history' && (
-                  <div className='space-y-2 mt-3'>
+        <div className='space-y-5'>
+          <Card>
+            <CardContent className='pt-5'>
+              {activeSection === 'publicProfile' && <PublicProfileForm />}
+              {activeSection === 'preferences' && <PreferencesForm />}
+              {activeSection === 'password' && <ChangePasswordForm />}
+              {activeSection === 'history' && (
+                  <div className='space-y-2'>
                     {histLoading && (
                       <div className='flex justify-center py-4'>
                         <Loader2 className='size-4 animate-spin text-primary' />
@@ -621,19 +627,22 @@ export default function ProfilePage() {
                     ))}
                   </div>
                 )}
-              </CardContent>
-            )}
+            </CardContent>
           </Card>
-        ))}
-      </div>
 
-      {/* Files attached to the account. */}
-      <DocumentsCard />
+          {/* Side by side once there is width for it. Documents and sign-in
+              are both short, and stacked full-width they were mostly empty
+              space between a label and a button. */}
+          <div className='grid gap-5 xl:grid-cols-2'>
+            {/* Files attached to the account. */}
+            <DocumentsCard />
 
-      {/* How this account signs in — provider, password, disconnect. */}
-      <AccountSecurityCard />
+            {/* How this account signs in — provider, password, disconnect. */}
+            <AccountSecurityCard />
+          </div>
 
-      {/* Data & danger zone */}
+      {/* Data & danger zone. Last, and on its own — deleting an account is
+          not a neighbour to changing a notification preference. */}
       <Card>
         <CardHeader>
           <CardTitle className='text-base'>Data & Privacy</CardTitle>
@@ -668,6 +677,8 @@ export default function ProfilePage() {
           </div>
         </CardContent>
       </Card>
+        </div>
+      </div>
     </div>
   );
 }
