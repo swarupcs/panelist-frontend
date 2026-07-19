@@ -68,7 +68,11 @@ export function ExcalidrawTab({ onSync, incomingElements, onPointerSync, incomin
   }, [onPointerSync]);
 
   return (
-    <div className="w-full h-full relative excalidraw-wrapper">
+    // Absolute rather than h-full: Excalidraw's root is height:100%, which
+    // resolves to 0 unless every ancestor has a definite height. Filling the
+    // (already relative) parent takes the height from its used size instead,
+    // so the canvas cannot silently collapse the way the interview one did.
+    <div className="absolute inset-0 excalidraw-wrapper">
       <Excalidraw
         excalidrawAPI={(api) => {
           setExcalidrawAPI(api);

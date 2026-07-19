@@ -248,9 +248,21 @@ export function MultiFileEditor({
         </button>
       </div>
 
-      {/* Editor Area */}
+      {/* Editor Area
+          The inner absolute fill is load-bearing. Monaco is mounted with
+          height="100%", and a percentage height resolves against the parent's
+          height property — which here is auto, since this box is sized by
+          flex-1 and a min-height. The editor collapsed to 0px inside a
+          visibly 300px box: the file looked empty and could not be typed in,
+          because there was nothing there to click on.
+
+          Absolute inset-0 takes its height from the containing block's used
+          height rather than its height property, so it resolves whatever the
+          ancestors do. That matters more than tidiness here: this component
+          is rendered with no height wrapper at all. */}
       <div className='relative flex-1 min-h-[300px] overflow-hidden rounded-lg border border-border/50 bg-[#09090b]'>
         {activeFile ? (
+          <div className='absolute inset-0'>
           <Editor
             height="100%"
             theme="interview-dark"
@@ -275,6 +287,7 @@ export function MultiFileEditor({
               wordBasedSuggestions: "currentDocument",
             }}
           />
+          </div>
         ) : (
           <div className='flex h-full items-center justify-center text-muted-foreground text-sm flex-col gap-2'>
             <FileCode className='size-8 opacity-20' />
