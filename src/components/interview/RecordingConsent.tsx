@@ -19,7 +19,7 @@
 
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Eye, Monitor, ShieldCheck } from 'lucide-react';
+import { Eye, Monitor, ShieldCheck, Video } from 'lucide-react';
 
 interface RecordingConsentProps {
   isOpen: boolean;
@@ -30,6 +30,7 @@ interface RecordingConsentProps {
   assessment?: {
     companyName: string;
     requireRecording: boolean;
+    requireCamera: boolean;
     retentionDays: number;
   } | null;
 }
@@ -42,6 +43,7 @@ export function RecordingConsent({
   assessment,
 }: RecordingConsentProps) {
   const required = Boolean(assessment?.requireRecording);
+  const camera = Boolean(assessment?.requireCamera);
   const company = assessment?.companyName;
 
   const retention =
@@ -56,7 +58,11 @@ export function RecordingConsent({
       <DialogContent className="sm:max-w-md" onInteractOutside={(e) => e.preventDefault()}>
         <DialogHeader>
           <DialogTitle>
-            {company ? `${company} records this interview` : 'Record this interview?'}
+            {company
+              ? camera
+                ? `${company} records your screen and camera`
+                : `${company} records this interview`
+              : 'Record this interview?'}
           </DialogTitle>
           <DialogDescription>
             {company
@@ -73,6 +79,20 @@ export function RecordingConsent({
               receive what you pick.
             </p>
           </li>
+
+          {/* Said as its own point rather than folded into the sentence above.
+              Being on camera is a materially different thing from sharing a
+              screen, and somebody skimming should not miss it. */}
+          {camera && (
+            <li className="flex gap-3">
+              <Video className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+              <p className="text-sm text-muted-foreground">
+                <strong className="text-foreground">Your camera is recorded too.</strong>{' '}
+                A person reviews it — it is never analysed automatically, and nothing
+                about your face or expression affects your score.
+              </p>
+            </li>
+          )}
 
           <li className="flex gap-3">
             <Eye className="mt-0.5 size-4 shrink-0 text-muted-foreground" />

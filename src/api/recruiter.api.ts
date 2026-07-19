@@ -27,6 +27,7 @@ export interface InterviewTemplate {
   aiPersona: string
   stressMode: boolean
   requireRecording: boolean
+  requireCamera: boolean
   allowHints: boolean
   candidateSeesResult: boolean
   isArchived: boolean
@@ -80,6 +81,7 @@ export interface CreateTemplateInput {
   aiPersona?: string
   stressMode?: boolean
   requireRecording?: boolean
+  requireCamera?: boolean
   allowHints?: boolean
   candidateSeesResult?: boolean
 }
@@ -193,6 +195,7 @@ export interface PublicInvitation {
   revoked: boolean
   completed: boolean
   requiresRecording: boolean
+  requiresCamera: boolean
   allowsHints: boolean
   resultShared: boolean
   alreadyBound: boolean

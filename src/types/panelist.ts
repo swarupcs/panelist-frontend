@@ -186,6 +186,16 @@ export interface InterviewReport {
   conditions: InterviewConditions;
 }
 
+export interface SessionRecordingSummary {
+  id: string;
+  status: 'RECORDING' | 'READY' | 'INTERRUPTED' | 'FAILED';
+  durationSeconds: number | null;
+  sizeBytes: number;
+  consentedAt: string;
+  completedAt: string | null;
+  streamUrl: string;
+}
+
 export interface InterviewConditions {
   hintsUsed: number;
   questionsSkipped: number;
@@ -261,6 +271,8 @@ export interface RecruiterDossier {
    * Null when the candidate was never recorded — they declined, or the session
    * predates recording. That is a legitimate outcome, not a missing file.
    */
+  /** The candidate, when the interview asked for it. Independent of the screen. */
+  cameraRecording: SessionRecordingSummary | null;
   recording: {
     id: string;
     status: 'RECORDING' | 'READY' | 'INTERRUPTED' | 'FAILED';

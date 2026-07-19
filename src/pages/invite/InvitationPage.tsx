@@ -27,6 +27,7 @@ import {
   Monitor,
   TriangleAlert,
   UserCheck,
+  Video,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -211,6 +212,19 @@ export default function InvitationPage() {
                   <strong className="text-foreground">Your screen will be recorded</strong> and
                   shared with {invitation.companyName}. Your browser will ask what to share,
                   and you can stop at any time.
+                </Requirement>
+              )}
+
+              {/* Its own line, before any signup. Being on camera is a
+                  materially different ask from sharing a screen, and it is the
+                  requirement most likely to make somebody decline — which they
+                  should be able to do before investing anything. */}
+              {invitation.requiresCamera && (
+                <Requirement icon={Video}>
+                  <strong className="text-foreground">Your camera will be on.</strong> A
+                  person at {invitation.companyName} watches it; it is never analysed
+                  automatically, and nothing about your face or expression affects your
+                  score.
                 </Requirement>
               )}
 

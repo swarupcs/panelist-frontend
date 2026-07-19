@@ -104,7 +104,7 @@ export default function RecruiterSessionPage() {
     );
   }
 
-  const { session, candidate, report, reportError, codeSubmissions, drawings, transcript, recording, viewerIsOwner, invitation } = data;
+  const { session, candidate, report, reportError, codeSubmissions, drawings, transcript, recording, cameraRecording, viewerIsOwner, invitation } = data;
   const rating = report?.overallRating ?? 0;
 
   return (
@@ -304,12 +304,24 @@ export default function RecruiterSessionPage() {
       )}
 
       {tab === 'recording' && (
-        <section>
+        <section className="space-y-4">
           <RecordingPlayer
             recording={recording}
             canDelete={viewerIsOwner}
             onDeleted={() => refetch()}
           />
+
+          {/* Separate player rather than a picture-in-picture overlay. The two
+              answer different questions — the screen shows the work, the
+              camera shows who did it — and either is worth watching alone. */}
+          {cameraRecording && (
+            <RecordingPlayer
+              recording={cameraRecording}
+              title="Candidate camera"
+              canDelete={viewerIsOwner}
+              onDeleted={() => refetch()}
+            />
+          )}
         </section>
       )}
 

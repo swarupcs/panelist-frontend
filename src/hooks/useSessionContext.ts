@@ -20,6 +20,7 @@ export interface SessionContext {
   interviewName: string
   attemptNumber: number
   requireRecording: boolean
+  requireCamera: boolean
   allowHints: boolean
   candidateSeesResult: boolean
   /** Days the recording is kept after a decision. Zero means indefinitely. */
@@ -49,6 +50,7 @@ export function useSessionContext(sessionId: string | undefined) {
     // vanishes is worse than showing it a moment late.
     allowHints: context ? context.allowHints : !query.isLoading,
     requireRecording: context?.requireRecording ?? false,
+    requireCamera: context?.requireCamera ?? false,
     candidateSeesResult: context ? context.candidateSeesResult : true,
     isLoading: query.isLoading,
   }

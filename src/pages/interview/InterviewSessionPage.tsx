@@ -289,7 +289,9 @@ export default function InterviewSessionPage() {
 
   const handleAcceptRecording = async () => {
     setStartingRecording(true);
-    const started = await recorder.start();
+    // The camera is requested only when the interview asks for it. Practice
+    // never does.
+    const started = await recorder.start({ camera: assessment.requireCamera });
     setStartingRecording(false);
     // Only remember once the question has actually been answered — a browser
     // picker dismissed by accident should get another chance.
@@ -662,9 +664,19 @@ export default function InterviewSessionPage() {
                 Recording (upload issues)
               </span>
             ) : (
-              <span className="flex items-center gap-1.5 text-xs text-rose-400" title="This session is being recorded">
+              <span
+                className="flex items-center gap-1.5 text-xs text-rose-400"
+                title={
+                  recorder.isRecordingCamera
+                    ? 'Your screen and camera are being recorded'
+                    : 'Your screen is being recorded'
+                }
+              >
                 <span className="size-2 animate-pulse rounded-full bg-rose-500" />
-                Recording
+                {/* Named explicitly rather than left as "Recording". Somebody
+                    on camera should be able to see that they are, at a glance,
+                    for as long as it is true. */}
+                {recorder.isRecordingCamera ? 'Recording · camera on' : 'Recording'}
               </span>
             )
           )}

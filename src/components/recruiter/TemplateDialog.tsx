@@ -78,6 +78,7 @@ export function TemplateDialog({
   const [durationMinutes, setDurationMinutes] = useState(45);
   const [language, setLanguage] = useState<string>('');
   const [requireRecording, setRequireRecording] = useState(true);
+  const [requireCamera, setRequireCamera] = useState(false);
   const [allowHints, setAllowHints] = useState(false);
   const [candidateSeesResult, setCandidateSeesResult] = useState(true);
 
@@ -89,6 +90,7 @@ export function TemplateDialog({
       durationMinutes,
       language: language || null,
       requireRecording,
+      requireCamera,
       allowHints,
       candidateSeesResult,
     });
@@ -193,6 +195,19 @@ export function TemplateDialog({
               checked={requireRecording}
               onChange={setRequireRecording}
             />
+            {/* Only meaningful alongside a screen recording, and worth its
+                own decision: it is the strongest identity signal short of an
+                ID check, and it also excludes candidates without a private
+                space or a decent connection. */}
+            {requireRecording && (
+              <Toggle
+                label="Record the candidate on camera"
+                hint="Off by default. Makes impersonation much harder — and asks more of candidates without a quiet private space. A person reviews it; it is never analysed automatically."
+                checked={requireCamera}
+                onChange={setRequireCamera}
+              />
+            )}
+
             <Toggle
               label="Allow hints"
               hint="Off by default. A hint changes what the score means, so where hints are on, usage is reported next to the result."

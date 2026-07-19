@@ -38,13 +38,13 @@ function formatSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-function Shell({ children }: { children: React.ReactNode }) {
+function Shell({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-base">
           <Video className="size-4 text-primary" />
-          Session recording
+          {title}
         </CardTitle>
       </CardHeader>
       <CardContent>{children}</CardContent>
@@ -61,9 +61,16 @@ interface RecordingPlayerProps {
    */
   canDelete?: boolean;
   onDeleted?: () => void;
+  /** Defaults to the screen recording. The camera is a second, named player. */
+  title?: string;
 }
 
-export function RecordingPlayer({ recording, canDelete, onDeleted }: RecordingPlayerProps) {
+export function RecordingPlayer({
+  recording,
+  canDelete,
+  onDeleted,
+  title = 'Session recording',
+}: RecordingPlayerProps) {
   const [blobUrl, setBlobUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [confirming, setConfirming] = useState(false);
@@ -131,7 +138,7 @@ export function RecordingPlayer({ recording, canDelete, onDeleted }: RecordingPl
   // something having gone wrong — declining is a normal choice.
   if (!recording) {
     return (
-      <Shell>
+      <Shell title={title}>
         <div className="flex items-center gap-3 text-sm text-muted-foreground">
           <VideoOff className="size-4 shrink-0" />
           This session was not recorded.
@@ -142,7 +149,7 @@ export function RecordingPlayer({ recording, canDelete, onDeleted }: RecordingPl
 
   if (recording.status === 'FAILED') {
     return (
-      <Shell>
+      <Shell title={title}>
         <div className="flex items-center gap-3 text-sm text-muted-foreground">
           <CircleAlert className="size-4 shrink-0 text-amber-500" />
           Recording was started but no video was captured.
@@ -153,7 +160,7 @@ export function RecordingPlayer({ recording, canDelete, onDeleted }: RecordingPl
 
   if (recording.status === 'RECORDING') {
     return (
-      <Shell>
+      <Shell title={title}>
         <div className="flex items-center gap-3 text-sm text-muted-foreground">
           <span className="size-2 animate-pulse rounded-full bg-rose-500" />
           This session is still being recorded.
@@ -165,7 +172,7 @@ export function RecordingPlayer({ recording, canDelete, onDeleted }: RecordingPl
   const duration = formatDuration(recording.durationSeconds);
 
   return (
-    <Shell>
+    <Shell title={title}>
       <div className="space-y-3">
         {recording.status === 'INTERRUPTED' && (
           // The recruiter needs to know the video stops early for a technical
