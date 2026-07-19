@@ -4,6 +4,7 @@
 // Submit Code button that calls the parent onSubmit callback.
 
 import { useState } from 'react';
+import Editor, { type OnMount } from '@monaco-editor/react';
 import {
   AlertCircle,
   CheckCircle2,
@@ -251,6 +252,12 @@ export function CodeExecutionPanel({
     setCodeMap(prev => ({ ...prev, [language]: value || '' }));
   };
 
+  const handleEditorMount: OnMount = (editor) => {
+    // Focus only after Monaco has created its textarea. This makes the editor
+    // ready for immediate typing without relying on an external CDN runtime.
+    if (!disabled) editor.focus();
+  };
+
   const isRunning = executeCode.isPending || trialRun.isPending;
 
   const handleRun = () => {
@@ -364,13 +371,26 @@ export function CodeExecutionPanel({
         'w-full rounded-lg border border-border overflow-hidden bg-[#09090b] flex-1 min-h-[300px] shadow-inner',
         disabled && 'opacity-50 pointer-events-none'
       )}>
-        <textarea
-          aria-label='Code editor'
+        <Editor
+          height='100%'
+          language={activeLang.monacoLang}
           value={currentCode}
-          onChange={(event) => handleEditorChange(event.target.value)}
-          disabled={disabled}
-          spellCheck={false}
-          className='block size-full resize-none border-0 bg-[#09090b] p-4 font-mono text-sm leading-6 text-foreground outline-none'
+          onChange={handleEditorChange}
+          onMount={handleEditorMount}
+          theme='vs-dark'
+          options={{
+            readOnly: disabled,
+            domReadOnly: disabled,
+            minimap: { enabled: false },
+            fontSize: 14,
+            fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
+            lineHeight: 21,
+            padding: { top: 16, bottom: 16 },
+            scrollBeyondLastLine: false,
+            smoothScrolling: true,
+            cursorBlinking: 'smooth',
+            automaticLayout: true,
+          }}
         />
       </div>
 
