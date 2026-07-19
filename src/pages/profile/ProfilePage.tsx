@@ -111,7 +111,6 @@ function PublicProfileForm() {
 
       {update.isError && (
         <p className='text-xs text-destructive'>
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           {(update.error as any)?.response?.data?.error?.message ?? 'Failed to update public profile'}
         </p>
       )}
@@ -214,7 +213,6 @@ function ChangePasswordForm() {
 
       {change.isError && (
         <p className='text-xs text-destructive'>
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           {(change.error as any)?.response?.data?.error?.message ??
             'Failed to change password'}
         </p>
@@ -445,7 +443,6 @@ function DeleteAccountSection() {
           </div>
           {del.isError && (
             <p className='text-xs text-destructive'>
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               {(del.error as any)?.response?.data?.error?.message ??
                 'Failed to delete account'}
             </p>

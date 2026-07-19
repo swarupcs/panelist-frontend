@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useRegister } from '@/hooks/useAuth'
+import { apiErrorMessage } from '@/lib/api-error';
 
 const schema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
@@ -52,8 +53,7 @@ export default function RegisterPage() {
 
         {register_.isError && (
           <div className="rounded-lg bg-destructive/10 border border-destructive/20 p-3 text-sm text-destructive text-center">
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            {(register_.error as any)?.response?.data?.error?.message || 'Registration failed'}
+            {apiErrorMessage(register_.error, 'Registration failed')}
           </div>
         )}
 

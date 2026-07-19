@@ -187,7 +187,6 @@ export default function PublicScorecardPage() {
         {/* Questions Breakdown */}
         <div className='space-y-4'>
           <h2 className='text-xl font-bold tracking-tight'>Detailed Breakdown</h2>
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           {session.questions.map((q: any, i: number) => (
             <Card key={q.id}>
               <CardContent className='p-6 space-y-4'>

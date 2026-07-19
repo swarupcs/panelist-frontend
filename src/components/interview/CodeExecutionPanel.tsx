@@ -21,6 +21,7 @@ import Editor, { useMonaco } from '@monaco-editor/react';
 import { cn } from '@/lib/cn';
 import { useExecuteCode } from '@/hooks/useInterviewExtended';
 import { useSubmitCode } from '@/hooks/usePanelist';
+import { apiErrorMessage } from '@/lib/api-error';
 import type {
   ProgrammingLanguage,
   TestCase,
@@ -440,10 +441,7 @@ export function CodeExecutionPanel({
       {(sessionId ? trialRun.isError : executeCode.isError) && (
         <div className='flex items-center gap-2 rounded-lg border border-destructive/20 bg-destructive/5 px-3 py-2 text-xs text-destructive shrink-0'>
           <AlertCircle className='size-3.5 shrink-0' />
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          {((sessionId ? trialRun.error : executeCode.error) as any)?.response?.data?.error?.message ??
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            ((sessionId ? trialRun.error : executeCode.error) as any)?.message ??
+          {((sessionId ? trialRun.error : executeCode.error) as any)?.message ??
             'Code execution failed'}
         </div>
       )}

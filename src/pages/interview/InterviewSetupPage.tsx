@@ -48,6 +48,7 @@ import { cn } from '@/lib/cn';
 import { Loader2 } from 'lucide-react';
 import { FileSearch } from 'lucide-react';
 import { ResumePicker } from '@/components/interview/ResumePicker';
+import { apiErrorMessage } from '@/lib/api-error';
 
 // ── Static data ────────────────────────────────────────────────────────────
 
@@ -779,9 +780,7 @@ export default function InterviewSetupPage() {
 
           {startInterview.isError && (
             <p className='mt-3 text-sm text-destructive'>
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              {(startInterview.error as any)?.response?.data?.error?.message ||
-                'Failed to start interview'}
+              {apiErrorMessage(startInterview.error, 'Failed to start interview')}
             </p>
           )}
         </CardContent>

@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useLogin } from '@/hooks/useAuth'
 import { oauthUrl } from '@/lib/oauth';
+import { apiErrorMessage } from '@/lib/api-error';
 
 const schema = z.object({
   email: z.string().email('Invalid email'),
@@ -65,8 +66,7 @@ export default function LoginPage() {
         {/* Error */}
         {login.isError && (
           <div className="rounded-lg bg-destructive/10 border border-destructive/20 p-3 text-sm text-destructive text-center">
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            {(login.error as any)?.response?.data?.error?.message || 'Login failed'}
+            {apiErrorMessage(login.error, 'Login failed')}
           </div>
         )}
 

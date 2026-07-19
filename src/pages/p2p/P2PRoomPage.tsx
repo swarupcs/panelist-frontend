@@ -947,7 +947,6 @@ export default function P2PRoomPage() {
                         <Plus className="h-3 w-3 mr-1" /> Add
                       </Button>
                     </div>
-                    // eslint-disable-next-line @typescript-eslint/no-unused-vars
                     {testCases.map((tc, index) => (
                       <div key={tc.id} className="p-2 border rounded bg-muted/30 relative space-y-1">
                         <Button 

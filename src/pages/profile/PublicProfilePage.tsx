@@ -166,7 +166,6 @@ export default function PublicProfilePage() {
               
               {profile.achievements && profile.achievements.length > 0 ? (
                 <div className='grid grid-cols-2 sm:grid-cols-3 gap-4'>
-                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
                   {profile.achievements.map((ach: any) => (
                     <div key={ach.achievementId} className='flex flex-col items-center justify-center p-4 rounded-xl border border-border bg-secondary/20 text-center gap-2 hover:bg-secondary/40 transition-colors'>
                       <div className='size-12 rounded-full bg-primary/10 flex items-center justify-center text-primary mb-1'>

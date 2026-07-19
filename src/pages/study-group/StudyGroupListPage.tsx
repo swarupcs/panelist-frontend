@@ -172,7 +172,6 @@ function DiscoverTab({ data, isLoading, searchInput, setSearchInput, topicFilter
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           {data?.groups.map((group: any) => (
             <div key={group.id} className="bg-card border border-border rounded-xl p-6 flex flex-col hover:border-primary/40 transition-colors">
               <div className="flex justify-between items-start mb-4">
@@ -239,7 +238,6 @@ function MyGroupsTab({ groups, isLoading }: any) {
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       {groups.map((group: any) => (
         <Link key={group.id} to={`/groups/${group.id}`} className="bg-card border border-border rounded-xl p-6 flex flex-col hover:border-primary/40 transition-colors group">
           <div className="flex justify-between items-start mb-4">
