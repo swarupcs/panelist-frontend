@@ -8,22 +8,20 @@
 // two, and nobody configures anything. A stored role would need a BOTH value,
 // and then a third when someone stops recruiting.
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { recruiterApi, type CreateTemplateInput } from '@/api/recruiter.api'
 import { useAuthStore } from '@/store/authStore'
+import { useViewStore, type AppView } from '@/store/viewStore'
 
-export type AppView = 'candidate' | 'recruiter'
+export type { AppView }
 
 export const recruiterKeys = {
   me: ['recruiter', 'me'] as const,
   templates: (includeArchived: boolean) => ['recruiter', 'templates', includeArchived] as const,
   invitations: (templateId?: string) => ['recruiter', 'invitations', templateId ?? 'all'] as const,
 }
-
-/** Remembered per device so somebody with both views lands where they left off. */
-const LAST_VIEW_KEY = 'panelist_last_view'
 
 export function useRecruiterProfile() {
   const { isAuthenticated } = useAuthStore()
@@ -72,28 +70,17 @@ export function useAvailableViews() {
     return list.length > 0 ? list : ['candidate']
   }, [isRecruiter, hasPractised])
 
-  // What they last chose. Only a preference — whether it is honoured depends
-  // on what they still have.
-  const [preferred, setPreferred] = useState<AppView>(() =>
-    localStorage.getItem(LAST_VIEW_KEY) === 'recruiter' ? 'recruiter' : 'candidate',
-  )
+  // Shared, not local. Every caller of this hook has to agree on the current
+  // view — the sidebar's navigation and the switcher inside it are two
+  // components reading the same answer.
+  const preferred = useViewStore((state) => state.preferred)
+  const setView = useViewStore((state) => state.setPreferred)
 
   // Derived during render rather than corrected afterwards in an effect.
   // Setting state to fix an impossible value causes a second render pass for
   // something already knowable in the first, and leaves one frame showing a
   // view the account does not have.
   const view: AppView = views.includes(preferred) ? preferred : views[0]
-
-  // Persisting is a genuine side effect, so it does belong here — but it
-  // writes to storage, not to state.
-  useEffect(() => {
-    if (!isLoading && view !== preferred) localStorage.setItem(LAST_VIEW_KEY, view)
-  }, [view, preferred, isLoading])
-
-  const setView = useCallback((next: AppView) => {
-    setPreferred(next)
-    localStorage.setItem(LAST_VIEW_KEY, next)
-  }, [])
 
   return {
     views,

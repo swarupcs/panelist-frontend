@@ -20,7 +20,10 @@ import {
   Menu,
   X,
   ChevronRight,
+  Briefcase,
 } from 'lucide-react';
+import { ViewSwitcher } from './ViewSwitcher';
+import { useAvailableViews } from '@/hooks/useRecruiter';
 import { useAuthStore } from '@/store/authStore';
 import { authApi } from '@/api/auth.api';
 import { getStorageItem, getInitials } from '@/utils/formatters';
@@ -50,6 +53,11 @@ const NAV_ITEMS: NavItem[] = [
   { to: '/achievements', icon: Trophy, label: 'Achievements' },
   { to: '/profile', icon: User, label: 'Profile' },
   { to: '/admin', icon: Shield, label: 'Admin', adminOnly: true },
+];
+
+/** Shown only in the hiring view. */
+const RECRUITER_NAV: NavItem[] = [
+  { to: '/recruiter', icon: Briefcase, label: 'Hiring' },
 ];
 
 // ── Nav link item ──────────────────────────────────────────────────────────
@@ -128,7 +136,14 @@ export function Sidebar() {
     navigate('/login');
   };
 
-  const visibleItems = NAV_ITEMS.filter(
+  const { view, isRecruiter } = useAvailableViews();
+
+  // In the hiring view the practice nav is not just irrelevant, it is
+  // confusing: streaks and readiness scores belong to the other product.
+  const visibleItems = (view === 'recruiter' && isRecruiter
+    ? RECRUITER_NAV
+    : NAV_ITEMS
+  ).filter(
     (item) => !item.adminOnly || user?.role === 'ADMIN',
   );
 
@@ -155,6 +170,11 @@ export function Sidebar() {
             )}
           />
         </button>
+      </div>
+
+      {/* Practice or hiring. Renders nothing unless the account has both. */}
+      <div className='px-2 pt-2'>
+        <ViewSwitcher collapsed={collapsed} />
       </div>
 
       {/* Nav items */}
@@ -219,7 +239,14 @@ export function MobileNav() {
     setOpen(false);
   };
 
-  const visibleItems = NAV_ITEMS.filter(
+  const { view, isRecruiter } = useAvailableViews();
+
+  // In the hiring view the practice nav is not just irrelevant, it is
+  // confusing: streaks and readiness scores belong to the other product.
+  const visibleItems = (view === 'recruiter' && isRecruiter
+    ? RECRUITER_NAV
+    : NAV_ITEMS
+  ).filter(
     (item) => !item.adminOnly || user?.role === 'ADMIN',
   );
 
