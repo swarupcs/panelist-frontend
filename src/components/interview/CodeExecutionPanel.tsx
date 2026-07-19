@@ -372,7 +372,8 @@ export function CodeExecutionPanel({
         disabled && 'opacity-50 pointer-events-none'
       )}>
         <Editor
-          height='100%'
+          height='320px'
+          width='100%'
           language={activeLang.monacoLang}
           value={currentCode}
           onChange={handleEditorChange}
