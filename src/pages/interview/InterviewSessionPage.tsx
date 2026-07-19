@@ -75,6 +75,7 @@ import { Progress } from '@/components/ui/progress';
 import { Textarea } from '@/components/ui/textarea';
 import { useSessionRecorder } from '@/hooks/useSessionRecorder';
 import { RecordingConsent } from '@/components/interview/RecordingConsent';
+import { useSessionContext } from '@/hooks/useSessionContext';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -259,6 +260,18 @@ export default function InterviewSessionPage() {
   const skipQuestion = useSkipQuestion();
   const endInterview = useEndInterview();
 
+  // The rules this interview runs under. Null for practice; for an invited
+  // interview these come from the recruiter's template and are not the
+  // candidate's to change.
+  const assessment = useSessionContext(sessionId);
+
+  // Read inside the keydown handler, which is registered once and would
+  // otherwise close over the first value it saw.
+  const allowHintsRef = useRef(true);
+  useEffect(() => {
+    allowHintsRef.current = assessment.allowHints;
+  }, [assessment.allowHints]);
+
   // Recording. Asked once per session; declining is remembered for the session
   // so the dialog does not reappear on every re-render or reload.
   const recorder = useSessionRecorder(sessionId);
@@ -282,6 +295,14 @@ export default function InterviewSessionPage() {
   };
 
   const handleDeclineRecording = () => {
+    // Where a recruiter requires recording, declining declines the interview.
+    // That is the honest reading of "required": the alternative is proceeding
+    // unrecorded and being marked down for something nobody explained.
+    if (assessment.requireRecording) {
+      toast.info('This interview cannot go ahead without recording.');
+      handleEnd();
+      return;
+    }
     rememberAsked();
   };
 
@@ -552,7 +573,10 @@ export default function InterviewSessionPage() {
           if (
             phase === 'answering' &&
             !requestHint.isPending &&
-            !hintsExhaustedRef.current
+            !hintsExhaustedRef.current &&
+            // The shortcut is a second door to the same thing; leaving it open
+            // would make the hidden button cosmetic.
+            allowHintsRef.current
           ) {
             e.preventDefault();
             handleHint();
@@ -607,6 +631,7 @@ export default function InterviewSessionPage() {
         onAccept={handleAcceptRecording}
         onDecline={handleDeclineRecording}
         isStarting={startingRecording}
+        assessment={assessment.context}
       />
 
       {/* ── Header bar ───────────────────────────────────────────────────── */}
@@ -973,6 +998,11 @@ export default function InterviewSessionPage() {
                     />
                     <div className='flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sm:gap-2'>
                       <div className='flex flex-wrap items-center gap-1'>
+                        {/* Hidden rather than disabled when a template
+                            forbids hints: a greyed-out button invites a
+                            candidate to wonder what they are missing during an
+                            assessment they are being judged on. */}
+                        {assessment.allowHints && (
                         <TextButton
                           onClick={handleHint}
                           loading={requestHint.isPending}
@@ -989,6 +1019,7 @@ export default function InterviewSessionPage() {
                             </kbd>
                           )}
                         </TextButton>
+                        )}
 
                         <TextButton
                           onClick={handleSkip}
@@ -1241,7 +1272,17 @@ export default function InterviewSessionPage() {
                   </p>
                 </div>
 
-                {pendingFeedback && (
+                {/* A recruiter may keep the score to themselves. The
+                    candidate is never in doubt that they were assessed — only
+                    the number is withheld. */}
+                {!assessment.candidateSeesResult && (
+                  <p className='rounded-lg border border-border/60 bg-secondary/30 p-3 text-xs text-muted-foreground'>
+                    Your answers have gone to {assessment.context?.companyName ?? 'the company'}.
+                    They decide whether to share the result with you.
+                  </p>
+                )}
+
+                {assessment.candidateSeesResult && pendingFeedback && (
                   <div className='rounded-xl border border-border bg-secondary/30 p-4 text-left space-y-3'>
                     <div className='flex items-center justify-between'>
                       <p className='text-xs font-semibold text-muted-foreground uppercase tracking-wider'>

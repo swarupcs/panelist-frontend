@@ -26,6 +26,7 @@ import {
   Lock,
   Monitor,
   TriangleAlert,
+  UserCheck,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -224,6 +225,25 @@ export default function InvitationPage() {
                   Hints are turned off for this interview.
                 </Requirement>
               )}
+
+              {/* The rest of the notice somebody is owed before being
+                  assessed: how long what they produce is kept, and that a
+                  person makes the decision rather than the model. The second
+                  is a legal requirement in several jurisdictions, not a
+                  courtesy. */}
+              <Requirement icon={Clock}>
+                {invitation.requiresRecording
+                  ? invitation.retentionDays > 0
+                    ? `Your recording is kept for ${invitation.retentionDays} days after ${invitation.companyName} decides, then deleted.`
+                    : `Your recording is kept until ${invitation.companyName} no longer needs it.`
+                  : `Your answers are kept until ${invitation.companyName} no longer needs them.`}
+              </Requirement>
+
+              <Requirement icon={UserCheck}>
+                A person at {invitation.companyName} makes the decision — the
+                assessment is input to it, not the decision itself. You can ask
+                them to have a person review your result.
+              </Requirement>
             </ul>
           </div>
 

@@ -196,6 +196,8 @@ export interface PublicInvitation {
   allowsHints: boolean
   resultShared: boolean
   alreadyBound: boolean
+  /** Days a recording is kept after a decision. Zero means no automatic expiry. */
+  retentionDays: number
 }
 
 export const invitationApi = {

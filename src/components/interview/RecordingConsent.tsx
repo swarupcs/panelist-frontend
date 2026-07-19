@@ -4,8 +4,14 @@
 //
 // Recording someone's screen and showing it to a recruiter is not something to
 // infer from a toggle left on by default. This says plainly what is captured,
-// who can see it, and that declining costs nothing — and declining is a
-// genuine option that leads to a normal interview, not a degraded one.
+// who can see it, and what declining costs.
+//
+// It says different things in the two cases, because they are different deals.
+// In practice the recording is the candidate's own: nobody else sees it, they
+// can delete it whenever they like, and declining changes nothing. In an
+// assessment a named company receives it, it is kept while they decide, and
+// where a recruiter requires recording, declining ends the interview. Using
+// the practice wording for the second would misdescribe where the video goes.
 //
 // Both buttons are equally prominent on purpose. A dialog where the agreeable
 // answer is a filled button and the refusal is faint grey text is not really
@@ -20,6 +26,12 @@ interface RecordingConsentProps {
   onAccept: () => void;
   onDecline: () => void;
   isStarting?: boolean;
+  /** Null for practice. Present when this interview was sent by a company. */
+  assessment?: {
+    companyName: string;
+    requireRecording: boolean;
+    retentionDays: number;
+  } | null;
 }
 
 export function RecordingConsent({
@@ -27,7 +39,15 @@ export function RecordingConsent({
   onAccept,
   onDecline,
   isStarting,
+  assessment,
 }: RecordingConsentProps) {
+  const required = Boolean(assessment?.requireRecording);
+  const company = assessment?.companyName;
+
+  const retention =
+    assessment && assessment.retentionDays > 0
+      ? `kept for ${assessment.retentionDays} days after they decide`
+      : 'kept until they no longer need it';
   return (
     // Not dismissible by clicking away or pressing Escape: a dialog that
     // vanishes on a stray click leaves the answer ambiguous, and this question
@@ -35,10 +55,13 @@ export function RecordingConsent({
     <Dialog open={isOpen}>
       <DialogContent className="sm:max-w-md" onInteractOutside={(e) => e.preventDefault()}>
         <DialogHeader>
-          <DialogTitle>Record this interview?</DialogTitle>
+          <DialogTitle>
+            {company ? `${company} records this interview` : 'Record this interview?'}
+          </DialogTitle>
           <DialogDescription>
-            Recording lets a recruiter review how you worked, not just your final
-            answers.
+            {company
+              ? 'They review how you worked, not just your final answers.'
+              : 'Recording lets you review how you worked, not just your final answers.'}
           </DialogDescription>
         </DialogHeader>
 
@@ -50,27 +73,48 @@ export function RecordingConsent({
               receive what you pick.
             </p>
           </li>
+
           <li className="flex gap-3">
             <Eye className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
             <p className="text-sm text-muted-foreground">
-              Visible to you and to recruiters reviewing this session. Nobody else.
+              {company ? (
+                <>
+                  Sent to <strong className="text-foreground">{company}</strong> and{' '}
+                  {retention}. Nobody else sees it.
+                </>
+              ) : (
+                <>Only you can see this. You can delete it whenever you like.</>
+              )}
             </p>
           </li>
+
           <li className="flex gap-3">
             <ShieldCheck className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
             <p className="text-sm text-muted-foreground">
-              You can stop at any time from your browser&rsquo;s sharing bar, and the
-              interview carries on.
+              You can stop at any time from your browser&rsquo;s sharing bar.
+              {company
+                ? ' Ask them to delete it once they have made their decision.'
+                : ' The interview carries on either way.'}
             </p>
           </li>
         </ul>
 
+        {/* Said before they choose, not after. "Required" has to mean the
+            interview does not happen — the alternative is proceeding
+            unrecorded and being marked down for something nobody explained. */}
+        {required && (
+          <p className="rounded-lg border border-amber-500/20 bg-amber-500/5 p-3 text-xs text-amber-500">
+            {company} requires recording for this interview. If you decline, the
+            interview ends and nothing is sent to them.
+          </p>
+        )}
+
         <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
           <Button variant="outline" onClick={onDecline} disabled={isStarting} className="sm:flex-1">
-            Continue without recording
+            {required ? 'Decline and exit' : 'Continue without recording'}
           </Button>
           <Button onClick={onAccept} disabled={isStarting} className="sm:flex-1">
-            {isStarting ? 'Starting…' : 'Record my session'}
+            {isStarting ? 'Starting…' : company ? 'Share my screen' : 'Record my session'}
           </Button>
         </div>
       </DialogContent>
