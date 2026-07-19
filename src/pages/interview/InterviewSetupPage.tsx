@@ -4,49 +4,35 @@
 
 import { useState } from 'react';
 import { Link, useLocation, useSearchParams } from 'react-router-dom';
-import { 
-  Code2, 
-  Layers, 
-  Users, 
-  Shuffle, 
-  Clock, 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  Target, 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  Play, 
+import {
+  Code2,
+  Layers,
+  Users,
+  Shuffle,
+  Clock,
   Brain,
   Monitor,
   Server,
   Cloud,
   Smartphone,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  ChevronRight,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  TrendingUp,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  AlertCircle,
   ChevronDown,
   ChevronUp,
   Gauge,
   Zap,
   Timer,
   FileText,
-  Repeat
+  Repeat,
+  AlertCircle,
+  Sparkles,
+  Check,
+  ArrowRight,
+  Loader2,
+  FileSearch,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from '@/components/ui/card';
-import { PageHeader } from '@/components/common';
 import { useStartInterview } from '@/hooks/useInterview';
 import type { InterviewType, Difficulty } from '@/types';
 import { cn } from '@/lib/cn';
-import { Loader2 } from 'lucide-react';
-import { FileSearch } from 'lucide-react';
 import { ResumePicker } from '@/components/interview/ResumePicker';
 import { apiErrorMessage } from '@/lib/api-error';
 
@@ -141,21 +127,24 @@ const DIFFICULTIES = [
     label: 'Easy',
     description: 'Junior / entry level',
     color: 'text-green-400',
-    border: 'border-green-500/30',
+    bar: 'bg-green-400',
+    ring: 'ring-green-500/40',
   },
   {
     value: 'medium',
     label: 'Medium',
     description: 'Mid-level engineer',
     color: 'text-yellow-400',
-    border: 'border-yellow-500/30',
+    bar: 'bg-yellow-400',
+    ring: 'ring-yellow-500/40',
   },
   {
     value: 'hard',
     label: 'Hard',
     description: 'Senior / lead engineer',
     color: 'text-red-400',
-    border: 'border-red-500/30',
+    bar: 'bg-red-400',
+    ring: 'ring-red-500/40',
   },
 ] as const;
 
@@ -228,6 +217,80 @@ const FOCUS_AREAS: Record<string, { value: string; label: string }[]> = {
     { value: 'REACT', label: 'React Native' }, // Assuming React works for RN
   ],
 };
+
+// ── Layout primitives ─────────────────────────────────────────────
+
+/**
+ * One step of the form.
+ *
+ * The page used to be seven Cards of identical weight stacked in a single
+ * narrow column, which read as a list of equally important decisions when in
+ * practice only the first two matter to most people. The icon plate and the
+ * lighter surface give each step a head without making it shout.
+ */
+function Section({
+  icon: Icon,
+  title,
+  description,
+  children,
+  className,
+}: {
+  icon: React.ElementType;
+  title: string;
+  description?: React.ReactNode;
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <section
+      className={cn(
+        'rounded-2xl border border-border/60 bg-card/60 p-5 shadow-sm backdrop-blur-sm sm:p-6',
+        className,
+      )}
+    >
+      <div className='mb-4 flex items-start gap-3'>
+        <span className='mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary'>
+          <Icon className='size-4' />
+        </span>
+        <div className='min-w-0 flex-1'>
+          <h2 className='text-sm font-semibold text-foreground'>{title}</h2>
+          {description && (
+            <p className='mt-0.5 text-xs leading-relaxed text-muted-foreground'>
+              {description}
+            </p>
+          )}
+        </div>
+      </div>
+      {children}
+    </section>
+  );
+}
+
+/** One line of the summary rail. */
+function SummaryRow({ label, value }: { label: string; value: React.ReactNode }) {
+  return (
+    <div className='flex items-baseline justify-between gap-3 py-2.5'>
+      <dt className='text-xs text-muted-foreground'>{label}</dt>
+      <dd className='min-w-0 truncate text-right text-sm font-medium text-foreground'>
+        {value}
+      </dd>
+    </div>
+  );
+}
+
+/** A non-default mode, shown only when it is actually on. */
+function ModeChip({ label, className }: { label: string; className?: string }) {
+  return (
+    <span
+      className={cn(
+        'rounded-full border px-2 py-0.5 text-[11px] font-medium',
+        className,
+      )}
+    >
+      {label}
+    </span>
+  );
+}
 
 // ── Custom Toggle ──────────────────────────────────────────────────────────
 
@@ -394,397 +457,466 @@ export default function InterviewSetupPage() {
   const availableFocusAreas = FOCUS_AREAS[selectedType] ?? [];
   const questionCount = Math.floor(selectedDuration / 15);
 
+  const selectedTypeMeta = INTERVIEW_TYPES.find((t) => t.value === selectedType);
+
   return (
-    <div className='space-y-6 max-w-2xl animate-fade-in relative'>
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <PageHeader
-          title='Start Interview'
-          description='Configure your mock interview session'
+    <div className='animate-fade-in mx-auto max-w-6xl pb-12'>
+      {/* ── Hero ── */}
+      <section className='relative overflow-hidden rounded-2xl border border-border/60 bg-gradient-to-br from-primary/10 via-card to-accent/10 p-6 sm:p-8'>
+        <div
+          aria-hidden
+          className='pointer-events-none absolute -right-20 -top-24 size-64 rounded-full bg-primary/20 blur-3xl'
         />
-        <Button
-          variant='outline'
-          onClick={handleQuickStart}
-          disabled={startInterview.isPending}
-          className='gap-2 shrink-0 border-primary/30 text-primary hover:bg-primary/10 w-full sm:w-auto'
-        >
-          {startInterview.isPending ? (
-            <Loader2 className='size-4 animate-spin' />
-          ) : (
-            <Zap className='size-4 text-yellow-400' />
-          )}
-          Quick Start (Random)
-        </Button>
-      </div>
+        <div
+          aria-hidden
+          className='pointer-events-none absolute -bottom-28 -left-16 size-56 rounded-full bg-accent/15 blur-3xl'
+        />
 
-      {/* ── Interview Type ── */}
-      <Card>
-        <CardHeader>
-          <CardTitle className='text-base flex items-center gap-2'>
-            <Brain className='size-4 text-primary' /> Interview Type
-          </CardTitle>
-          <CardDescription>
-            What type of interview do you want to practice?
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className='grid grid-cols-2 gap-3'>
-            {INTERVIEW_TYPES.map((type) => (
-              <button
-                key={type.value}
-                onClick={() => handleTypeChange(type.value as InterviewType)}
-                className={cn(
-                  'flex flex-col gap-2 rounded-xl border p-4 text-left transition-all duration-200',
-                  selectedType === type.value
-                    ? `${type.bg} border-2`
-                    : 'border-border hover:bg-secondary',
-                )}
-              >
-                <type.icon className={cn('size-5', type.color)} />
-                <div>
-                  <p className='font-medium text-sm text-foreground'>
-                    {type.label}
-                  </p>
-                  <p className='text-xs text-muted-foreground'>
-                    {type.description}
-                  </p>
-                </div>
-              </button>
-            ))}
+        <div className='relative flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between'>
+          <div>
+            <span className='inline-flex items-center gap-1.5 rounded-full border border-primary/25 bg-primary/10 px-2.5 py-1 text-[11px] font-medium uppercase tracking-wider text-primary'>
+              <Sparkles className='size-3' />
+              Mock interview
+            </span>
+            <h1 className='mt-3 text-2xl font-semibold tracking-tight text-foreground sm:text-3xl'>
+              Start an interview
+            </h1>
+            <p className='mt-2 max-w-md text-sm leading-relaxed text-muted-foreground'>
+              Choose a track and a difficulty. Everything below already has a
+              sensible default, so two clicks is enough.
+            </p>
           </div>
-        </CardContent>
-      </Card>
 
-      {/* ── Resume Text Area ── */}
-      {selectedType === 'resume_deep_dive' && (
-        <Card className="border-blue-500/30">
-          <CardHeader>
-            <CardTitle className='text-base flex items-center gap-2'>
-              <FileText className='size-4 text-blue-400' /> Resume Context
-            </CardTitle>
-            <CardDescription>
-              Upload your resume and we&rsquo;ll read it — questions are built from
-              your own projects and the tools you actually used.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {/* Already chosen on the review page — no reason to ask again. */}
-            {/* The review page is where this flow is meant to start. Offered
-                rather than enforced: someone who just wants to practise should
-                not have to sit through an analysis first. */}
-            {!carried.resumeText && (
-              <Link
-                to="/interview/resume"
-                className="mb-3 flex items-center gap-2 text-xs text-primary hover:underline"
-              >
-                <FileSearch className="size-3.5" />
-                Review your resume first
-              </Link>
-            )}
-
-            {carried.resumeText ? (
-              <div className="flex items-start gap-3 rounded-lg border border-primary/30 bg-primary/5 p-3">
-                <FileText className="mt-0.5 size-4 shrink-0 text-primary" />
-                <div className="min-w-0">
-                  <p className="text-sm font-medium">Using the resume you just reviewed</p>
-                  <p className="text-xs text-muted-foreground">
-                    {carried.resumeText.length.toLocaleString()} characters of context
-                  </p>
-                </div>
-              </div>
+          <Button
+            variant='outline'
+            onClick={handleQuickStart}
+            disabled={startInterview.isPending}
+            className='w-full shrink-0 gap-2 border-primary/30 bg-background/60 text-primary backdrop-blur hover:bg-primary/10 sm:w-auto'
+          >
+            {startInterview.isPending ? (
+              <Loader2 className='size-4 animate-spin' />
             ) : (
-              <ResumePicker onTextChange={setResumeText} />
+              <Zap className='size-4 text-yellow-400' />
             )}
-          </CardContent>
-        </Card>
-      )}
+            Surprise me
+          </Button>
+        </div>
+      </section>
 
-      {/* ── Difficulty ── */}
-      <Card>
-        <CardHeader>
-          <CardTitle className='text-base flex items-center gap-2'>
-            <Gauge className='size-4 text-primary' /> Difficulty
-          </CardTitle>
-          <CardDescription>
-            Choose the difficulty level for your session
-            {adaptiveMode && (
-              <span className='ml-1 text-primary'>
-                (starting difficulty — adapts as you go)
-              </span>
-            )}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className='grid grid-cols-3 gap-3'>
-            {DIFFICULTIES.map((diff) => (
-              <button
-                key={diff.value}
-                onClick={() => setSelectedDifficulty(diff.value as Difficulty)}
-                className={cn(
-                  'flex flex-col gap-1 rounded-xl border p-4 text-center transition-all duration-200',
-                  selectedDifficulty === diff.value
-                    ? `bg-card border-2 ${diff.border}`
-                    : 'border-border hover:bg-secondary',
-                )}
-              >
-                <p className={cn('font-semibold text-sm', diff.color)}>
-                  {diff.label}
-                </p>
-                <p className='text-xs text-muted-foreground'>
-                  {diff.description}
-                </p>
-              </button>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* ── Duration ── */}
-      <Card>
-        <CardHeader>
-          <CardTitle className='text-base flex items-center gap-2'>
-            <Clock className='size-4 text-primary' /> Duration
-          </CardTitle>
-          <CardDescription>
-            How long do you want to practice? (~{questionCount} question
-            {questionCount !== 1 ? 's' : ''})
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className='flex flex-wrap gap-2'>
-            {DURATIONS.map((dur) => (
-              <button
-                key={dur}
-                onClick={() => setSelectedDuration(dur)}
-                className={cn(
-                  'rounded-lg border px-4 py-2 text-sm font-medium transition-all duration-200',
-                  selectedDuration === dur
-                    ? 'border-primary bg-primary/10 text-primary'
-                    : 'border-border text-muted-foreground hover:bg-secondary hover:text-foreground',
-                )}
-              >
-                {dur} min
-              </button>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* ── Focus Areas ── */}
-      {availableFocusAreas.length > 0 && (
-        <Card>
-          <CardHeader>
-            <button
-              type='button'
-              onClick={() => setShowFocusAreas((o) => !o)}
-              className='flex w-full items-center justify-between text-left'
-            >
-              <div>
-                <CardTitle className='text-base flex items-center gap-2'>
-                  <Brain className='size-4 text-primary' />
-                  Focus Areas
-                  {focusAreas.length > 0 && (
-                    <span className='ml-1 rounded-full bg-primary/20 px-2 py-0.5 text-xs font-medium text-primary'>
-                      {focusAreas.length} selected
-                    </span>
-                  )}
-                </CardTitle>
-                <CardDescription className='mt-0.5'>
-                  {focusAreas.length === 0
-                    ? 'Optional — target specific topics (all topics if none selected)'
-                    : `Focusing on: ${focusAreas.map((a) => availableFocusAreas.find((f) => f.value === a)?.label ?? a).join(', ')}`}
-                </CardDescription>
-              </div>
-              {showFocusAreas ? (
-                <ChevronUp className='size-4 text-muted-foreground shrink-0' />
-              ) : (
-                <ChevronDown className='size-4 text-muted-foreground shrink-0' />
-              )}
-            </button>
-          </CardHeader>
-          {showFocusAreas && (
-            <CardContent>
-              <div className='flex flex-wrap gap-2'>
-                {availableFocusAreas.map((area) => {
-                  const active = focusAreas.includes(area.value);
-                  return (
-                    <button
-                      key={area.value}
-                      type='button'
-                      onClick={() => toggleFocusArea(area.value)}
+      {/* The form on the left, the decision on the right. The summary rail is
+          sticky because Start used to sit at the bottom of a very long scroll,
+          so reviewing your choices and acting on them were never possible at
+          the same moment. */}
+      <div className='mt-6 grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_336px]'>
+        <div className='space-y-6'>
+          {/* ── Interview type ── */}
+          <Section
+            icon={Brain}
+            title='Interview type'
+            description='What do you want to be asked about?'
+          >
+            <div className='grid grid-cols-2 gap-3 sm:grid-cols-3'>
+              {INTERVIEW_TYPES.map((type) => {
+                const active = selectedType === type.value;
+                return (
+                  <button
+                    key={type.value}
+                    type='button'
+                    aria-pressed={active}
+                    onClick={() => handleTypeChange(type.value as InterviewType)}
+                    className={cn(
+                      'group relative flex flex-col gap-2.5 rounded-xl border p-3.5 text-left transition-all duration-200',
+                      'hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                      active
+                        ? `${type.bg} border-transparent shadow-md ring-2 ring-primary/50`
+                        : 'border-border/70 bg-background/40 hover:border-border',
+                    )}
+                  >
+                    {active && (
+                      <Check className='absolute right-3 top-3 size-4 text-primary' />
+                    )}
+                    <span
                       className={cn(
-                        'rounded-lg border px-3 py-1.5 text-xs font-medium transition-all duration-150',
-                        active
-                          ? 'border-primary bg-primary/10 text-primary'
-                          : 'border-border text-muted-foreground hover:bg-secondary hover:text-foreground',
+                        'flex size-9 items-center justify-center rounded-lg transition-colors',
+                        active ? 'bg-background/60' : 'bg-secondary/60',
                       )}
                     >
-                      {area.label}
-                    </button>
-                  );
-                })}
-              </div>
-              {focusAreas.length > 0 && (
-                <button
-                  type='button'
-                  onClick={() => setFocusAreas([])}
-                  className='mt-3 text-xs text-muted-foreground hover:text-foreground transition-colors'
-                >
-                  Clear selection
-                </button>
-              )}
-            </CardContent>
-          )}
-        </Card>
-      )}
+                      <type.icon className={cn('size-5', type.color)} />
+                    </span>
+                    <span className='block'>
+                      <span className='block text-sm font-medium text-foreground'>
+                        {type.label}
+                      </span>
+                      <span className='mt-0.5 block text-xs leading-snug text-muted-foreground'>
+                        {type.description}
+                      </span>
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </Section>
 
-      {/* ── AI Settings ── */}
-      <Card>
-        <CardHeader>
-          <CardTitle className='text-base flex items-center gap-2'>
-            <Brain className='size-4 text-primary' /> AI Interviewer Settings
-          </CardTitle>
-          <CardDescription>
-            Customize the personality and behavior of the AI interviewer.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className='space-y-6'>
-          <div>
-            <label className='text-sm font-semibold text-foreground mb-3 block'>
-              Interviewer Persona
-            </label>
+          {/* ── Resume context ── */}
+          {selectedType === 'resume_deep_dive' && (
+            <Section
+              icon={FileText}
+              title='Resume context'
+              description={
+                <>
+                  Upload your resume and we&rsquo;ll read it &mdash; questions are
+                  built from your own projects and the tools you actually used.
+                </>
+              }
+              className='border-blue-500/30'
+            >
+              {/* The review page is where this flow is meant to start. Offered
+                  rather than enforced: someone who just wants to practise
+                  should not have to sit through an analysis first. */}
+              {!carried.resumeText && (
+                <Link
+                  to='/interview/resume'
+                  className='mb-3 inline-flex items-center gap-2 text-xs text-primary hover:underline'
+                >
+                  <FileSearch className='size-3.5' />
+                  Review your resume first
+                </Link>
+              )}
+
+              {carried.resumeText ? (
+                <div className='flex items-start gap-3 rounded-lg border border-primary/30 bg-primary/5 p-3'>
+                  <FileText className='mt-0.5 size-4 shrink-0 text-primary' />
+                  <div className='min-w-0'>
+                    <p className='text-sm font-medium'>
+                      Using the resume you just reviewed
+                    </p>
+                    <p className='text-xs text-muted-foreground'>
+                      {carried.resumeText.length.toLocaleString()} characters of
+                      context
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <ResumePicker onTextChange={setResumeText} />
+              )}
+            </Section>
+          )}
+
+          {/* ── Difficulty ── */}
+          <Section
+            icon={Gauge}
+            title='Difficulty'
+            description={
+              adaptiveMode
+                ? 'Starting point only — this adapts as you go.'
+                : 'Roughly the seniority you are interviewing for.'
+            }
+          >
+            <div className='grid grid-cols-3 gap-3'>
+              {DIFFICULTIES.map((diff, index) => {
+                const active = selectedDifficulty === diff.value;
+                return (
+                  <button
+                    key={diff.value}
+                    type='button'
+                    aria-pressed={active}
+                    onClick={() => setSelectedDifficulty(diff.value as Difficulty)}
+                    className={cn(
+                      'rounded-xl border p-4 text-left transition-all duration-200',
+                      'hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                      active
+                        ? `border-transparent bg-secondary/40 shadow-md ring-2 ${diff.ring}`
+                        : 'border-border/70 hover:bg-secondary/30',
+                    )}
+                  >
+                    {/* Three bars filled to the level. The ordering is the
+                        point, and colour alone does not convey it. */}
+                    <span className='flex gap-1' aria-hidden>
+                      {[0, 1, 2].map((bar) => (
+                        <span
+                          key={bar}
+                          className={cn(
+                            'h-1 flex-1 rounded-full transition-colors',
+                            bar <= index ? diff.bar : 'bg-border',
+                          )}
+                        />
+                      ))}
+                    </span>
+                    <p className={cn('mt-2.5 text-sm font-semibold', diff.color)}>
+                      {diff.label}
+                    </p>
+                    <p className='text-xs leading-snug text-muted-foreground'>
+                      {diff.description}
+                    </p>
+                  </button>
+                );
+              })}
+            </div>
+          </Section>
+
+          {/* ── Duration ── */}
+          <Section icon={Clock} title='Duration' description='How long do you have?'>
+            <div className='flex flex-wrap gap-2'>
+              {DURATIONS.map((dur) => (
+                <button
+                  key={dur}
+                  type='button'
+                  aria-pressed={selectedDuration === dur}
+                  onClick={() => setSelectedDuration(dur)}
+                  className={cn(
+                    'rounded-lg border px-4 py-2 text-sm font-medium transition-all duration-200',
+                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                    selectedDuration === dur
+                      ? 'border-primary/50 bg-primary/10 text-primary shadow-sm'
+                      : 'border-border/70 text-muted-foreground hover:bg-secondary/50 hover:text-foreground',
+                  )}
+                >
+                  {dur} min
+                </button>
+              ))}
+            </div>
+            <p className='mt-3 text-xs text-muted-foreground'>
+              About {questionCount} question{questionCount !== 1 ? 's' : ''} at this
+              length.
+            </p>
+          </Section>
+
+          {/* ── Focus areas ── */}
+          {availableFocusAreas.length > 0 && (
+            <section className='rounded-2xl border border-border/60 bg-card/60 shadow-sm backdrop-blur-sm'>
+              <button
+                type='button'
+                onClick={() => setShowFocusAreas((o) => !o)}
+                aria-expanded={showFocusAreas}
+                className='flex w-full items-start gap-3 p-5 text-left sm:p-6'
+              >
+                <span className='mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary'>
+                  <Brain className='size-4' />
+                </span>
+                <span className='min-w-0 flex-1'>
+                  <span className='flex items-center gap-2'>
+                    <span className='text-sm font-semibold text-foreground'>
+                      Focus areas
+                    </span>
+                    {focusAreas.length > 0 && (
+                      <span className='rounded-full bg-primary/20 px-2 py-0.5 text-[11px] font-medium text-primary'>
+                        {focusAreas.length} selected
+                      </span>
+                    )}
+                  </span>
+                  <span className='mt-0.5 block truncate text-xs text-muted-foreground'>
+                    {focusAreas.length === 0
+                      ? 'Optional — every topic is in play if you skip this'
+                      : focusAreas
+                          .map(
+                            (a) =>
+                              availableFocusAreas.find((f) => f.value === a)
+                                ?.label ?? a,
+                          )
+                          .join(', ')}
+                  </span>
+                </span>
+                {showFocusAreas ? (
+                  <ChevronUp className='mt-0.5 size-4 shrink-0 text-muted-foreground' />
+                ) : (
+                  <ChevronDown className='mt-0.5 size-4 shrink-0 text-muted-foreground' />
+                )}
+              </button>
+
+              {showFocusAreas && (
+                <div className='border-t border-border/50 p-5 pt-4 sm:p-6 sm:pt-4'>
+                  <div className='flex flex-wrap gap-2'>
+                    {availableFocusAreas.map((area) => {
+                      const active = focusAreas.includes(area.value);
+                      return (
+                        <button
+                          key={area.value}
+                          type='button'
+                          aria-pressed={active}
+                          onClick={() => toggleFocusArea(area.value)}
+                          className={cn(
+                            'rounded-lg border px-3 py-1.5 text-xs font-medium transition-all duration-150',
+                            active
+                              ? 'border-primary/50 bg-primary/10 text-primary'
+                              : 'border-border/70 text-muted-foreground hover:bg-secondary/50 hover:text-foreground',
+                          )}
+                        >
+                          {area.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {focusAreas.length > 0 && (
+                    <button
+                      type='button'
+                      onClick={() => setFocusAreas([])}
+                      className='mt-3 text-xs text-muted-foreground transition-colors hover:text-foreground'
+                    >
+                      Clear selection
+                    </button>
+                  )}
+                </div>
+              )}
+            </section>
+          )}
+
+          {/* ── Interviewer ── */}
+          <Section
+            icon={Users}
+            title='Your interviewer'
+            description='How the AI conducts the session.'
+          >
             <div className='flex flex-wrap gap-2'>
               {(['default', 'supportive', 'strict'] as const).map((persona) => (
                 <button
                   key={persona}
+                  type='button'
+                  aria-pressed={aiPersona === persona}
                   onClick={() => setAiPersona(persona)}
                   className={cn(
-                    'rounded-lg border px-4 py-2 text-sm font-medium transition-all duration-200 capitalize',
+                    'rounded-lg border px-4 py-2 text-sm font-medium transition-all duration-200',
+                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
                     aiPersona === persona
-                      ? 'border-primary bg-primary/10 text-primary'
-                      : 'border-border text-muted-foreground hover:bg-secondary hover:text-foreground',
+                      ? 'border-primary/50 bg-primary/10 text-primary'
+                      : 'border-border/70 text-muted-foreground hover:bg-secondary/50 hover:text-foreground',
                   )}
                 >
-                  {persona === 'default' ? 'Balanced (Default)' : persona === 'strict' ? 'FAANG Manager (Strict)' : 'Supportive Mentor'}
+                  {persona === 'default'
+                    ? 'Balanced'
+                    : persona === 'strict'
+                      ? 'FAANG manager'
+                      : 'Supportive mentor'}
                 </button>
               ))}
             </div>
-          </div>
 
-          <div className='border-t border-border/50' />
+            <div className='mt-5 border-t border-border/50 pt-5'>
+              <AdvancedOption
+                id='stress-toggle'
+                icon={AlertCircle}
+                iconColor='text-destructive'
+                title='Stress mode'
+                description='The AI may change requirements or add constraints mid-problem, to see how you adapt under pressure.'
+                checked={stressMode}
+                onChange={setStressMode}
+              />
+            </div>
+          </Section>
 
-          <AdvancedOption
-            id='stress-toggle'
-            icon={AlertCircle}
-            iconColor='text-destructive'
-            title='Stress Mode'
-            description='The AI may introduce changing requirements or unexpected constraints mid-problem to test your adaptability under pressure.'
-            checked={stressMode}
-            onChange={setStressMode}
-          />
-        </CardContent>
-      </Card>
-
-      {/* ── Advanced Options ── */}
-      <Card>
-        <CardHeader>
-          <CardTitle className='text-base flex items-center gap-2'>
-            <Zap className='size-4 text-primary' /> Advanced Options
-          </CardTitle>
-        </CardHeader>
-        <CardContent className='space-y-5'>
-          <AdvancedOption
-            id='timed-toggle'
-            icon={Timer}
-            iconColor='text-primary'
-            title='Timed Session'
-            description='Countdown timer based on your chosen duration. Auto-submits unanswered questions when time expires.'
-            checked={isTimed}
-            onChange={setIsTimed}
-          />
-
-          <div className='border-t border-border/50' />
-
-          <AdvancedOption
-            id='adaptive-toggle'
+          {/* ── Session rules ── */}
+          <Section
             icon={Zap}
-            iconColor='text-yellow-400'
-            title='Adaptive Difficulty'
-            description='Question difficulty adjusts automatically based on your last 3 scores. Scores ≥ 85 increase difficulty; scores < 60 decrease it.'
-            checked={adaptiveMode}
-            onChange={setAdaptiveMode}
-          />
-        </CardContent>
-      </Card>
+            title='Session rules'
+            description='Off by default — turn on what you want to practise against.'
+          >
+            <div className='space-y-5'>
+              <AdvancedOption
+                id='timed-toggle'
+                icon={Timer}
+                iconColor='text-primary'
+                title='Timed session'
+                description='A countdown for your chosen duration. Unanswered questions submit themselves when it runs out.'
+                checked={isTimed}
+                onChange={setIsTimed}
+              />
 
-      {/* ── Summary & Start ── */}
-      <Card className='border-primary/30 bg-primary/5'>
-        <CardContent className='pt-5'>
-          <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-4'>
-            <div className='space-y-1.5'>
-              <p className='font-medium text-foreground'>Session Summary</p>
-              <div className='flex flex-wrap gap-x-2 gap-y-1 text-xs text-muted-foreground'>
-                <span>
-                  {INTERVIEW_TYPES.find((t) => t.value === selectedType)?.label}
-                </span>
-                <span>·</span>
-                <span className='capitalize'>{selectedDifficulty}</span>
-                <span>·</span>
-                <span>{selectedDuration} min</span>
-                <span>·</span>
-                <span>~{questionCount} questions</span>
+              <div className='border-t border-border/50' />
+
+              <AdvancedOption
+                id='adaptive-toggle'
+                icon={Zap}
+                iconColor='text-yellow-400'
+                title='Adaptive difficulty'
+                description='Difficulty follows your last 3 scores. 85 or above moves it up, under 60 moves it down.'
+                checked={adaptiveMode}
+                onChange={setAdaptiveMode}
+              />
+            </div>
+          </Section>
+        </div>
+
+        {/* ── Summary rail ── */}
+        <aside className='lg:sticky lg:top-6'>
+          <div className='overflow-hidden rounded-2xl border border-primary/25 bg-gradient-to-b from-primary/10 to-card shadow-lg shadow-primary/5'>
+            <div className='border-b border-border/50 px-5 py-4'>
+              <p className='text-sm font-semibold text-foreground'>Session summary</p>
+              <p className='text-xs text-muted-foreground'>
+                Worth a glance before you begin
+              </p>
+            </div>
+
+            <dl className='divide-y divide-border/40 px-5'>
+              <SummaryRow label='Track' value={selectedTypeMeta?.label} />
+              <SummaryRow
+                label='Difficulty'
+                value={<span className='capitalize'>{selectedDifficulty}</span>}
+              />
+              <SummaryRow
+                label='Length'
+                value={`${selectedDuration} min · ~${questionCount} question${questionCount !== 1 ? 's' : ''}`}
+              />
+              {focusAreas.length > 0 && (
+                <SummaryRow
+                  label='Focus'
+                  value={`${focusAreas.length} area${focusAreas.length !== 1 ? 's' : ''}`}
+                />
+              )}
+            </dl>
+
+            {/* Only departures from the default are listed. A row reading
+                "Stress mode: off" is noise dressed up as information. */}
+            {(isTimed || adaptiveMode || stressMode || aiPersona !== 'default') && (
+              <div className='flex flex-wrap gap-1.5 border-t border-border/40 px-5 py-3'>
                 {isTimed && (
-                  <>
-                    <span>·</span>
-                    <span className='text-primary'>Timed</span>
-                  </>
+                  <ModeChip
+                    label='Timed'
+                    className='border-primary/30 bg-primary/10 text-primary'
+                  />
                 )}
                 {adaptiveMode && (
-                  <>
-                    <span>·</span>
-                    <span className='text-yellow-400'>Adaptive</span>
-                  </>
+                  <ModeChip
+                    label='Adaptive'
+                    className='border-yellow-500/30 bg-yellow-500/10 text-yellow-400'
+                  />
                 )}
                 {stressMode && (
-                  <>
-                    <span>·</span>
-                    <span className='text-destructive'>Stress Mode</span>
-                  </>
+                  <ModeChip
+                    label='Stress mode'
+                    className='border-destructive/30 bg-destructive/10 text-destructive'
+                  />
                 )}
                 {aiPersona !== 'default' && (
-                  <>
-                    <span>·</span>
-                    <span className='text-primary capitalize'>{aiPersona} Persona</span>
-                  </>
-                )}
-                {focusAreas.length > 0 && (
-                  <>
-                    <span>·</span>
-                    <span className='text-primary'>
-                      {focusAreas.length} focus area
-                      {focusAreas.length !== 1 ? 's' : ''}
-                    </span>
-                  </>
+                  <ModeChip
+                    label={
+                      aiPersona === 'strict' ? 'FAANG manager' : 'Supportive mentor'
+                    }
+                    className='border-primary/30 bg-primary/10 text-primary'
+                  />
                 )}
               </div>
-            </div>
-            <Button
-              variant='gradient'
-              size='lg'
-              onClick={handleStart}
-              loading={startInterview.isPending}
-              className='shrink-0'
-            >
-              Start Session
-            </Button>
-          </div>
+            )}
 
-          {startInterview.isError && (
-            <p className='mt-3 text-sm text-destructive'>
-              {apiErrorMessage(startInterview.error, 'Failed to start interview')}
-            </p>
-          )}
-        </CardContent>
-      </Card>
+            <div className='p-5 pt-4'>
+              <Button
+                variant='gradient'
+                size='lg'
+                onClick={handleStart}
+                loading={startInterview.isPending}
+                className='w-full gap-2'
+              >
+                Start session
+                <ArrowRight className='size-4' />
+              </Button>
+
+              {startInterview.isError && (
+                <p className='mt-3 text-sm text-destructive'>
+                  {apiErrorMessage(startInterview.error, 'Failed to start interview')}
+                </p>
+              )}
+            </div>
+          </div>
+        </aside>
+      </div>
     </div>
   );
 }
