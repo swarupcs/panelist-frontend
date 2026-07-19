@@ -25,6 +25,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Seo } from '@/components/common/Seo';
 import { TemplateDialog } from '@/components/recruiter/TemplateDialog';
 import { InviteDialog } from '@/components/recruiter/InviteDialog';
+import { OutcomeControl } from '@/components/recruiter/OutcomeControl';
 import {
   useArchiveTemplate,
   useAvailableViews,
@@ -212,6 +213,11 @@ export default function RecruiterDashboardPage() {
                     <p className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                       <span>{invitation.template.name}</span>
                       <span className={cn('font-medium', status.tone)}>{status.label}</span>
+                      <OutcomeControl
+                        invitationId={invitation.id}
+                        outcome={invitation.outcome}
+                        compact
+                      />
                       <IdentityNote confidence={invitation.identityConfidence} />
                     </p>
                   </div>

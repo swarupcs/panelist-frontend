@@ -225,6 +225,24 @@ export interface RecruiterDossier {
   };
   candidate: { id: string; name: string | null; email: string };
   /**
+   * Null for a practice session. Present when this interview was sat under an
+   * invitation, which is what makes a hiring decision meaningful here.
+   */
+  invitation: {
+    id: string;
+    outcome: 'UNDECIDED' | 'ADVANCED' | 'REJECTED' | 'WITHDRAWN';
+    outcomeAt: string | null;
+    identityConfidence: 'UNBOUND' | 'EMAIL_MATCH' | 'EMAIL_MISMATCH' | 'VERIFIED';
+    invitedEmail: string;
+    attemptNumber: number;
+    maxAttempts: number;
+    templateName: string;
+    allowedHints: boolean;
+    companyName: string;
+    /** Only the recruiter who sent it may record a decision. */
+    viewerIsRecruiter: boolean;
+  } | null;
+  /**
    * Null when the candidate was never recorded — they declined, or the session
    * predates recording. That is a legitimate outcome, not a missing file.
    */

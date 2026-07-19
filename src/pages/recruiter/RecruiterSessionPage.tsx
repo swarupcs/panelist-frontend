@@ -27,6 +27,7 @@ import { useRecruiterDossier } from '@/hooks/usePanelist';
 import { RubricBreakdown } from '@/components/interview/RubricBreakdown';
 import { TranscriptTimeline } from '@/components/interview/TranscriptTimeline';
 import { RecordingPlayer } from '@/components/interview/RecordingPlayer';
+import { OutcomeControl } from '@/components/recruiter/OutcomeControl';
 import type { RecruiterCodeSubmission } from '@/types/panelist';
 
 type Tab = 'overview' | 'code' | 'design' | 'recording' | 'transcript';
@@ -102,7 +103,7 @@ export default function RecruiterSessionPage() {
     );
   }
 
-  const { session, candidate, report, reportError, codeSubmissions, drawings, transcript, recording, viewerIsOwner } = data;
+  const { session, candidate, report, reportError, codeSubmissions, drawings, transcript, recording, viewerIsOwner, invitation } = data;
   const rating = report?.overallRating ?? 0;
 
   return (
@@ -218,6 +219,17 @@ export default function RecruiterSessionPage() {
 
       {tab === 'overview' && (
         <section className="space-y-6">
+          {/* The decision sits at the top of the assessment, not buried under
+              it: it is the thing the recruiter came here to make, and the
+              report is input to it rather than a verdict. */}
+          {invitation?.viewerIsRecruiter && (
+            <Panel
+              title="Your decision"
+              hint="Recorded against you, and it sets how long the recording is kept"
+            >
+              <OutcomeControl invitationId={invitation.id} outcome={invitation.outcome} />
+            </Panel>
+          )}
           {report ? (
             <>
               <Panel title="Summary">

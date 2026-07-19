@@ -11,11 +11,12 @@
 import { useMemo } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { recruiterApi, type CreateTemplateInput } from '@/api/recruiter.api'
+import { recruiterApi, type CreateTemplateInput, type HiringOutcome } from '@/api/recruiter.api'
 import { useAuthStore } from '@/store/authStore'
 import { useViewStore, type AppView } from '@/store/viewStore'
 
 export type { AppView }
+export type { HiringOutcome }
 
 export const recruiterKeys = {
   me: ['recruiter', 'me'] as const,
@@ -172,6 +173,26 @@ export function useInvite() {
       queryClient.invalidateQueries({ queryKey: ['recruiter', 'templates'] })
     },
     onError: (error: unknown) => toast.error(apiMessage(error, 'Could not send the invitation.')),
+  })
+}
+
+export function useRecordOutcome() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ invitationId, outcome }: { invitationId: string; outcome: HiringOutcome }) =>
+      recruiterApi.recordOutcome(invitationId, outcome),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['recruiter', 'invitations'] })
+      // The dossier carries the invitation too, and it is where the decision
+      // is usually made — without this the panel a recruiter just used goes
+      // on showing the buttons as though nothing happened.
+      queryClient.invalidateQueries({ queryKey: ['recruiter', 'dossier'] })
+      toast.success(
+        variables.outcome === 'UNDECIDED' ? 'Decision cleared.' : 'Decision recorded.',
+      )
+    },
+    onError: (error: unknown) => toast.error(apiMessage(error, 'Could not record the decision.')),
   })
 }
 

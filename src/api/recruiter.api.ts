@@ -48,6 +48,8 @@ export type IdentityConfidence =
   | 'EMAIL_MISMATCH'
   | 'VERIFIED'
 
+export type HiringOutcome = 'UNDECIDED' | 'ADVANCED' | 'REJECTED' | 'WITHDRAWN'
+
 export interface Invitation {
   id: string
   email: string
@@ -58,7 +60,7 @@ export interface Invitation {
   completedAt: string | null
   accommodationExtraMinutes: number
   maxAttempts: number
-  outcome: string
+  outcome: HiringOutcome
   template: { id: string; name: string }
   attempts: Array<{
     id: string
@@ -156,6 +158,17 @@ export const recruiterApi = {
       expiresAt: string
       url: string
     }
+  },
+
+  /**
+   * Record what a human decided.
+   *
+   * The assessment is input to that decision, never the decision itself — and
+   * this is what starts the recording's retention clock.
+   */
+  recordOutcome: async (invitationId: string, outcome: HiringOutcome) => {
+    const res = await api.patch(`/recruiter/invitations/${invitationId}/outcome`, { outcome })
+    return res.data.data
   },
 
   /** Withdraws, frees the quota slot, and is the fix for a link bound to the wrong person. */
