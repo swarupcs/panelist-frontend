@@ -209,3 +209,5 @@ export function ScoreRing({ score, size = 80 }: { score: number; size?: number }
 
 // React import needed for JSX
 import React from 'react'
+
+export { MetricTile } from './MetricTile'

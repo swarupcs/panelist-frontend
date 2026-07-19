@@ -36,7 +36,7 @@ import { DailyQuestsWidget } from '@/components/dashboard/DailyQuestsWidget';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ScoreRing } from '@/components/common';
+import { ScoreRing, MetricTile } from '@/components/common';
 import { ActivityHeatmap } from '@/components/dashboard/ActivityHeatmap';
 import { StreakWidget } from '@/components/dashboard/StreakWidget';
 import { DueReviewsWidget } from '@/components/dashboard/DueReviewsWidget';
@@ -72,60 +72,31 @@ function QuickAction({
   onClick,
 }: QuickActionProps) {
   return (
+    /* Icon beside the label rather than above it, matching the interview
+       type tiles these four duplicate. Stacked they cost 284px of the page
+       for four links. */
     <button
       type='button'
       onClick={onClick}
       className={cn(
-        'flex flex-col gap-3 rounded-xl border p-4 text-left transition-all duration-200',
-        'hover:scale-[1.02] hover:shadow-md active:scale-100',
+        'flex items-center gap-3 rounded-xl border p-3 text-left transition-all duration-200',
+        'hover:-translate-y-0.5 hover:shadow-md active:translate-y-0',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
         bg,
       )}
     >
-      <div
-        className={cn(
-          'flex size-9 items-center justify-center rounded-lg bg-background/40',
-        )}
-      >
-        <Icon className={cn('size-5', color)} />
-      </div>
-      <div>
-        <p className='font-semibold text-sm text-foreground'>{label}</p>
-        <p className='text-xs text-muted-foreground mt-0.5'>{description}</p>
-      </div>
-    </button>
-  );
-}
-
-// ── Stat tile ──────────────────────────────────────────────────────────────
-
-function StatTile({
-  label,
-  value,
-  sub,
-  icon: Icon,
-  color = 'text-primary',
-}: {
-  label: string;
-  value: string | number;
-  sub?: string;
-  icon: React.ElementType;
-  color?: string;
-}) {
-  return (
-    <div className='rounded-xl border border-border bg-card p-4 flex items-start gap-3'>
-      <div className='rounded-lg bg-primary/10 p-2 shrink-0'>
+      <span className='flex size-9 shrink-0 items-center justify-center rounded-lg bg-background/40'>
         <Icon className={cn('size-4', color)} />
-      </div>
-      <div className='min-w-0'>
-        <p className='text-2xl font-bold text-foreground tabular-nums'>
-          {value}
-        </p>
-        <p className='text-xs text-muted-foreground'>{label}</p>
-        {sub && (
-          <p className='text-xs font-medium text-primary mt-0.5'>{sub}</p>
-        )}
-      </div>
-    </div>
+      </span>
+      <span className='min-w-0'>
+        <span className='block truncate text-sm font-semibold text-foreground'>
+          {label}
+        </span>
+        <span className='block truncate text-xs text-muted-foreground'>
+          {description}
+        </span>
+      </span>
+    </button>
   );
 }
 
@@ -244,10 +215,21 @@ export default function DashboardPage() {
 
   return (
     <div className='space-y-6 animate-fade-in'>
-      {/* ── Greeting ── */}
-      <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-4'>
+      {/* ── Greeting ──
+          The same gradient panel the interview and analytics pages open with,
+          so the app has one way of starting a page rather than three. */}
+      <section className='relative overflow-hidden rounded-2xl border border-border/60 bg-gradient-to-br from-primary/10 via-card to-accent/10 p-5 sm:p-6'>
+        <div
+          aria-hidden
+          className='pointer-events-none absolute -right-20 -top-24 size-64 rounded-full bg-primary/20 blur-3xl'
+        />
+        <div
+          aria-hidden
+          className='pointer-events-none absolute -bottom-28 -left-16 size-56 rounded-full bg-accent/15 blur-3xl'
+        />
+        <div className='relative flex flex-col justify-between gap-4 sm:flex-row sm:items-center'>
         <div>
-          <h1 className='text-2xl font-bold text-foreground'>
+          <h1 className='text-2xl font-semibold tracking-tight text-foreground'>
             {greeting()}, {user?.name?.split(' ')[0]} 👋
           </h1>
           <p className='text-sm text-muted-foreground mt-1'>
@@ -256,7 +238,7 @@ export default function DashboardPage() {
               : 'Ready to start practicing? Pick a session below.'}
           </p>
         </div>
-        <div className='flex gap-2'>
+        <div className='flex flex-wrap gap-2'>
           {dueCount > 0 && (
             <Button
               variant='outline'
@@ -292,40 +274,44 @@ export default function DashboardPage() {
             Setup Interview
           </Button>
         </div>
-      </div>
+        </div>
+      </section>
 
-      {/* ── Stats row ── */}
+      {/* ── Stats row ──
+          The same tile the analytics page uses. These are the same four
+          figures, and they were styled differently on each page, so the same
+          number looked like two different things depending where you saw it. */}
       {!analyticsLoading && stats && (
-        <div className='grid grid-cols-2 lg:grid-cols-5 gap-3'>
-          <StatTile
-            label='Readiness Score'
+        <div className='grid grid-cols-2 gap-3 lg:grid-cols-5'>
+          <MetricTile
+            label='Readiness'
             value={analytics?.readinessScore !== undefined ? formatScore(analytics.readinessScore) : '—'}
             icon={Zap}
-            color={analytics?.readinessScore !== undefined ? getScoreColor(analytics.readinessScore) : 'text-muted-foreground'}
+            valueClassName={analytics?.readinessScore !== undefined ? getScoreColor(analytics.readinessScore) : 'text-muted-foreground'}
           />
-          <StatTile
-            label='Total Interviews'
+          <MetricTile
+            label='Total interviews'
             value={stats.totalInterviews}
             icon={BarChart3}
           />
-          <StatTile
-            label='Average Score'
+          <MetricTile
+            label='Average score'
             value={formatScore(stats.averageScore)}
             icon={TrendingUp}
-            color={getScoreColor(stats.averageScore)}
+            valueClassName={getScoreColor(stats.averageScore)}
           />
-          <StatTile
-            label='Completion Rate'
+          <MetricTile
+            label='Completion rate'
             value={formatPercent(stats.completionRate)}
             icon={Target}
           />
           {comparative && (
-            <StatTile
-              label='Global Rank'
+            <MetricTile
+              label='Global rank'
               value={`#${comparative.userRank}`}
-              sub={`Top ${comparative.percentile}%`}
+              subtitle={`Top ${comparative.percentile}%`}
               icon={Trophy}
-              color='text-yellow-400'
+              accent
             />
           )}
         </div>
