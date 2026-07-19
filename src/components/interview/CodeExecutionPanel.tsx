@@ -1,10 +1,9 @@
 // src/components/interview/CodeExecutionPanel.tsx
 //
-// DSA code editor with Monaco Editor, language switcher, test-case runner,
-// and a "Submit Code" button that calls the parent's onSubmit callback.
+// DSA code editor with language switching, test-case runner, and a
+// Submit Code button that calls the parent onSubmit callback.
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-import { useState, useRef, useEffect } from 'react';
+import { useState } from 'react';
 import {
   AlertCircle,
   CheckCircle2,
@@ -17,7 +16,6 @@ import {
   Terminal,
   XCircle,
 } from 'lucide-react';
-import Editor, { useMonaco } from '@monaco-editor/react';
 import { cn } from '@/lib/cn';
 import { useExecuteCode } from '@/hooks/useInterviewExtended';
 import { useSubmitCode } from '@/hooks/usePanelist';
@@ -28,7 +26,7 @@ import type {
   TestCaseResult,
 } from '@/types/interview-extended';
 
-// ── Language definitions ───────────────────────────────────────────────────
+// Language definitions
 
 const LANGUAGES: {
   value: ProgrammingLanguage;
@@ -95,7 +93,7 @@ const DEFAULT_TEST_CASES: TestCase[] = [
   { input: { nums: [3, 3], target: 6 }, expectedOutput: [0, 1] },
 ];
 
-// ── Test case result row ───────────────────────────────────────────────────
+// Test case result row
 
 function TestCaseRow({
   result,
@@ -170,7 +168,7 @@ function TestCaseRow({
       {open && isHidden && (
         <div className='border-t border-border/50 px-3 py-2 space-y-1.5 bg-black/10'>
           <p className='text-muted-foreground'>
-            This case is hidden — it counts towards your score, but its input is
+            This case is hidden - it counts towards your score, but its input is
             not shown. Make sure your solution handles edge cases you have not
             been given.
           </p>
@@ -213,7 +211,7 @@ function TestCaseRow({
   );
 }
 
-// ── Main component ─────────────────────────────────────────────────────────
+// Main component
 
 interface CodeExecutionPanelProps {
   onSubmit: (code: string, language: ProgrammingLanguage) => void;
@@ -242,54 +240,12 @@ export function CodeExecutionPanel({
   const [language, setLanguage] = useState<ProgrammingLanguage>('JAVASCRIPT');
   const [codeMap, setCodeMap] = useState<Partial<Record<ProgrammingLanguage, string>>>({});
   const [showLangMenu, setShowLangMenu] = useState(false);
-  const monaco = useMonaco();
-  
+
   const executeCode = useExecuteCode();
-  // Trial run inside the session — executes and returns results, but does not
-  // spend an evaluation. The interviewer only weighs in on a real submission.
   const trialRun = useSubmitCode(sessionId ?? '');
-  const activeLang = LANGUAGES.find((l) => l.value === language)!;
+  const activeLang = LANGUAGES.find((lang) => lang.value === language)!;
   const cases = testCases && testCases.length > 0 ? testCases : DEFAULT_TEST_CASES;
-
-  // Initialize code for current language if empty
   const currentCode = codeMap[language] ?? activeLang.placeholder;
-
-  useEffect(() => {
-    if (monaco) {
-      // Setup custom theme for Monaco matching our dark UI
-      monaco.editor.defineTheme('interview-dark', {
-        base: 'vs-dark',
-        inherit: true,
-        rules: [],
-        colors: {
-          'editor.background': '#09090b', // Matches our tailwind background
-          'editor.lineHighlightBackground': '#18181b',
-        }
-      });
-      monaco.editor.setTheme('interview-dark');
-
-      // Enable Autocomplete / IntelliSense for JS/TS
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const m = monaco as any;
-      m.languages.typescript.javascriptDefaults.setDiagnosticsOptions({
-        noSemanticValidation: false,
-        noSyntaxValidation: false,
-      });
-      m.languages.typescript.javascriptDefaults.setCompilerOptions({
-        target: m.languages.typescript.ScriptTarget.ES2020,
-        allowNonTsExtensions: true,
-      });
-
-      m.languages.typescript.typescriptDefaults.setDiagnosticsOptions({
-        noSemanticValidation: false,
-        noSyntaxValidation: false,
-      });
-      m.languages.typescript.typescriptDefaults.setCompilerOptions({
-        target: m.languages.typescript.ScriptTarget.ES2020,
-        allowNonTsExtensions: true,
-      });
-    }
-  }, [monaco]);
 
   const handleEditorChange = (value: string | undefined) => {
     setCodeMap(prev => ({ ...prev, [language]: value || '' }));
@@ -380,7 +336,7 @@ export function CodeExecutionPanel({
             ) : (
               <Play className='size-3.5' />
             )}
-            {isRunning ? 'Running…' : 'Run Tests'}
+            {isRunning ? 'Running...' : 'Run Tests'}
           </button>
 
           <button
@@ -408,32 +364,13 @@ export function CodeExecutionPanel({
         'w-full rounded-lg border border-border overflow-hidden bg-[#09090b] flex-1 min-h-[300px] shadow-inner',
         disabled && 'opacity-50 pointer-events-none'
       )}>
-        <Editor
-          height="100%"
-          language={activeLang.monacoLang}
+        <textarea
+          aria-label='Code editor'
           value={currentCode}
-          onChange={handleEditorChange}
-          theme="interview-dark"
-          options={{
-            minimap: { enabled: false },
-            fontSize: 14,
-            fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
-            lineHeight: 1.5,
-            padding: { top: 16, bottom: 16 },
-            scrollBeyondLastLine: false,
-            smoothScrolling: true,
-            cursorBlinking: "smooth",
-            cursorSmoothCaretAnimation: "on",
-            formatOnPaste: true,
-            suggestOnTriggerCharacters: true,
-            quickSuggestions: {
-              other: true,
-              comments: false,
-              strings: true
-            },
-            snippetSuggestions: "inline",
-            wordBasedSuggestions: "currentDocument",
-          }}
+          onChange={(event) => handleEditorChange(event.target.value)}
+          disabled={disabled}
+          spellCheck={false}
+          className='block size-full resize-none border-0 bg-[#09090b] p-4 font-mono text-sm leading-6 text-foreground outline-none'
         />
       </div>
 
@@ -467,7 +404,7 @@ export function CodeExecutionPanel({
               {result.testCasesPassed}/{result.testCasesTotal} test cases passed
             </div>
             {result.success && (
-              <span className='text-muted-foreground'>All tests passed ✓</span>
+              <span className='text-muted-foreground'>All tests passed</span>
             )}
           </div>
 

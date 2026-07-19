@@ -1,12 +1,12 @@
 // src/pages/interview/InterviewSessionPage.tsx
 //
 // NEW FEATURES (on top of existing)
-// ─────────────────────────────────────────────────────────────────────────────
+// -----------------------------------------------------------------------------
 // FEAT-4  Keyboard shortcuts
-//           Ctrl+Enter  → submit current answer (text tab)
-//           H           → request a hint
-//           P           → pause / resume session
-//           Escape      → dismiss end-confirm if open
+//           Ctrl+Enter  -> submit current answer (text tab)
+//           H           -> request a hint
+//           P           -> pause / resume session
+//           Escape      -> dismiss end-confirm if open
 //         A small overlay badge shows active shortcuts.
 //
 // FEAT-5  Auto-submit on timer expiry
@@ -77,7 +77,7 @@ import { useSessionRecorder } from '@/hooks/useSessionRecorder';
 import { RecordingConsent } from '@/components/interview/RecordingConsent';
 import { useSessionContext } from '@/hooks/useSessionContext';
 
-// ── Types ──────────────────────────────────────────────────────────────────
+// -- Types ------------------------------------------------------------------
 
 type PagePhase = 'answering' | 'feedback' | 'completed';
 type AnswerTab = 'text' | 'code' | 'whiteboard';
@@ -89,7 +89,7 @@ interface FeedbackState {
   spaceComplexity?: string;
   optimizationSuggestions?: string[];
   communicationScore?: number;
-  /** Real sandbox results — present only for executed code submissions. */
+  /** Real sandbox results - present only for executed code submissions. */
   execution?: {
     passed: number;
     total: number;
@@ -100,7 +100,7 @@ interface FeedbackState {
   followUp?: string;
 }
 
-// ── Helpers ────────────────────────────────────────────────────────────────
+// -- Helpers ----------------------------------------------------------------
 
 function ScoreRing({ score }: { score: number }) {
   const color =
@@ -179,7 +179,7 @@ function TextButton({
   );
 }
 
-// ── FEAT-4: Keyboard shortcuts legend ─────────────────────────────────────
+// -- FEAT-4: Keyboard shortcuts legend -------------------------------------
 
 function ShortcutsLegend({ visible }: { visible: boolean }) {
   if (!visible) return null;
@@ -192,7 +192,7 @@ function ShortcutsLegend({ visible }: { visible: boolean }) {
         </kbd>
         +
         <kbd className='rounded border border-border bg-secondary px-1 py-0.5 font-mono text-[10px]'>
-          ↵
+          Enter
         </kbd>{' '}
         Submit
       </span>
@@ -212,7 +212,7 @@ function ShortcutsLegend({ visible }: { visible: boolean }) {
   );
 }
 
-// ── Main ───────────────────────────────────────────────────────────────────
+// -- Main -------------------------------------------------------------------
 
 export default function InterviewSessionPage() {
   const { sessionId } = useParams<{ sessionId: string }>();
@@ -293,7 +293,7 @@ export default function InterviewSessionPage() {
     // never does.
     const started = await recorder.start({ camera: assessment.requireCamera });
     setStartingRecording(false);
-    // Only remember once the question has actually been answered — a browser
+    // Only remember once the question has actually been answered - a browser
     // picker dismissed by accident should get another chance.
     if (started) rememberAsked();
   };
@@ -321,7 +321,7 @@ export default function InterviewSessionPage() {
     return () => clearInterval(id);
   }, [phase, isPaused, isCompleted]);
 
-  // Sync isCompleted → phase
+  // Sync isCompleted -> phase
   useEffect(() => {
     if (isCompleted && phase !== 'completed') setPhase('completed');
   }, [isCompleted, phase]);
@@ -331,7 +331,7 @@ export default function InterviewSessionPage() {
   // Only the explicit End button did this before, so a session that finished
   // by running out of questions left the recorder running: the candidate went
   // on sharing their screen after the interview had ended, chunks kept
-  // uploading, and the recording was never finalised — the recruiter view
+  // uploading, and the recording was never finalised - the recruiter view
   // showed "still being recorded" indefinitely.
   useEffect(() => {
     if (phase === 'completed' && recorder.isRecording) {
@@ -350,19 +350,21 @@ export default function InterviewSessionPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Reset answer tab on new question
+  // DSA answers are code-first. Opening (or advancing) a DSA interview on the
+  // text tab made the editor look unavailable until the candidate discovered
+  // the secondary "Code" tab themselves.
   useEffect(() => {
-    if (phase === 'answering') setAnswerTab('text');
-  }, [currentQuestionIndex, phase]);
+    if (phase === 'answering') setAnswerTab(isDSA ? 'code' : 'text');
+  }, [currentQuestionIndex, phase, isDSA]);
 
-  // ── Handlers ──────────────────────────────────────────────────────────
+  // -- Handlers ----------------------------------------------------------
 
   /**
    * DSA code goes through the session-aware endpoint so it is actually executed
    * against the question's stored test cases, rather than being read by the
    * model as prose. That single call runs the sandbox, evaluates against the
    * real results, records the transcript and advances the interview, so no
-   * separate submitAnswer is needed — calling both would grade the same code
+   * separate submitAnswer is needed - calling both would grade the same code
    * twice and report two different scores.
    */
   const handleCodeSubmit = useCallback(
@@ -558,7 +560,7 @@ export default function InterviewSessionPage() {
       const tag = (e.target as HTMLElement).tagName;
       if (tag === 'INPUT') return;
 
-      // Ctrl+Enter → submit (only in text tab / not in code panel textarea)
+      // Ctrl+Enter -> submit (only in text tab / not in code panel textarea)
       if (
         e.ctrlKey &&
         e.key === 'Enter' &&
@@ -613,7 +615,7 @@ export default function InterviewSessionPage() {
     handlePauseResume,
   ]);
 
-  // ── Guards ─────────────────────────────────────────────────────────────
+  // -- Guards -------------------------------------------------------------
 
   if (!currentQuestion && phase === 'answering' && !isCompleted) {
     return <LoadingScreen message='Loading question...' />;
@@ -625,12 +627,12 @@ export default function InterviewSessionPage() {
   const isSubmitting = submitAnswer.isPending || submitCode.isPending;
   const isPauseLoading = pauseSession.isPending || resumeSession.isPending;
 
-  // ── Render ─────────────────────────────────────────────────────────────
+  // -- Render -------------------------------------------------------------
 
   return (
     <div className='max-w-3xl mx-auto space-y-5 animate-fade-in'>
       {/* Asked once, before the interview gets going. Not shown again after an
-          answer either way — being re-asked to be recorded mid-interview is
+          answer either way - being re-asked to be recorded mid-interview is
           pressure, not a question. */}
       <RecordingConsent
         isOpen={!consentAsked && phase === 'answering' && !isCompleted}
@@ -640,7 +642,7 @@ export default function InterviewSessionPage() {
         assessment={assessment.context}
       />
 
-      {/* ── Header bar ───────────────────────────────────────────────────── */}
+      {/* -- Header bar ----------------------------------------------------- */}
       <div className='flex flex-col md:flex-row items-start md:items-center justify-between gap-4 md:gap-0 rounded-2xl border border-border/50 bg-background/40 backdrop-blur-md p-4 shadow-sm'>
         <div className='flex flex-wrap items-center gap-3'>
           <span className='text-sm text-muted-foreground'>
@@ -676,7 +678,7 @@ export default function InterviewSessionPage() {
                 {/* Named explicitly rather than left as "Recording". Somebody
                     on camera should be able to see that they are, at a glance,
                     for as long as it is true. */}
-                {recorder.isRecordingCamera ? 'Recording · camera on' : 'Recording'}
+                {recorder.isRecordingCamera ? 'Recording - camera on' : 'Recording'}
               </span>
             )
           )}
@@ -709,7 +711,7 @@ export default function InterviewSessionPage() {
 
           {/* Hidden during an assessment. The server refuses to pause one, so
               offering a button that returns an error would be a worse
-              experience than not offering it — and a paused clock is
+              experience than not offering it - and a paused clock is
               unsupervised time to look up the answer. */}
           {!assessment.isAssessment && (
           <IconButton
@@ -746,7 +748,7 @@ export default function InterviewSessionPage() {
                            text-destructive-foreground hover:bg-destructive/90
                            disabled:opacity-50 transition-colors'
               >
-                {endInterview.isPending ? 'Ending…' : 'Yes'}
+                {endInterview.isPending ? 'Ending...' : 'Yes'}
               </button>
               <button
                 type='button'
@@ -771,7 +773,7 @@ export default function InterviewSessionPage() {
       {/* Paused banner */}
       {isPaused && (
         <div className='rounded-xl border border-yellow-500/20 bg-yellow-500/5 p-4 text-center text-sm text-yellow-400'>
-          Session paused — press{' '}
+          Session paused - press{' '}
           <kbd className='rounded border border-yellow-500/30 bg-yellow-500/10 px-1 font-mono text-xs'>
             P
           </kbd>{' '}
@@ -782,11 +784,11 @@ export default function InterviewSessionPage() {
       {/* FEAT-5: Auto-submit banner */}
       {timerExpired && phase === 'answering' && (
         <div className='rounded-xl border border-red-500/20 bg-red-500/5 p-3 text-center text-sm text-red-400'>
-          ⏰ Time expired — submitting your current answer automatically…
+           Time expired - submitting your current answer automatically...
         </div>
       )}
 
-      {/* ══ PHASE: answering ═══════════════════════════════════════════════ */}
+      {/* == PHASE: answering =============================================== */}
       {phase === 'answering' && currentQuestion && (
         <>
           {/* Question card */}
@@ -994,7 +996,7 @@ export default function InterviewSessionPage() {
                     <div className='flex justify-between items-center mt-4'>
                       <p className='text-xs text-muted-foreground'>
                         {whiteboardType === 'excalidraw'
-                          ? 'Label your components and connect them with arrows — unlabelled or unconnected shapes cannot be read by the interviewer.'
+                          ? 'Label your components and connect them with arrows - unlabelled or unconnected shapes cannot be read by the interviewer.'
                           : 'Scratch sketching only. Switch back to the Text or Editor tab to write and submit your final answer.'}
                       </p>
                       <TextButton
@@ -1012,7 +1014,7 @@ export default function InterviewSessionPage() {
                 ) : (
                   <>
                     <Textarea
-                      placeholder='Type your answer here… (Ctrl+Enter to submit)'
+                      placeholder='Type your answer here... (Ctrl+Enter to submit)'
                       value={answer}
                       onChange={(e) => setAnswer(e.target.value)}
                       className='min-h-[180px] font-mono text-sm resize-y'
@@ -1066,7 +1068,7 @@ export default function InterviewSessionPage() {
                         {isSubmitting ? (
                           <>
                             <Loader2 className='size-3.5 animate-spin' />{' '}
-                            Evaluating…
+                            Evaluating...
                           </>
                         ) : (
                           <>
@@ -1083,7 +1085,7 @@ export default function InterviewSessionPage() {
         </>
       )}
 
-      {/* ══ PHASE: feedback ════════════════════════════════════════════════ */}
+      {/* == PHASE: feedback ================================================ */}
       {phase === 'feedback' && pendingFeedback && currentQuestion && (
         <div className='space-y-4 animate-fade-in'>
           <Card className='opacity-60'>
@@ -1135,7 +1137,7 @@ export default function InterviewSessionPage() {
               </div>
 
               {/* Real sandbox results. Shown above the prose because this is
-                  the objective fact the assessment is reasoning about — the
+                  the objective fact the assessment is reasoning about - the
                   candidate should see what actually ran before reading why. */}
               {pendingFeedback.execution && (
                 <div className='rounded-lg border border-border/60 overflow-hidden'>
@@ -1156,7 +1158,7 @@ export default function InterviewSessionPage() {
                   </div>
                   {pendingFeedback.execution.compileError && (
                     <p className='px-4 py-2 text-xs text-red-400 border-t border-border/40'>
-                      Compilation failed — no test case ran.
+                      Compilation failed - no test case ran.
                     </p>
                   )}
                 </div>
@@ -1171,7 +1173,7 @@ export default function InterviewSessionPage() {
                 </p>
               </div>
 
-              {/* The interviewer's follow-up — an actual turn, not a notice.
+              {/* The interviewer's follow-up - an actual turn, not a notice.
                   The session is held on this question until it is answered or
                   skipped, so the reply is recorded against the right question. */}
               {pendingFeedback.followUp && (
@@ -1187,7 +1189,7 @@ export default function InterviewSessionPage() {
                   <Textarea
                     value={followUpReply}
                     onChange={(e) => setFollowUpReply(e.target.value)}
-                    placeholder='Answer in your own words…'
+                    placeholder='Answer in your own words...'
                     className='min-h-[90px] text-sm resize-y bg-background'
                     disabled={answerFollowUp.isPending}
                   />
@@ -1206,7 +1208,7 @@ export default function InterviewSessionPage() {
                       disabled={answerFollowUp.isPending}
                       className='text-muted-foreground hover:text-foreground'
                     >
-                      Nothing to add — skip
+                      Nothing to add - skip
                     </TextButton>
                   </div>
                 </div>
@@ -1238,7 +1240,7 @@ export default function InterviewSessionPage() {
                   <ul className='space-y-2'>
                     {pendingFeedback.optimizationSuggestions.map((suggestion, idx) => (
                       <li key={idx} className='text-sm text-foreground/90 flex items-start gap-2'>
-                        <span className='text-primary mt-0.5 font-bold'>•</span>
+                        <span className='text-primary mt-0.5 font-bold'>-</span>
                         <span className='leading-relaxed'>{suggestion}</span>
                       </li>
                     ))}
@@ -1249,7 +1251,7 @@ export default function InterviewSessionPage() {
               {/* Hidden while a follow-up is outstanding. The server holds the
                   interview on this question until the follow-up is answered or
                   skipped, so advancing here would move the UI on while the
-                  session stayed put — and the next submission would be graded
+                  session stayed put - and the next submission would be graded
                   against the wrong question. The follow-up's own buttons are
                   the way forward in that state. */}
               {!pendingFeedback.followUp && (
@@ -1269,7 +1271,7 @@ export default function InterviewSessionPage() {
         </div>
       )}
 
-      {/* ══ PHASE: completed (portal modal) ════════════════════════════════ */}
+      {/* == PHASE: completed (portal modal) ================================ */}
       {phase === 'completed' &&
         createPortal(
           <div
@@ -1295,7 +1297,7 @@ export default function InterviewSessionPage() {
                 </div>
 
                 {/* A recruiter may keep the score to themselves. The
-                    candidate is never in doubt that they were assessed — only
+                    candidate is never in doubt that they were assessed - only
                     the number is withheld. */}
                 {!assessment.candidateSeesResult && (
                   <p className='rounded-lg border border-border/60 bg-secondary/30 p-3 text-xs text-muted-foreground'>
