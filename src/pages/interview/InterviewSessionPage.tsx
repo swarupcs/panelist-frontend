@@ -621,10 +621,23 @@ export default function InterviewSessionPage() {
           {/* Always visible while capture runs. Someone being recorded should
               never have to wonder whether they still are. */}
           {recorder.isRecording && (
-            <span className="flex items-center gap-1.5 text-xs text-rose-400" title="This session is being recorded">
-              <span className="size-2 animate-pulse rounded-full bg-rose-500" />
-              Recording
-            </span>
+            recorder.uploadDegraded ? (
+              // The toast fires once; this stays. Someone who dismissed it or
+              // looked away should still be able to see that the recording is
+              // no longer capturing everything.
+              <span
+                className="flex items-center gap-1.5 text-xs text-amber-400"
+                title="Parts of the recording are not uploading. Your interview is unaffected."
+              >
+                <span className="size-2 rounded-full bg-amber-500" />
+                Recording (upload issues)
+              </span>
+            ) : (
+              <span className="flex items-center gap-1.5 text-xs text-rose-400" title="This session is being recorded">
+                <span className="size-2 animate-pulse rounded-full bg-rose-500" />
+                Recording
+              </span>
+            )
           )}
           {adaptiveMode && (
             <span className='flex items-center gap-1 text-xs text-yellow-400'>

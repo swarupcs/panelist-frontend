@@ -383,6 +383,10 @@ export default function InterviewSetupPage() {
       resumeText: selectedType === 'resume_deep_dive' ? resumeText : undefined,
       aiPersona: aiPersona,
       stressMode: stressMode,
+      // Previously only written to sessionStorage, which drove a badge in the
+      // header and nothing else — the server never learned the session was
+      // meant to adapt.
+      adaptiveMode: adaptiveMode,
     });
   };
 

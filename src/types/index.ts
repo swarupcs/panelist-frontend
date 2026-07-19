@@ -93,6 +93,8 @@ export interface StartInterviewRequest {
   resumeText?: string;
   aiPersona?: 'supportive' | 'strict' | 'default';
   stressMode?: boolean;
+  /** Difficulty responds to the candidate's last few scores. */
+  adaptiveMode?: boolean;
 }
 
 export interface StartInterviewResponse {

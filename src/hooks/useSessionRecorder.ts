@@ -23,9 +23,25 @@ const CHUNK_INTERVAL_MS = 5000
 
 export type RecorderState = 'idle' | 'starting' | 'recording' | 'stopping' | 'stopped' | 'error'
 
+/**
+ * How many chunks in a row may fail before the candidate is told.
+ *
+ * One lost chunk is a few seconds of gap and not worth interrupting an
+ * interview over. Several in a row means the recording is being quietly
+ * hollowed out, and someone sitting an assessment deserves to know that before
+ * they finish rather than after.
+ */
+const CONSECUTIVE_FAILURES_BEFORE_WARNING = 3
+
 export function useSessionRecorder(sessionId: string | undefined) {
   const [state, setState] = useState<RecorderState>('idle')
   const [uploadFailures, setUploadFailures] = useState(0)
+  const [uploadDegraded, setUploadDegraded] = useState(false)
+
+  // Consecutive rather than total: a single failure early on says nothing
+  // about whether uploads are working now.
+  const consecutiveFailuresRef = useRef(0)
+  const warnedRef = useRef(false)
 
   const recorderRef = useRef<MediaRecorder | null>(null)
   const streamRef = useRef<MediaStream | null>(null)
@@ -118,12 +134,40 @@ export function useSessionRecorder(sessionId: string | undefined) {
       const id = recordingIdRef.current
 
       uploadChainRef.current = uploadChainRef.current
-        .then(() => recordingApi.uploadChunk(id, event.data))
+        .then(async () => {
+          // recordingApi.uploadChunk retries transient failures internally.
+          // Retrying here instead would break ordering: the server appends
+          // chunks to a single file, so a retry must complete before the next
+          // chunk goes up.
+          await recordingApi.uploadChunk(id, event.data)
+
+          // A success clears the run — uploads are working again, and the
+          // candidate should be able to be warned a second time if they stop.
+          consecutiveFailuresRef.current = 0
+          if (warnedRef.current) {
+            warnedRef.current = false
+            setUploadDegraded(false)
+          }
+        })
         .catch(() => {
           // One failed chunk is a gap, not a reason to stop: the rest of the
-          // recording is still worth having. Counted so a persistent failure
-          // becomes visible rather than silently producing an empty file.
+          // recording is still worth having.
           setUploadFailures((n) => n + 1)
+          consecutiveFailuresRef.current += 1
+
+          if (
+            consecutiveFailuresRef.current >= CONSECUTIVE_FAILURES_BEFORE_WARNING &&
+            !warnedRef.current
+          ) {
+            // Said once, not once per chunk. A toast every five seconds during
+            // a network problem would be its own distraction, in the middle of
+            // an interview.
+            warnedRef.current = true
+            setUploadDegraded(true)
+            toast.warning(
+              'Parts of your recording are not uploading. Your interview is not affected.',
+            )
+          }
         })
     }
 
@@ -132,6 +176,10 @@ export function useSessionRecorder(sessionId: string | undefined) {
     stream.getVideoTracks()[0]?.addEventListener('ended', () => {
       void stop()
     })
+
+    consecutiveFailuresRef.current = 0
+    warnedRef.current = false
+    setUploadDegraded(false)
 
     recorder.start(CHUNK_INTERVAL_MS)
     recorderRef.current = recorder
@@ -165,6 +213,8 @@ export function useSessionRecorder(sessionId: string | undefined) {
     state,
     isRecording: state === 'recording',
     uploadFailures,
+    /** Chunks are being lost right now — the recording will have gaps. */
+    uploadDegraded,
     start,
     stop,
     stopSilently,
