@@ -49,7 +49,8 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Tldraw, Editor } from 'tldraw';
 import 'tldraw/tldraw.css';
-import { useAppSelector } from '@/store/hooks';
+import { useAppDispatch, useAppSelector } from '@/store/hooks';
+import { setCurrentQuestion } from '@/store/interviewSlice';
 import {
   useSubmitAnswer,
   useRequestHint,
@@ -68,6 +69,7 @@ import { useAnswerFollowUp, useSubmitCode } from '@/hooks/usePanelist';
 import { DrawingCanvas } from '@/components/interview/DrawingCanvas';
 import type { SubmitDrawingResponse } from '@/types/panelist';
 import type { ProgrammingLanguage } from '@/types/interview-extended';
+import type { Difficulty, InterviewQuestion } from '@/types';
 import { getDifficultyBadge } from '@/utils/formatters';
 import { MultiFileEditor } from '@/components/interview/MultiFileEditor';
 import { cn } from '@/lib/cn';
@@ -249,7 +251,27 @@ export default function InterviewSessionPage() {
     isCompleted,
     type: sessionType,
   } = useAppSelector((state) => state.interview);
+  const dispatch = useAppDispatch();
 
+  const advanceToNextQuestion = useCallback(
+    (nextQuestion: Partial<InterviewQuestion> | null | undefined) => {
+      if (!nextQuestion?.id || !nextQuestion.question) return;
+
+      dispatch(
+        setCurrentQuestion({
+          question: {
+            ...nextQuestion,
+            id: nextQuestion.id,
+            question: nextQuestion.question,
+            difficulty: (nextQuestion.difficulty ?? currentQuestion?.difficulty ?? 'medium') as Difficulty,
+            category: nextQuestion.category ?? currentQuestion?.category ?? 'DSA',
+          },
+          index: currentQuestionIndex + 1,
+        }),
+      );
+    },
+    [currentQuestion?.category, currentQuestion?.difficulty, currentQuestionIndex, dispatch],
+  );
   const submitAnswer = useSubmitAnswer();
   const submitCode = useSubmitCode(sessionId ?? '');
   const answerFollowUp = useAnswerFollowUp(sessionId ?? '');
@@ -378,6 +400,7 @@ export default function InterviewSessionPage() {
         { code, language, questionIndex: currentQuestionIndex, final: true, awaitFollowUp: true },
         {
           onSuccess: (data) => {
+            advanceToNextQuestion(data.nextQuestion);
             setPendingFeedback({
               score: data.score ?? 0,
               feedback: data.evaluation ?? '',
@@ -396,7 +419,7 @@ export default function InterviewSessionPage() {
         },
       );
     },
-    [sessionId, currentQuestionIndex, submitCode],
+    [sessionId, currentQuestionIndex, submitCode, advanceToNextQuestion],
   );
 
   /**
@@ -432,6 +455,7 @@ export default function InterviewSessionPage() {
         { answer: skipped ? undefined : reply, questionIndex: currentQuestionIndex, skipped },
         {
           onSuccess: (data) => {
+            advanceToNextQuestion(data.nextQuestion);
             setFollowUpReply('');
             setPendingFeedback(null);
             setAnswer('');
@@ -443,7 +467,7 @@ export default function InterviewSessionPage() {
         },
       );
     },
-    [sessionId, followUpReply, currentQuestionIndex, answerFollowUp],
+    [sessionId, followUpReply, currentQuestionIndex, answerFollowUp, advanceToNextQuestion],
   );
 
   const handleSubmit = useCallback(
