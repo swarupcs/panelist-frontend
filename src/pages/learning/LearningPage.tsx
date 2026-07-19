@@ -17,6 +17,7 @@ import {
   RotateCcw,
   ChevronDown,
   ChevronUp,
+  GraduationCap,
 } from 'lucide-react';
 import {
   useLearningPath,
@@ -35,7 +36,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { PageHeader, EmptyState } from '@/components/common';
+import { EmptyState } from '@/components/common';
 import { SkillTree } from './components/SkillTree';
 import { PacingDashboard } from './components/PacingDashboard';
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -123,7 +124,9 @@ const GAUNTLETS = [
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function CompanyGauntlets({ onGenerate, isGenerating }: { onGenerate: (preset: any) => void, isGenerating: boolean }) {
   return (
-    <div className='grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8'>
+    /* Four across on a wide screen. Two of these on a full-width page gave
+       each preset a 570px card holding two lines of text. */
+    <div className='mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4'>
       {GAUNTLETS.map(g => (
         <button
           key={g.id}
@@ -622,36 +625,66 @@ export default function LearningPage() {
   };
 
   return (
-    <div className='max-w-2xl mx-auto space-y-6 animate-fade-in'>
-      <PageHeader
-        title='Learning Path'
-        description='Your personalized roadmap to interview mastery'
-      />
+    /* Full width, like the dashboard and analytics. This page was capped at
+       max-w-2xl, which left its cards noticeably smaller than everything
+       else in the app for no reason the content asked for. */
+    <div className='animate-fade-in w-full space-y-5'>
+      {/* ── Hero ── */}
+      <section className='relative overflow-hidden rounded-2xl border border-border/60 bg-gradient-to-br from-primary/10 via-card to-accent/10 p-5 sm:p-6'>
+        <div
+          aria-hidden
+          className='pointer-events-none absolute -right-20 -top-24 size-64 rounded-full bg-primary/20 blur-3xl'
+        />
+        <div className='relative'>
+          <span className='inline-flex items-center gap-1.5 rounded-full border border-primary/25 bg-primary/10 px-2.5 py-1 text-[11px] font-medium uppercase tracking-wider text-primary'>
+            <GraduationCap className='size-3' />
+            Your roadmap
+          </span>
+          <h1 className='mt-2.5 text-2xl font-semibold tracking-tight text-foreground'>
+            Learning path
+          </h1>
+          <p className='mt-1 text-sm text-muted-foreground'>
+            A plan built from what you have actually been getting wrong.
+          </p>
+        </div>
+      </section>
 
-      {/* Tab bar */}
-      <div className='flex gap-1 rounded-lg bg-secondary/50 p-1'>
+      {/* Tab bar — sized to its labels rather than stretched, and carrying the
+          roles it always behaved as but never announced. */}
+      <div
+        role='tablist'
+        className='flex w-full gap-1 overflow-x-auto rounded-xl border border-border/60 bg-secondary/40 p-1 sm:w-fit'
+      >
         {(
           [
-            { key: 'path', label: 'My Path' },
-            {
-              key: 'reviews',
-              label: `Reviews${dueCount > 0 ? ` (${dueCount})` : ''}`,
-            },
-            { key: 'recommendations', label: 'For You' },
+            { key: 'path', label: 'My path' },
+            { key: 'reviews', label: 'Reviews' },
+            { key: 'recommendations', label: 'For you' },
           ] as const
         ).map(({ key, label }) => (
           <button
             key={key}
             type='button'
+            role='tab'
+            aria-selected={activeTab === key}
             onClick={() => setActiveTab(key)}
             className={cn(
-              'flex-1 rounded-md px-3 py-2 text-sm font-medium transition-all',
+              'flex shrink-0 items-center gap-2 rounded-lg px-3.5 py-1.5 text-sm font-medium transition-all duration-200',
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
               activeTab === key
                 ? 'bg-background text-foreground shadow-sm'
-                : 'text-muted-foreground hover:text-foreground hover:bg-background/50',
+                : 'text-muted-foreground hover:bg-background/50 hover:text-foreground',
             )}
           >
             {label}
+            {/* The due count as a badge rather than inside the label. Baked
+                into the text it changed the tab's width as cards fell due,
+                shifting the tabs beside it under the cursor. */}
+            {key === 'reviews' && dueCount > 0 && (
+              <span className='rounded-full bg-primary/20 px-1.5 py-0.5 text-[11px] font-semibold tabular-nums text-primary'>
+                {dueCount}
+              </span>
+            )}
           </button>
         ))}
       </div>
