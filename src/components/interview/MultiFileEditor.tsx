@@ -270,6 +270,12 @@ export function MultiFileEditor({
             value={activeFile.content}
             onChange={handleEditorChange}
             options={{
+              // Monaco measures its container when it is created and does not
+              // watch it afterwards unless asked. This editor is created
+              // inside a tab that was hidden, which is exactly the case that
+              // leaves it sized to nothing. The sibling CodeExecutionPanel
+              // sets this and has never had the problem.
+              automaticLayout: true,
               minimap: { enabled: false },
               fontSize: 14,
               fontFamily: "'JetBrains Mono', 'Fira Code', monospace",

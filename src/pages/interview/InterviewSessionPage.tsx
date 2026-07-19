@@ -73,7 +73,6 @@ import type { Difficulty, InterviewQuestion } from '@/types';
 import { getDifficultyBadge } from '@/utils/formatters';
 import { MultiFileEditor } from '@/components/interview/MultiFileEditor';
 import { cn } from '@/lib/cn';
-import { Progress } from '@/components/ui/progress';
 import { Textarea } from '@/components/ui/textarea';
 import { useSessionRecorder } from '@/hooks/useSessionRecorder';
 import { RecordingConsent } from '@/components/interview/RecordingConsent';
@@ -662,7 +661,7 @@ export default function InterviewSessionPage() {
   // -- Render -------------------------------------------------------------
 
   return (
-    <div className='max-w-3xl mx-auto space-y-5 animate-fade-in'>
+    <div className='animate-fade-in mx-auto max-w-7xl space-y-5'>
       {/* Asked once, before the interview gets going. Not shown again after an
           answer either way - being re-asked to be recorded mid-interview is
           pressure, not a question. */}
@@ -674,13 +673,37 @@ export default function InterviewSessionPage() {
         assessment={assessment.context}
       />
 
-      {/* -- Header bar ----------------------------------------------------- */}
-      <div className='flex flex-col md:flex-row items-start md:items-center justify-between gap-4 md:gap-0 rounded-2xl border border-border/50 bg-background/40 backdrop-blur-md p-4 shadow-sm'>
+      {/* -- Command bar ----------------------------------------------------
+          Sticky. The timer, the progress and the way out are the things you
+          need at the moment you need them, and they used to scroll away above
+          a long code editor — leaving no way to see the time remaining
+          without abandoning your place in the answer. */}
+      <div className='sticky top-0 z-30 flex flex-col items-start justify-between gap-4 rounded-2xl border border-border/50 bg-background/85 p-4 shadow-sm backdrop-blur-xl md:flex-row md:items-center md:gap-0'>
         <div className='flex flex-wrap items-center gap-3'>
-          <span className='text-sm text-muted-foreground'>
-            Question {currentQuestionIndex + 1} of {totalQuestions}
+          <span className='text-sm font-medium text-foreground'>
+            Question {currentQuestionIndex + 1}
+            <span className='text-muted-foreground'> of {totalQuestions}</span>
           </span>
-          <Progress value={progress} className='w-32 h-1.5' />
+
+          {/* One mark per question rather than a single filled bar. The
+              remaining work is the useful part, and a bar at 60% does not say
+              whether that is three questions left or one. */}
+          <div className='flex items-center gap-1' aria-hidden>
+            {Array.from({ length: totalQuestions }).map((_, i) => (
+              <span
+                key={i}
+                className={cn(
+                  'h-1.5 rounded-full transition-all duration-300',
+                  i < currentQuestionIndex
+                    ? 'w-5 bg-primary/70'
+                    : i === currentQuestionIndex
+                      ? 'w-8 bg-primary'
+                      : 'w-5 bg-border',
+                )}
+              />
+            ))}
+          </div>
+          <span className='sr-only'>{Math.round(progress)}% complete</span>
           {/* Mode badges */}
           <TimedBadge sessionId={sessionId ?? ''} isTimed={isTimed} />
           {/* Always visible while capture runs. Someone being recorded should
@@ -822,7 +845,12 @@ export default function InterviewSessionPage() {
 
       {/* == PHASE: answering =============================================== */}
       {phase === 'answering' && currentQuestion && (
-        <>
+        /* The prompt on the left, the work on the right. Stacked, the question
+           scrolled off the top the moment the editor or the canvas opened, so
+           re-reading it meant losing your place in the answer. The left column
+           sticks and scrolls on its own for the same reason. */
+        <div className='grid gap-5 xl:grid-cols-[minmax(0,400px)_minmax(0,1fr)] xl:items-start'>
+          <div className='space-y-4 xl:sticky xl:top-24 xl:max-h-[calc(100vh-8rem)] xl:overflow-y-auto xl:pr-1'>
           {/* Question card */}
           <Card className='border-border/50 bg-background/60 backdrop-blur-xl shadow-lg'>
             <CardHeader className='pb-3'>
@@ -883,8 +911,10 @@ export default function InterviewSessionPage() {
               </CardContent>
             </Card>
           )}
+          </div>
 
           {/* Answer area */}
+          <div className='min-w-0'>
           {!isPaused && (
             <Card className='border-border/50 bg-background/60 backdrop-blur-xl shadow-lg overflow-hidden'>
               <CardContent className='pt-5 space-y-4'>
@@ -1084,12 +1114,17 @@ export default function InterviewSessionPage() {
               </CardContent>
             </Card>
           )}
-        </>
+          </div>
+        </div>
       )}
 
       {/* == PHASE: feedback ================================================ */}
       {phase === 'feedback' && pendingFeedback && currentQuestion && (
-        <div className='space-y-4 animate-fade-in'>
+        /* Narrower than the workspace on purpose. This phase is entirely
+           reading — feedback prose and a follow-up question — and prose set
+           across the full width of a workspace is hard to track back to the
+           start of the next line. */
+        <div className='mx-auto max-w-3xl space-y-4 animate-fade-in'>
           <Card className='opacity-60'>
             <CardHeader className='pb-3'>
               <div className='flex flex-wrap gap-2'>
