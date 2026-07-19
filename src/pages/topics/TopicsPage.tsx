@@ -20,7 +20,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { Badge } from '@/components/ui/badge';
-import { PageHeader, EmptyState } from '@/components/common';
+import { EmptyState } from '@/components/common';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatCategory, getDifficultyBadge } from '@/utils/formatters';
 import { cn } from '@/lib/cn';
@@ -450,28 +450,45 @@ export default function TopicsPage() {
   );
 
   return (
-    <div className='max-w-2xl mx-auto space-y-6 animate-fade-in'>
-      <PageHeader
-        title='Topics'
-        description='Drill down into specific subjects to build mastery'
-      />
+    <div className='animate-fade-in w-full space-y-5'>
+      {/* ── Hero ── */}
+      <section className='relative overflow-hidden rounded-2xl border border-border/60 bg-gradient-to-br from-primary/10 via-card to-accent/10 p-5 sm:p-6'>
+        <div
+          aria-hidden
+          className='pointer-events-none absolute -right-20 -top-24 size-64 rounded-full bg-primary/20 blur-3xl'
+        />
+        <div className='relative'>
+          <span className='inline-flex items-center gap-1.5 rounded-full border border-primary/25 bg-primary/10 px-2.5 py-1 text-[11px] font-medium uppercase tracking-wider text-primary'>
+            <BookOpen className='size-3' />
+            Subject mastery
+          </span>
+          <h1 className='mt-2.5 text-2xl font-semibold tracking-tight text-foreground'>
+            Topics
+          </h1>
+          <p className='mt-1 text-sm text-muted-foreground'>
+            Drill into a single subject and build it up.
+          </p>
+        </div>
+      </section>
 
       <MasteryOverview />
 
-      {/* Search */}
-      <div className='relative'>
-        <Search className='absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground' />
-        <input
-          type='text'
-          placeholder='Search topics…'
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className='w-full rounded-lg border border-border bg-card pl-9 pr-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-primary/50'
-        />
-      </div>
+      {/* Search and filters share a row now that there is width for it — they
+          are one act, narrowing the list below. */}
+      <div className='flex flex-col gap-3 lg:flex-row lg:items-center'>
+        <div className='relative lg:w-72 lg:shrink-0'>
+          <Search className='absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground' />
+          <input
+            type='text'
+            placeholder='Search topics…'
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className='w-full rounded-lg border border-border bg-card pl-9 pr-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-primary/50'
+          />
+        </div>
 
-      {/* Category filter chips */}
-      <div className='flex flex-wrap gap-1.5'>
+        {/* Category filter chips */}
+        <div className='flex flex-wrap gap-1.5'>
         {CATEGORIES.map((cat) => (
           <button
             key={cat.value}
@@ -487,11 +504,13 @@ export default function TopicsPage() {
             {cat.label}
           </button>
         ))}
+        </div>
       </div>
 
-      {/* Topic list */}
+      {/* Topic list — two columns on wide screens. A topic row is a name, a
+          mastery bar and a button; stretched across 1160px it is mostly gap. */}
       {isLoading ? (
-        <div className='space-y-2'>
+        <div className='grid gap-2 xl:grid-cols-2'>
           {[1, 2, 3, 4, 5].map((i) => (
             <div key={i} className="flex items-center justify-between p-4 rounded-xl border border-border bg-card">
               <div className="flex gap-3 items-center flex-1">
@@ -522,7 +541,7 @@ export default function TopicsPage() {
           description='Try a different search or category.'
         />
       ) : (
-        <div className='space-y-2'>
+        <div className='grid gap-2 xl:grid-cols-2'>
           {filtered.map((topic) => (
             <TopicRow
               key={topic.id}

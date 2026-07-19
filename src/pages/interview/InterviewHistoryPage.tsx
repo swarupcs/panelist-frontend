@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 import { useRecentSessions } from '@/hooks/useInterviewExtended';
 import { Button } from '@/components/ui/button';
-import { EmptyState, ScoreRing, PageHeader } from '@/components/common';
+import { EmptyState, ScoreRing } from '@/components/common';
 import {
   formatDate,
   formatInterviewType,
@@ -245,20 +245,36 @@ export default function InterviewHistoryPage() {
   };
 
   return (
-    <div className='max-w-2xl mx-auto space-y-6 animate-fade-in'>
-      <PageHeader
-        title='Interview History'
-        description='All your past interview sessions'
-        action={
+    <div className='animate-fade-in w-full space-y-5'>
+      {/* ── Hero ── */}
+      <section className='relative overflow-hidden rounded-2xl border border-border/60 bg-gradient-to-br from-primary/10 via-card to-accent/10 p-5 sm:p-6'>
+        <div
+          aria-hidden
+          className='pointer-events-none absolute -right-20 -top-24 size-64 rounded-full bg-primary/20 blur-3xl'
+        />
+        <div className='relative flex flex-col justify-between gap-4 sm:flex-row sm:items-center'>
+          <div>
+            <span className='inline-flex items-center gap-1.5 rounded-full border border-primary/25 bg-primary/10 px-2.5 py-1 text-[11px] font-medium uppercase tracking-wider text-primary'>
+              <History className='size-3' />
+              Past sessions
+            </span>
+            <h1 className='mt-2.5 text-2xl font-semibold tracking-tight text-foreground'>
+              Interview history
+            </h1>
+            <p className='mt-1 text-sm text-muted-foreground'>
+              Every session you have run, and how each one went.
+            </p>
+          </div>
           <Button
             variant='gradient'
             size='sm'
             onClick={() => navigate('/interview')}
+            className='shrink-0'
           >
-            New Interview
+            New interview
           </Button>
-        }
-      />
+        </div>
+      </section>
 
       {/* Status filter */}
       <div className='space-y-2'>
@@ -370,7 +386,10 @@ export default function InterviewHistoryPage() {
           }
         />
       ) : (
-        <div className='space-y-2'>
+        /* Two columns on a wide screen. A session row is a score, a few
+           badges and three buttons; run across 1163px the middle is mostly
+           gap, and twenty of them make a very long page for very little. */
+        <div className='grid gap-2 xl:grid-cols-2'>
           {filtered.map((item) => (
             <SessionRow
               key={item.id}
