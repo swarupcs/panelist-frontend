@@ -380,7 +380,10 @@ export default function DashboardPage() {
 
       {/* ── Gamification Heatmap & Streak ── */}
       <div className='grid grid-cols-1 lg:grid-cols-4 gap-4'>
-        <div className='lg:col-span-3 h-[200px]'>
+        {/* Sized by its content rather than pinned to 200px. A full year is
+            seven rows of blocks plus month labels and a legend, which does not
+            fit in that — the legend was being clipped by the card border. */}
+        <div className='lg:col-span-3'>
           <ActivityHeatmap />
         </div>
         <div className='lg:col-span-1 h-[200px]'>
