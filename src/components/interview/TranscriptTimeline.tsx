@@ -142,8 +142,11 @@ export function TranscriptTimeline({
   className?: string;
 }) {
   const visible = useMemo(() => events.filter((e) => !HIDDEN.has(e.type)), [events]);
+  // Zero rather than Date.now() when there are no events: the component
+  // returns early in that case so the value is never read, and calling a clock
+  // during render makes the output depend on when React happened to render.
   const startedAt = useMemo(
-    () => (visible.length ? new Date(visible[0].timestamp).getTime() : Date.now()),
+    () => (visible.length ? new Date(visible[0].timestamp).getTime() : 0),
     [visible],
   );
 

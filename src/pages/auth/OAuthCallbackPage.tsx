@@ -26,21 +26,27 @@ export default function OAuthCallbackPage() {
   const setAuth = useAuthStore((state) => state.setAuth);
   const [failed, setFailed] = useState(false);
 
+  // Captured once, at mount. The effect below strips the token from the URL,
+  // so reading these later would find them gone — and a missing token has to
+  // be distinguishable from one this component already consumed.
+  const [handoff] = useState(() => ({
+    accessToken: searchParams.get('accessToken'),
+    isNewUser: searchParams.get('isNewUser') === 'true',
+  }));
+
   // React StrictMode double-invokes effects in development. Without this the
   // exchange runs twice, and the second run navigates on top of the first.
   const started = useRef(false);
 
   useEffect(() => {
     if (started.current) return;
+    // Arriving without a token is rendered directly rather than by setting
+    // state here — a synchronous setState inside an effect triggers a second
+    // render pass for something already knowable during the first.
+    if (!handoff.accessToken) return;
     started.current = true;
 
-    const accessToken = searchParams.get('accessToken');
-    const isNewUser = searchParams.get('isNewUser') === 'true';
-
-    if (!accessToken) {
-      setFailed(true);
-      return;
-    }
+    const { accessToken, isNewUser } = handoff;
 
     // Strip the token from the URL before anything else. It would otherwise
     // stay in browser history and be sent as a Referer to any third party the
@@ -70,9 +76,9 @@ export default function OAuthCallbackPage() {
         setFailed(true);
       }
     })();
-  }, [searchParams, navigate, setAuth]);
+  }, [handoff, navigate, setAuth]);
 
-  if (failed) {
+  if (failed || !handoff.accessToken) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background p-4">
         <div className="w-full max-w-sm space-y-6 text-center">
