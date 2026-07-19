@@ -161,7 +161,7 @@ function MessageBubble({
       >
         <div
           className={cn(
-            'rounded-2xl px-4 py-3 max-w-[85%]',
+            'rounded-2xl px-4 py-3 max-w-[85%] lg:max-w-[68ch]',
             isAssistant
               ? 'rounded-tl-none bg-card border border-border'
               : 'rounded-tr-none bg-primary text-primary-foreground',
@@ -310,7 +310,7 @@ export default function AIChatPage() {
        it had, and the whole page scrolled to reach a composer sitting below
        the fold. flex-1 takes exactly what is left, and min-h-0 lets it be
        smaller than the transcript so the transcript scrolls instead. */
-    <div className='mx-auto flex w-full min-h-0 max-w-3xl flex-1 flex-col'>
+    <div className='flex w-full min-h-0 flex-1 flex-col'>
       {/* Header */}
       <div className='flex shrink-0 items-center justify-between gap-3 border-b border-border pb-3'>
         <div className='flex items-center gap-3'>
@@ -384,7 +384,9 @@ export default function AIChatPage() {
             </div>
 
             {/* Starter prompts */}
-            <div className='grid grid-cols-2 gap-2'>
+            {/* More columns now the page is full width — two of these across
+                1160px made each starter a 580px-wide box holding one line. */}
+            <div className='mx-auto grid max-w-5xl grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4'>
               {STARTERS.map((s) => (
                 <button
                   key={s.label}

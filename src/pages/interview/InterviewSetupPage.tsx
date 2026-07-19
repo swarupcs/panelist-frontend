@@ -461,7 +461,7 @@ export default function InterviewSetupPage() {
   const selectedTypeMeta = INTERVIEW_TYPES.find((t) => t.value === selectedType);
 
   return (
-    <div className='animate-fade-in mx-auto max-w-6xl pb-12'>
+    <div className='animate-fade-in w-full pb-12'>
       {/* ── Hero ── */}
       <section className='relative overflow-hidden rounded-2xl border border-border/60 bg-gradient-to-br from-primary/10 via-card to-accent/10 p-5 sm:p-6'>
         <div
