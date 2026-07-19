@@ -978,8 +978,14 @@ export default function InterviewSessionPage() {
                         the candidate's work across two canvases the
                         interviewer could only read one of — a diagram drawn on
                         the wrong one was silently never evaluated. */}
+                    {/* height, not minHeight. Excalidraw's root is
+                        `height: 100%`, and a percentage height cannot resolve
+                        against an ancestor whose height property is auto — a
+                        min-height does not make it definite. The canvas
+                        collapsed to 0px inside a visibly 380px box, so the
+                        whiteboard was mounted and drawing nothing. */}
                     <div
-                      style={{ minHeight: '560px', width: '100%', display: 'flex' }}
+                      style={{ height: '640px', width: '100%', display: 'flex' }}
                       className='bg-background'
                     >
                       <DrawingCanvas

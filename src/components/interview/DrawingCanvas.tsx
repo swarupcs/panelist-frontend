@@ -127,7 +127,11 @@ export function DrawingCanvas({
         </div>
       )}
 
-      {/* Excalidraw manages its own sizing, so it needs a bounded parent. */}
+      {/* Excalidraw manages its own sizing, so it needs a bounded parent —
+          and "bounded" means a definite height, not a minimum one. Its root
+          is `height: 100%`, which resolves to 0 unless every ancestor up to a
+          definite height says so. Whoever renders this component must give it
+          a real height; a min-height renders an empty box with no error. */}
       <div className="relative min-h-[380px] flex-1 overflow-hidden rounded-lg border border-border">
         <Excalidraw
           excalidrawAPI={(api: unknown) => {
