@@ -12,8 +12,12 @@ import {
   ChevronLeft,
   Loader2,
   Clock,
+  Video,
 } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
 import { useRecentSessions } from '@/hooks/useInterviewExtended';
+import { recordingApi } from '@/api/recording.api';
+import { RecordingPlayer } from '@/components/interview/RecordingPlayer';
 import { Button } from '@/components/ui/button';
 import { EmptyState, ScoreRing } from '@/components/common';
 import {
@@ -66,6 +70,47 @@ function StatusBadge({ status }: { status: string }) {
 
 // ── Session row ────────────────────────────────────────────────────────────
 
+/**
+ * The recordings of one session, fetched only when asked for.
+ *
+ * The list already knows whether a session has any, so this never runs for
+ * the rows that do not — and twenty history rows do not become twenty
+ * requests just to discover that most of them have nothing to show.
+ */
+function SessionRecordings({ sessionId }: { sessionId: string }) {
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ['interview', sessionId, 'recordings'],
+    queryFn: () => recordingApi.listForSession(sessionId),
+  });
+
+  if (isLoading) {
+    return (
+      <div className='flex items-center gap-2 py-3 text-xs text-muted-foreground'>
+        <Loader2 className='size-3.5 animate-spin' />
+        Loading recording…
+      </div>
+    );
+  }
+
+  if (isError || !data?.length) {
+    return (
+      <p className='py-3 text-xs text-muted-foreground'>
+        This recording is no longer available.
+      </p>
+    );
+  }
+
+  const screen = data.find((r) => r.kind === 'SCREEN') ?? null;
+  const camera = data.find((r) => r.kind === 'CAMERA') ?? null;
+
+  return (
+    <div className='grid gap-3 py-3 xl:grid-cols-2'>
+      {screen && <RecordingPlayer recording={screen} title='Screen recording' />}
+      {camera && <RecordingPlayer recording={camera} title='Camera' />}
+    </div>
+  );
+}
+
 function SessionRow({
   item,
   isSelected,
@@ -79,6 +124,8 @@ function SessionRow({
   onResults: (id: string) => void;
   onReplay: (id: string) => void;
 }) {
+  const [showRecording, setShowRecording] = useState(false);
+  const hasRecording = (item.recordingCount ?? 0) > 0;
   const score = item.score != null ? Math.round(Number(item.score)) : null;
   const isCompleted = item.status === 'COMPLETED';
   const durationSecs =
@@ -162,6 +209,24 @@ function SessionRow({
         </div>
 
         <div className='flex items-center gap-1 shrink-0'>
+          {/* Only for sessions that actually have one. A control that reveals
+              "nothing here" is worse than no control. */}
+          {hasRecording && (
+            <button
+              type='button'
+              onClick={() => setShowRecording((o) => !o)}
+              aria-expanded={showRecording}
+              title={showRecording ? 'Hide recording' : 'Watch recording'}
+              className={cn(
+                'rounded-md p-1.5 transition-colors',
+                showRecording
+                  ? 'bg-primary/10 text-primary'
+                  : 'text-muted-foreground hover:bg-secondary hover:text-foreground',
+              )}
+            >
+              <Video className='size-4' />
+            </button>
+          )}
           {isCompleted && (
             <button
               type='button'
@@ -189,6 +254,12 @@ function SessionRow({
           </button>
         </div>
       </div>
+
+      {showRecording && (
+        <div className='mt-3 border-t border-border/60'>
+          <SessionRecordings sessionId={item.id} />
+        </div>
+      )}
     </div>
   );
 }

@@ -573,6 +573,8 @@ export interface SessionListItem {
   endTime?: string | null;
   duration?: number | null;
   feedback?: string | null;
+  /** How many streams this session has, so the row knows whether to offer one. */
+  recordingCount?: number;
 }
 
 export interface SessionListResponse {

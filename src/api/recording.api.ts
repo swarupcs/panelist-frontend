@@ -22,6 +22,25 @@ export interface RecordingStartResponse {
 }
 
 /**
+ * A recording as the session listing describes it — metadata, not bytes.
+ *
+ * Deliberately the same shape the recruiter dossier returns, so the one
+ * player component serves both views without a translation layer in between.
+ */
+export interface SessionRecording {
+  id: string
+  kind: RecordingKind
+  status: 'RECORDING' | 'READY' | 'INTERRUPTED' | 'FAILED'
+  durationSeconds: number | null
+  sizeBytes: number
+  mimeType: string
+  consentedAt: string
+  completedAt: string | null
+  createdAt: string
+  streamUrl: string
+}
+
+/**
  * Attempts per chunk, including the first.
  *
  * Bounded deliberately. Chunks arrive every few seconds and are uploaded in
@@ -76,6 +95,18 @@ export const recordingApi = {
     // for already having one — the camera silently never recorded.
     const res = await api.post(`/interview/${sessionId}/recording/start`, { kind })
     return res.data.data
+  },
+
+  /**
+   * What was recorded for a session.
+   *
+   * The recording id used to appear only in the recruiter's dossier, so a
+   * candidate could not reach a recording of their own interview even though
+   * the playback endpoint would have allowed it.
+   */
+  listForSession: async (sessionId: string): Promise<SessionRecording[]> => {
+    const res = await api.get(`/interview/${sessionId}/recordings`)
+    return res.data.data.recordings ?? []
   },
 
   /**
