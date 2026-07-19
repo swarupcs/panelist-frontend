@@ -16,7 +16,6 @@ import { useAuthStore } from '@/store/authStore';
 import { toast } from 'sonner';
 import { cn } from '@/lib/cn';
 import { FeedbackModal } from '@/components/p2p/FeedbackModal';
-import { WhiteboardTab } from '@/components/p2p/WhiteboardTab';
 import { ExcalidrawTab } from '@/components/p2p/ExcalidrawTab';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
@@ -47,7 +46,6 @@ export default function P2PRoomPage() {
     editorLanguage,
     role,
     currentQuestion,
-    incomingWhiteboardPatch,
     incomingExcalidrawElements,
     incomingExcalidrawPointer,
     incomingWhiteboardCamera,
@@ -57,7 +55,6 @@ export default function P2PRoomPage() {
     leaveRoom,
     sendMessage,
     sendCodeUpdate,
-    sendWhiteboardSync,
     sendExcalidrawSync,
     sendExcalidrawPointerSync,
     sendWhiteboardCameraSync,
@@ -101,11 +98,8 @@ export default function P2PRoomPage() {
   const [isVimMode, setIsVimMode] = useState(false);
   const [followMode, setFollowMode] = useState(false);
   const [whiteboardFocusMode, setWhiteboardFocusMode] = useState(false);
-  const [whiteboardEngine, setWhiteboardEngine] = useState<'tldraw' | 'excalidraw'>('tldraw');
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [excalidrawAPI, setExcalidrawAPI] = useState<any>(null);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [tldrawEditor, setTldrawEditor] = useState<any>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const editorRef = useRef<any>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -194,38 +188,29 @@ export default function P2PRoomPage() {
   useEffect(() => {
     if (!followMode) return;
     const interval = setInterval(() => {
-      if (whiteboardEngine === 'tldraw' && tldrawEditor) {
-        const camera = tldrawEditor.getCamera();
-        sendWhiteboardCameraSync({ x: camera.x, y: camera.y, z: camera.z });
-      } else if (whiteboardEngine === 'excalidraw' && excalidrawAPI) {
+      if (excalidrawAPI) {
         const state = excalidrawAPI.getAppState();
         sendWhiteboardCameraSync({ x: state.scrollX, y: state.scrollY, z: state.zoom.value });
       }
     }, 100);
     return () => clearInterval(interval);
-  }, [followMode, whiteboardEngine, tldrawEditor, excalidrawAPI, sendWhiteboardCameraSync]);
+  }, [followMode, excalidrawAPI, sendWhiteboardCameraSync]);
 
   // Receiver for Follow Mode
   useEffect(() => {
-    if (incomingWhiteboardCamera) {
-      if (whiteboardEngine === 'tldraw' && tldrawEditor) {
-        // Only update if we are not the one broadcasting Follow Mode
-        if (!followMode) {
-          tldrawEditor.setCamera(incomingWhiteboardCamera.x, incomingWhiteboardCamera.y, incomingWhiteboardCamera.z);
-        }
-      } else if (whiteboardEngine === 'excalidraw' && excalidrawAPI) {
-        if (!followMode) {
-          excalidrawAPI.updateScene({
-            appState: {
-              scrollX: incomingWhiteboardCamera.x,
-              scrollY: incomingWhiteboardCamera.y,
-              zoom: { value: incomingWhiteboardCamera.z }
-            }
-          });
-        }
+    if (incomingWhiteboardCamera && excalidrawAPI) {
+      // Only update if we are not the one broadcasting Follow Mode
+      if (!followMode) {
+        excalidrawAPI.updateScene({
+          appState: {
+            scrollX: incomingWhiteboardCamera.x,
+            scrollY: incomingWhiteboardCamera.y,
+            zoom: { value: incomingWhiteboardCamera.z }
+          }
+        });
       }
     }
-  }, [incomingWhiteboardCamera, whiteboardEngine, tldrawEditor, excalidrawAPI, followMode]);
+  }, [incomingWhiteboardCamera, excalidrawAPI, followMode]);
 
   // --- Auto Socratic Debug on test failure ---
   useEffect(() => {
@@ -294,23 +279,8 @@ export default function P2PRoomPage() {
       return;
     }
 
-    if (whiteboardEngine === 'tldraw' && tldrawEditor) {
-      const camera = tldrawEditor.getCamera();
-      tldrawEditor.createShapes([{
-        type: 'text',
-        x: camera.x + 100,
-        y: camera.y + 100,
-        props: {
-          text: codeContent,
-          font: 'mono',
-          size: 's',
-        },
-      }]);
-      toast.success('Code pasted to canvas!');
-    } else {
-      navigator.clipboard.writeText(codeContent);
-      toast.success('Code copied! Click on the Excalidraw canvas and press Ctrl+V');
-    }
+    navigator.clipboard.writeText(codeContent);
+    toast.success('Code copied! Click on the Excalidraw canvas and press Ctrl+V');
   };
 
   const finishEndCall = () => {
@@ -342,18 +312,12 @@ export default function P2PRoomPage() {
   const getWhiteboardSnapshot = async (): Promise<string | null> => {
     try {
       let blob: Blob | null = null;
-      if (whiteboardEngine === 'excalidraw' && excalidrawAPI) {
+      if (excalidrawAPI) {
         blob = await excalidrawExportToBlob({
           elements: excalidrawAPI.getSceneElements(),
           mimeType: 'image/png',
           appState: excalidrawAPI.getAppState()
         });
-      } else if (whiteboardEngine === 'tldraw' && tldrawEditor) {
-        const shapeIds = Array.from(tldrawEditor.getCurrentPageShapeIds());
-        if (shapeIds.length > 0) {
-          const result = await tldrawEditor.toImage(shapeIds, { format: 'png', background: true });
-          blob = result.blob;
-        }
       }
 
       if (blob) {
@@ -711,15 +675,6 @@ export default function P2PRoomPage() {
               </TabsContent>
               <TabsContent value="whiteboard" className="flex-1 mt-0 p-0 h-full border-t flex flex-col">
                 <div className="flex items-center gap-2 px-4 py-2 border-b bg-muted/30">
-                  <span className="text-xs text-muted-foreground font-semibold">Engine:</span>
-                  <select 
-                    className="bg-background px-2 py-1 text-xs outline-none focus:ring-0 text-foreground w-32 cursor-pointer border rounded"
-                    value={whiteboardEngine}
-                    onChange={(e) => setWhiteboardEngine(e.target.value as 'tldraw' | 'excalidraw')}
-                  >
-                    <option value="tldraw">TLDraw (Basic)</option>
-                    <option value="excalidraw">Excalidraw (Advanced)</option>
-                  </select>
                   <div className="ml-auto flex gap-2">
                     <Button 
                       size="sm" 
@@ -748,22 +703,18 @@ export default function P2PRoomPage() {
                     </Button>
                   </div>
                 </div>
+                {/* Excalidraw is the only whiteboard. The engine was
+                    previously selectable and defaulted to the other one, so
+                    two people in the same room could sync over different
+                    channels and each see an empty canvas. */}
                 <div className="flex-1 relative">
-                  {whiteboardEngine === 'tldraw' ? (
-                    <WhiteboardTab 
-                      onSync={sendWhiteboardSync} 
-                      incomingPatch={incomingWhiteboardPatch} 
-                      setEditor={setTldrawEditor}
-                    />
-                  ) : (
-                    <ExcalidrawTab 
-                      onSync={sendExcalidrawSync} 
-                      incomingElements={incomingExcalidrawElements} 
-                      onPointerSync={sendExcalidrawPointerSync}
-                      incomingPointer={incomingExcalidrawPointer}
-                      setApi={setExcalidrawAPI}
-                    />
-                  )}
+                  <ExcalidrawTab
+                    onSync={sendExcalidrawSync}
+                    incomingElements={incomingExcalidrawElements}
+                    onPointerSync={sendExcalidrawPointerSync}
+                    incomingPointer={incomingExcalidrawPointer}
+                    setApi={setExcalidrawAPI}
+                  />
                 </div>
               </TabsContent>
               <TabsContent value="socratic-log" className="flex-1 mt-0 p-4 h-full border-t overflow-y-auto bg-muted/10">

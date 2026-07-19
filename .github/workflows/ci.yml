@@ -27,8 +27,12 @@ jobs:
       - name: Install
         run: pnpm install --frozen-lockfile
 
+      # `tsc --noEmit` checks nothing here. This project uses project
+      # references, and in that mode the root config only points at the
+      # referenced projects — so the command exited 0 while five real type
+      # errors sat in src/. Build mode is what actually reads them.
       - name: Typecheck
-        run: pnpm exec tsc --noEmit
+        run: pnpm typecheck
 
       - name: Lint
         run: pnpm lint

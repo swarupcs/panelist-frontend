@@ -435,7 +435,7 @@ function CompanyDetail({
               <p className='text-xs font-semibold text-muted-foreground uppercase tracking-wider'>
                 Top Questions
               </p>
-              {questions.slice(0, 6).map((cq: CompanyQuestionRow) => (
+              {questions.slice(0, 6).map((cq) => (
                 <div
                   key={cq.id}
                   className='rounded-lg border border-border bg-secondary/20 px-3 py-2.5 space-y-1'

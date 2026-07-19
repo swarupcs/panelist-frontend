@@ -14,8 +14,10 @@
 // telling them so is more useful than a critique they cannot account for.
 
 import { useCallback, useMemo, useRef, useState } from 'react';
+// Excalidraw's stylesheet is imported once in main.tsx rather than here, so
+// that every whiteboard in the app is styled regardless of which route loaded
+// first. Do not add a local import back.
 import { Excalidraw } from '@excalidraw/excalidraw';
-import '@excalidraw/excalidraw/index.css';
 import {
   AlertCircle,
   CheckCircle2,
@@ -28,10 +30,17 @@ import { cn } from '@/lib/cn';
 import { useSubmitDrawing } from '@/hooks/usePanelist';
 import type { SubmitDrawingResponse } from '@/types/panelist';
 
-/** Excalidraw's imperative handle — only the parts we use. */
-interface ExcalidrawHandle {
+/**
+ * Excalidraw's imperative handle — only the parts we use.
+ *
+ * Exported so the interview page can export the canvas as an image when the
+ * candidate submits from a different tab, without reaching into Excalidraw's
+ * own types or holding a second copy of the API.
+ */
+export interface ExcalidrawSnapshotApi {
   getSceneElements: () => readonly unknown[];
   getAppState: () => Record<string, unknown>;
+  getFiles: () => Record<string, unknown>;
 }
 
 interface DrawingCanvasProps {
@@ -46,6 +55,8 @@ interface DrawingCanvasProps {
    * so a candidate can revise it rather than redraw from scratch.
    */
   initialElements?: readonly unknown[];
+  /** Hands the canvas API to the parent, for exporting the scene elsewhere. */
+  onApiReady?: (api: ExcalidrawSnapshotApi) => void;
   className?: string;
 }
 
@@ -55,9 +66,10 @@ export function DrawingCanvas({
   questionIndex,
   onEvaluated,
   initialElements,
+  onApiReady,
   className,
 }: DrawingCanvasProps) {
-  const apiRef = useRef<ExcalidrawHandle | null>(null);
+  const apiRef = useRef<ExcalidrawSnapshotApi | null>(null);
   const [explanation, setExplanation] = useState('');
   const [elementCount, setElementCount] = useState(0);
   const [result, setResult] = useState<SubmitDrawingResponse | null>(null);
@@ -119,7 +131,8 @@ export function DrawingCanvas({
       <div className="relative min-h-[380px] flex-1 overflow-hidden rounded-lg border border-border">
         <Excalidraw
           excalidrawAPI={(api: unknown) => {
-            apiRef.current = api as ExcalidrawHandle;
+            apiRef.current = api as ExcalidrawSnapshotApi;
+            onApiReady?.(api as ExcalidrawSnapshotApi);
           }}
           onChange={handleChange}
           initialData={{

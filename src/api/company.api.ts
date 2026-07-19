@@ -1,6 +1,24 @@
 // src/api/company.api.ts
 import api from './axios';
 
+/**
+ * One question as a company asks it — the question itself plus how often this
+ * company has been reported to ask it.
+ *
+ * Declared here rather than at the call site because this is where the shape
+ * actually enters the app. Every response below unwraps `res.data.data`, which
+ * is `any`, so anything read off one of these is unchecked until it is named.
+ */
+export interface CompanyQuestionRow {
+  id: string;
+  frequency: number;
+  question?: {
+    id: string;
+    question: string;
+    difficulty?: string;
+  };
+}
+
 export const companyApi = {
   getAll: async (filters?: { industry?: string; difficulty?: string }) => {
     const q = new URLSearchParams();
@@ -18,7 +36,7 @@ export const companyApi = {
   getQuestions: async (
     slug: string,
     filters?: { difficulty?: string; limit?: number },
-  ) => {
+  ): Promise<{ questions: CompanyQuestionRow[] }> => {
     const q = new URLSearchParams();
     if (filters?.difficulty) q.set('difficulty', filters.difficulty);
     if (filters?.limit) q.set('limit', String(filters.limit));

@@ -47,8 +47,8 @@ import {
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { Tldraw, Editor } from 'tldraw';
-import 'tldraw/tldraw.css';
+import { exportToBlob } from '@excalidraw/excalidraw';
+import { toast } from 'sonner';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { setCurrentQuestion } from '@/store/interviewSlice';
 import {
@@ -66,7 +66,7 @@ import { LoadingScreen } from '@/components/common';
 import { SessionTimer, TimedBadge } from '@/components/interview/SessionTimer';
 import { CodeExecutionPanel } from '@/components/interview/CodeExecutionPanel';
 import { useAnswerFollowUp, useSubmitCode } from '@/hooks/usePanelist';
-import { DrawingCanvas } from '@/components/interview/DrawingCanvas';
+import { DrawingCanvas, type ExcalidrawSnapshotApi } from '@/components/interview/DrawingCanvas';
 import type { SubmitDrawingResponse } from '@/types/panelist';
 import type { ProgrammingLanguage } from '@/types/interview-extended';
 import type { Difficulty, InterviewQuestion } from '@/types';
@@ -238,8 +238,9 @@ export default function InterviewSessionPage() {
   const [showShortcuts, setShowShortcuts] = useState(false);
   // FEAT-5: timer expiry state
   const [timerExpired, setTimerExpired] = useState(false);
-  const [editor, setEditor] = useState<Editor | null>(null);
-  const [whiteboardType, setWhiteboardType] = useState<'excalidraw' | 'tldraw'>('excalidraw');
+  // Held so a sketch can be attached to a text answer submitted from another
+  // tab, the way the old scratch canvas was.
+  const [excalidrawApi, setExcalidrawApi] = useState<ExcalidrawSnapshotApi | null>(null);
 
   const autoSubmittedRef = useRef(false);
 
@@ -474,11 +475,18 @@ export default function InterviewSessionPage() {
     async (codeOverride?: string) => {
       let imageUrl: string | undefined = undefined;
 
-      if (editor) {
+      if (excalidrawApi) {
         try {
-          const shapeIds = Array.from(editor.getCurrentPageShapeIds());
-          if (shapeIds.length > 0) {
-            const { blob } = await editor.toImage(shapeIds, { format: 'png', background: true });
+          const elements = excalidrawApi
+            .getSceneElements()
+            .filter((el) => !(el as { isDeleted?: boolean }).isDeleted);
+          if (elements.length > 0) {
+            const blob = await exportToBlob({
+              elements: elements as never,
+              appState: excalidrawApi.getAppState() as never,
+              files: excalidrawApi.getFiles() as never,
+              mimeType: 'image/png',
+            });
             const reader = new FileReader();
             imageUrl = await new Promise<string>((resolve) => {
               reader.onloadend = () => resolve(reader.result as string);
@@ -511,7 +519,7 @@ export default function InterviewSessionPage() {
           },
         );
     },
-    [answer, sessionId, timeSpent, submitAnswer, editor, currentQuestion],
+    [answer, sessionId, timeSpent, submitAnswer, excalidrawApi, currentQuestion],
   );
 
   const handleNextQuestion = () => {
@@ -965,63 +973,27 @@ export default function InterviewSessionPage() {
                   </>
                 ) : answerTab === 'whiteboard' ? (
                   <>
-                    <div className='flex justify-between items-center mb-2'>
-                      <div className="flex gap-1 p-1 bg-secondary rounded-lg">
-                        <button
-                          type="button"
-                          onClick={() => setWhiteboardType('excalidraw')}
-                          className={cn(
-                            'px-3 py-1.5 text-xs font-medium rounded-md transition-all',
-                            whiteboardType === 'excalidraw'
-                              ? 'bg-background text-foreground shadow-sm'
-                              : 'text-muted-foreground hover:text-foreground'
-                          )}
-                        >
-                          Design canvas
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setWhiteboardType('tldraw')}
-                          className={cn(
-                            'px-3 py-1.5 text-xs font-medium rounded-md transition-all',
-                            whiteboardType === 'tldraw'
-                              ? 'bg-background text-foreground shadow-sm'
-                              : 'text-muted-foreground hover:text-foreground'
-                          )}
-                        >
-                          Scratch sketch
-                        </button>
-                      </div>
-                    </div>
+                    {/* Excalidraw is the only whiteboard. It used to share this
+                        tab with a second engine behind a toggle, which split
+                        the candidate's work across two canvases the
+                        interviewer could only read one of — a diagram drawn on
+                        the wrong one was silently never evaluated. */}
                     <div
-                      style={
-                        whiteboardType === 'excalidraw'
-                          ? { minHeight: '560px', width: '100%', display: 'flex' }
-                          : { height: '500px', width: '100%', position: 'relative', display: 'flex' }
-                      }
-                      className={cn(
-                        'bg-background',
-                        whiteboardType === 'tldraw' &&
-                          'border border-border rounded-lg overflow-hidden',
-                      )}
+                      style={{ minHeight: '560px', width: '100%', display: 'flex' }}
+                      className='bg-background'
                     >
-                      {whiteboardType === 'excalidraw' ? (
-                        <DrawingCanvas
-                          sessionId={sessionId ?? ''}
-                          question={currentQuestion?.question}
-                          questionIndex={currentQuestionIndex}
-                          onEvaluated={handleDesignEvaluated}
-                          className='w-full'
-                        />
-                      ) : (
-                        <Tldraw onMount={(editor) => setEditor(editor)} />
-                      )}
+                      <DrawingCanvas
+                        sessionId={sessionId ?? ''}
+                        question={currentQuestion?.question}
+                        questionIndex={currentQuestionIndex}
+                        onEvaluated={handleDesignEvaluated}
+                        onApiReady={setExcalidrawApi}
+                        className='w-full'
+                      />
                     </div>
                     <div className='flex justify-between items-center mt-4'>
                       <p className='text-xs text-muted-foreground'>
-                        {whiteboardType === 'excalidraw'
-                          ? 'Label your components and connect them with arrows - unlabelled or unconnected shapes cannot be read by the interviewer.'
-                          : 'Scratch sketching only. Switch back to the Text or Editor tab to write and submit your final answer.'}
+                        Label your components and connect them with arrows - unlabelled or unconnected shapes cannot be read by the interviewer.
                       </p>
                       <TextButton
                         onClick={handleSkip}

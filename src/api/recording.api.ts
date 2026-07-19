@@ -9,9 +9,16 @@
 import type { AxiosError } from 'axios'
 import api from './axios'
 
+/**
+ * What is being recorded. The server keeps one of each per session, so the
+ * screen and the camera are independent recordings rather than one stream.
+ */
+export type RecordingKind = 'SCREEN' | 'CAMERA'
+
 export interface RecordingStartResponse {
   recordingId: string
   status: string
+  kind: RecordingKind
 }
 
 /**
@@ -60,8 +67,14 @@ export const recordingApi = {
    * Begin recording. Called only after the candidate has agreed — the server
    * stores the consent timestamp, and no recording can exist without one.
    */
-  start: async (sessionId: string): Promise<RecordingStartResponse> => {
-    const res = await api.post(`/interview/${sessionId}/recording/start`)
+  start: async (
+    sessionId: string,
+    kind: RecordingKind = 'SCREEN',
+  ): Promise<RecordingStartResponse> => {
+    // The kind has to be sent. Without it the server defaults to SCREEN, so
+    // starting the camera created a second screen recording and was rejected
+    // for already having one — the camera silently never recorded.
+    const res = await api.post(`/interview/${sessionId}/recording/start`, { kind })
     return res.data.data
   },
 

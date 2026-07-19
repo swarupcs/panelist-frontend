@@ -8,6 +8,7 @@
 // (hidden test cases) the type reflects the redacted form, so the UI cannot
 // accidentally assume it has the real input.
 
+import type { Difficulty } from './index';
 import type { ProgrammingLanguage, TestCase, TestCaseResult } from './interview-extended';
 
 // ── Code submission ────────────────────────────────────────────────────────
@@ -67,7 +68,9 @@ export interface SubmitCodeResponse {
   nextQuestion?: {
     id: string;
     question: string;
-    difficulty?: string;
+    // Widening this to `string` made the object incompatible with
+    // InterviewQuestion, so it could not be handed to the store at all.
+    difficulty?: Difficulty;
     category?: string;
     hints?: string[];
   } | null;
@@ -119,7 +122,9 @@ export interface SubmitDrawingResponse {
   nextQuestion?: {
     id: string;
     question: string;
-    difficulty?: string;
+    // Widening this to `string` made the object incompatible with
+    // InterviewQuestion, so it could not be handed to the store at all.
+    difficulty?: Difficulty;
     category?: string;
     hints?: string[];
   } | null;
