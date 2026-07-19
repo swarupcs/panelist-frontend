@@ -1,6 +1,7 @@
 import axios, { AxiosError, type InternalAxiosRequestConfig } from 'axios'
 import { removeStorageItem } from '@/utils/formatters'
 import { clearAccessToken, getAccessToken, setAccessToken } from './access-token'
+import { isCredentialRejection } from './auth-failure'
 import type { AuthTokens } from '../types'
 
 
@@ -86,6 +87,16 @@ axiosInstance.interceptors.response.use(
         return axiosInstance(originalRequest)
       } catch (refreshError) {
         processQueue(refreshError, null)
+
+        // Only a refusal ends the session. If the refresh call simply could
+        // not be delivered — the API restarting, a dropped connection — then
+        // nothing has been learned about the cookie, and throwing the user out
+        // to /login destroys a session that was never actually invalidated.
+        // The request still fails; the credentials survive to be retried.
+        if (!isCredentialRejection(refreshError)) {
+          return Promise.reject(refreshError)
+        }
+
         clearAccessToken()
         removeStorageItem('auth_user')
         window.location.href = '/login'

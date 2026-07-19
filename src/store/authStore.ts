@@ -20,6 +20,7 @@ import {
   removeStorageItem,
 } from '@/utils/formatters';
 import { clearAccessToken, setAccessToken } from '@/api/access-token';
+import { RESTORE_BACKOFF_MS, delay, isCredentialRejection } from '@/api/auth-failure';
 import type { AuthTokens, User } from '../types';
 
 interface AuthState {
@@ -97,32 +98,57 @@ export const useAuthStore = create<AuthState>((set) => ({
       const apiBase = (import.meta.env.VITE_API_URL as string) || '/api';
 
       try {
-        const { data } = await axios.post(
-          `${apiBase}/auth/refresh`,
-          {},
-          { withCredentials: true },
-        );
-        const tokens: AuthTokens = data.data.tokens;
-        setAccessToken(tokens.accessToken);
+        // Retried because a failure here has two very different causes, and
+        // only one of them means the session is over. An unreachable API — a
+        // restart, a timeout, a 5xx — never answered the question, so giving
+        // up on it discards a cookie that is still valid. See isCredentialRejection.
+        for (let attempt = 0; ; attempt++) {
+          try {
+            const { data } = await axios.post(
+              `${apiBase}/auth/refresh`,
+              {},
+              { withCredentials: true },
+            );
+            const tokens: AuthTokens = data.data.tokens;
+            setAccessToken(tokens.accessToken);
 
-        const me = await axios.get(`${apiBase}/auth/me`, {
-          withCredentials: true,
-          headers: { Authorization: `Bearer ${tokens.accessToken}` },
-        });
-        // /auth/me wraps the user: { success, data: { user } }. Reading
-        // me.data.data yields that wrapper, not the user, and storing it broke
-        // every component reading user.name — the sidebar threw and took the
-        // whole page down.
-        const user: User = me.data.data.user ?? me.data.data;
+            const me = await axios.get(`${apiBase}/auth/me`, {
+              withCredentials: true,
+              headers: { Authorization: `Bearer ${tokens.accessToken}` },
+            });
+            // /auth/me wraps the user: { success, data: { user } }. Reading
+            // me.data.data yields that wrapper, not the user, and storing it broke
+            // every component reading user.name — the sidebar threw and took the
+            // whole page down.
+            const user: User = me.data.data.user ?? me.data.data;
 
-        // Kept so the shell can render a name before the first request
-        // resolves. It is not consulted when deciding authentication.
-        setStorageItem('auth_user', user);
-        set({ user, tokens, isAuthenticated: true, isInitialized: true });
-      } catch {
-        removeStorageItem('auth_user');
-        clearAccessToken();
-        set({ user: null, tokens: null, isAuthenticated: false, isInitialized: true });
+            // Kept so the shell can render a name before the first request
+            // resolves. It is not consulted when deciding authentication.
+            setStorageItem('auth_user', user);
+            set({ user, tokens, isAuthenticated: true, isInitialized: true });
+            return;
+          } catch (error) {
+            // The server rejected the cookie. That is a real sign-out and no
+            // amount of retrying will change it.
+            if (isCredentialRejection(error)) {
+              removeStorageItem('auth_user');
+              clearAccessToken();
+              set({ user: null, tokens: null, isAuthenticated: false, isInitialized: true });
+              return;
+            }
+
+            if (attempt >= RESTORE_BACKOFF_MS.length) {
+              // Out of attempts, but still no evidence the credential is bad.
+              // The stored user stays put so the session can resume once the
+              // API answers again, rather than being destroyed on its behalf.
+              clearAccessToken();
+              set({ tokens: null, isAuthenticated: false, isInitialized: true });
+              return;
+            }
+
+            await delay(RESTORE_BACKOFF_MS[attempt]);
+          }
+        }
       } finally {
         initInFlight = null;
       }
