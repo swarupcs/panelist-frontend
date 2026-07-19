@@ -5,6 +5,23 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, Flame } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 
+/**
+ * "Mon, 14 Jul 2025" for a `yyyy-MM-dd` string.
+ *
+ * Parsed as parts rather than `new Date(iso)`, which reads a bare date as UTC
+ * midnight and then renders it in local time — a day earlier for anyone west
+ * of Greenwich. A tooltip naming the wrong day is worse than none.
+ */
+function formatActivityDate(iso: string): string {
+  const [year, month, day] = iso.split('-').map(Number);
+  return new Date(year, month - 1, day).toLocaleDateString(undefined, {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  });
+}
+
 export function ActivityHeatmap() {
   const { user } = useAuthStore();
   const { data, isLoading } = useQuery({
@@ -54,6 +71,23 @@ export function ActivityHeatmap() {
               blockRadius={2}
               blockMargin={4}
               fontSize={12}
+              /* Mon/Wed/Fri only. All seven crowd a 12px row and the grid is
+                 read by position anyway — three anchors are enough to tell
+                 which row is which. */
+              showWeekdayLabels={['mon', 'wed', 'fri']}
+              /* Weeks start on Monday, matching the weekday labels above and
+                 how a working week is usually counted. */
+              weekStart={1}
+              tooltips={{
+                activity: {
+                  withArrow: true,
+                  // Says the date and what happened on it. A bare square tells
+                  // you an intensity and nothing else — not which day it was,
+                  // and not whether "darker" meant two questions or twenty.
+                  text: (activity) =>
+                    `${activity.count === 0 ? 'No activity' : `${activity.count} question${activity.count === 1 ? '' : 's'}`} on ${formatActivityDate(activity.date)}`,
+                },
+              }}
               labels={{
                 legend: {
                   less: 'Less',
