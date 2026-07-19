@@ -303,9 +303,16 @@ export default function AIChatPage() {
   const clearChat = () => setMessages([]);
 
   return (
-    <div className='flex flex-col h-[calc(100vh-4rem)] max-w-2xl mx-auto'>
+    /* Fills the shell rather than guessing at the viewport. This used to be
+       h-[calc(100vh-4rem)], but the page is rendered inside the shell's own
+       scrolling container, which is already shorter than the viewport — so
+       subtracting a guessed header height made the chat taller than the space
+       it had, and the whole page scrolled to reach a composer sitting below
+       the fold. flex-1 takes exactly what is left, and min-h-0 lets it be
+       smaller than the transcript so the transcript scrolls instead. */
+    <div className='mx-auto flex w-full min-h-0 max-w-3xl flex-1 flex-col'>
       {/* Header */}
-      <div className='flex items-center justify-between pb-3 border-b border-border'>
+      <div className='flex shrink-0 items-center justify-between gap-3 border-b border-border pb-3'>
         <div className='flex items-center gap-3'>
           <div className='flex size-9 items-center justify-center rounded-xl bg-primary/10'>
             <Brain className='size-5 text-primary' />
@@ -351,8 +358,12 @@ export default function AIChatPage() {
         </div>
       </div>
 
-      {/* Messages area */}
-      <div className='flex-1 overflow-y-auto py-4 space-y-4'>
+      {/* Messages area
+          min-h-0 is what makes this scroll. A flex child defaults to a
+          min-height of its content, so without it the transcript refuses to
+          shrink, pushes the composer down and scrolls the page instead of
+          itself — the thing overflow-y-auto here is meant to prevent. */}
+      <div className='min-h-0 flex-1 space-y-4 overflow-y-auto py-4'>
         {messages.length === 0 && (
           <div className='space-y-6 animate-fade-in'>
             {/* Welcome */}
@@ -422,8 +433,8 @@ export default function AIChatPage() {
         <div ref={bottomRef} />
       </div>
 
-      {/* Input area */}
-      <div className='border-t border-border pt-3 pb-1'>
+      {/* Input area — shrink-0 so a long transcript can never squeeze it. */}
+      <div className='shrink-0 border-t border-border pt-3 pb-1'>
         <div className='flex gap-2 items-end'>
           <div className='relative flex-1'>
             <textarea

@@ -1,9 +1,10 @@
-import { Outlet, Navigate } from 'react-router-dom'
+import { Outlet, Navigate, useLocation } from 'react-router-dom'
 import { Sidebar, MobileNav } from './Sidebar'
 import { Bell, Search } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { ThemeToggle } from './ThemeToggle'
+import { cn } from '@/lib/cn'
 
 function Header() {
   const { user } = useAuthStore()
@@ -36,8 +37,21 @@ function Header() {
   )
 }
 
+/**
+ * Routes that fill the shell and scroll their own contents.
+ *
+ * Opt-in rather than automatic: it changes which element owns scrolling, and
+ * a page that expected the shell to scroll it would simply be cut off.
+ */
+const VIEWPORT_HEIGHT_ROUTES = ['/chat']
+
 export function AppShell() {
   const { user } = useAuthStore()
+  const { pathname } = useLocation()
+
+  const fillsViewport = VIEWPORT_HEIGHT_ROUTES.some(
+    (route) => pathname === route || pathname.startsWith(`${route}/`),
+  )
 
   if (user && user.hasOnboarded === false) {
     return <Navigate to="/onboarding" replace />
@@ -50,8 +64,22 @@ export function AppShell() {
       </div>
       <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
         <Header />
-        <main className="flex-1 overflow-y-auto">
-          <div className="p-4 md:p-6 max-w-7xl mx-auto w-full">
+        {/* Two shapes, chosen per route.
+            Ordinary pages grow and let main scroll them. A page that scrolls
+            a region of itself — a chat transcript above a fixed composer —
+            needs the opposite: an ancestor with a capped height to scroll
+            inside. main is the only element here with one, and this wrapper
+            was breaking the chain, because a block box is as tall as its
+            content and so grows without limit. Capping it turns the chat's
+            flex-1 into a real constraint; a minimum would not, which is the
+            mistake that let the composer slide off the bottom. */}
+        <main className={cn('flex-1', fillsViewport ? 'overflow-hidden' : 'overflow-y-auto')}>
+          <div
+            className={cn(
+              'mx-auto w-full max-w-7xl p-4 md:p-6',
+              fillsViewport && 'flex h-full min-h-0 flex-col',
+            )}
+          >
             <Outlet />
           </div>
         </main>
