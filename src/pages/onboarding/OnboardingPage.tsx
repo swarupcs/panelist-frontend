@@ -104,7 +104,7 @@ export default function OnboardingPage() {
             <div className="rounded-lg bg-primary/20 p-2 border border-primary/30">
               <Brain className="size-6 text-primary" />
             </div>
-            <span className="font-bold text-xl tracking-tight">Antigravity</span>
+            <span className="font-bold text-xl tracking-tight">Panelist</span>
           </div>
         </div>
 
@@ -123,7 +123,7 @@ export default function OnboardingPage() {
               <div>
                 <h3 className="text-2xl font-bold mb-2">Analyzing your profile...</h3>
                 <p className="text-muted-foreground animate-pulse">
-                  Gemini is building your hyper-personalized curriculum.
+                  Building a learning path from the areas you want to work on.
                 </p>
               </div>
             </motion.div>
@@ -152,7 +152,7 @@ export default function OnboardingPage() {
                   className="space-y-8"
                 >
                   <div className="text-center">
-                    <h2 className="text-3xl font-bold tracking-tight mb-2">Welcome to Antigravity</h2>
+                    <h2 className="text-3xl font-bold tracking-tight mb-2">Welcome to Panelist</h2>
                     <p className="text-muted-foreground">Let's tailor your experience. What role are you targeting?</p>
                   </div>
 
