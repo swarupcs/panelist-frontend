@@ -244,11 +244,11 @@ function Section({
   return (
     <section
       className={cn(
-        'rounded-2xl border border-border/60 bg-card/60 p-5 shadow-sm backdrop-blur-sm sm:p-6',
+        'rounded-2xl border border-border/60 bg-card/60 p-4 shadow-sm backdrop-blur-sm sm:p-5',
         className,
       )}
     >
-      <div className='mb-4 flex items-start gap-3'>
+      <div className='mb-3 flex items-start gap-3'>
         <span className='mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary'>
           <Icon className='size-4' />
         </span>
@@ -398,6 +398,7 @@ export default function InterviewSetupPage() {
   const [selectedDuration, setSelectedDuration] = useState(30);
   const [focusAreas, setFocusAreas] = useState<string[]>([]);
   const [showFocusAreas, setShowFocusAreas] = useState(false);
+  const [showInterviewer, setShowInterviewer] = useState(false);
   const [isTimed, setIsTimed] = useState(false);
   const [adaptiveMode, setAdaptiveMode] = useState(false);
   const [stressMode, setStressMode] = useState(false);
@@ -462,7 +463,7 @@ export default function InterviewSetupPage() {
   return (
     <div className='animate-fade-in mx-auto max-w-6xl pb-12'>
       {/* ── Hero ── */}
-      <section className='relative overflow-hidden rounded-2xl border border-border/60 bg-gradient-to-br from-primary/10 via-card to-accent/10 p-6 sm:p-8'>
+      <section className='relative overflow-hidden rounded-2xl border border-border/60 bg-gradient-to-br from-primary/10 via-card to-accent/10 p-5 sm:p-6'>
         <div
           aria-hidden
           className='pointer-events-none absolute -right-20 -top-24 size-64 rounded-full bg-primary/20 blur-3xl'
@@ -478,13 +479,9 @@ export default function InterviewSetupPage() {
               <Sparkles className='size-3' />
               Mock interview
             </span>
-            <h1 className='mt-3 text-2xl font-semibold tracking-tight text-foreground sm:text-3xl'>
+            <h1 className='mt-2.5 text-2xl font-semibold tracking-tight text-foreground'>
               Start an interview
             </h1>
-            <p className='mt-2 max-w-md text-sm leading-relaxed text-muted-foreground'>
-              Choose a track and a difficulty. Everything below already has a
-              sensible default, so two clicks is enough.
-            </p>
           </div>
 
           <Button
@@ -507,15 +504,19 @@ export default function InterviewSetupPage() {
           sticky because Start used to sit at the bottom of a very long scroll,
           so reviewing your choices and acting on them were never possible at
           the same moment. */}
-      <div className='mt-6 grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_336px]'>
-        <div className='space-y-6'>
+      <div className='mt-5 grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_336px]'>
+        <div className='space-y-4'>
           {/* ── Interview type ── */}
           <Section
             icon={Brain}
             title='Interview type'
             description='What do you want to be asked about?'
           >
-            <div className='grid grid-cols-2 gap-3 sm:grid-cols-3'>
+            {/* Icon beside the label rather than above it. Stacked, each tile
+                was about 100px tall and ten of them dominated the page; laid
+                out in a row they are roughly half that, which is what lets the
+                whole form fit without scrolling. */}
+            <div className='grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3'>
               {INTERVIEW_TYPES.map((type) => {
                 const active = selectedType === type.value;
                 return (
@@ -525,32 +526,32 @@ export default function InterviewSetupPage() {
                     aria-pressed={active}
                     onClick={() => handleTypeChange(type.value as InterviewType)}
                     className={cn(
-                      'group relative flex flex-col gap-2.5 rounded-xl border p-3.5 text-left transition-all duration-200',
+                      'group relative flex items-center gap-3 rounded-xl border p-2.5 pr-8 text-left transition-all duration-200',
                       'hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
                       active
                         ? `${type.bg} border-transparent shadow-md ring-2 ring-primary/50`
                         : 'border-border/70 bg-background/40 hover:border-border',
                     )}
                   >
-                    {active && (
-                      <Check className='absolute right-3 top-3 size-4 text-primary' />
-                    )}
                     <span
                       className={cn(
-                        'flex size-9 items-center justify-center rounded-lg transition-colors',
+                        'flex size-9 shrink-0 items-center justify-center rounded-lg transition-colors',
                         active ? 'bg-background/60' : 'bg-secondary/60',
                       )}
                     >
-                      <type.icon className={cn('size-5', type.color)} />
+                      <type.icon className={cn('size-4', type.color)} />
                     </span>
-                    <span className='block'>
-                      <span className='block text-sm font-medium text-foreground'>
+                    <span className='min-w-0'>
+                      <span className='block truncate text-sm font-medium text-foreground'>
                         {type.label}
                       </span>
-                      <span className='mt-0.5 block text-xs leading-snug text-muted-foreground'>
+                      <span className='block truncate text-xs text-muted-foreground'>
                         {type.description}
                       </span>
                     </span>
+                    {active && (
+                      <Check className='absolute right-2.5 top-1/2 size-4 -translate-y-1/2 text-primary' />
+                    )}
                   </button>
                 );
               })}
@@ -602,6 +603,10 @@ export default function InterviewSetupPage() {
             </Section>
           )}
 
+          {/* Difficulty and duration are both small, fixed sets of choices.
+              Given a row each they cost two full sections of height for six
+              controls; side by side they cost one. */}
+          <div className='grid gap-4 md:grid-cols-2'>
           {/* ── Difficulty ── */}
           <Section
             icon={Gauge}
@@ -680,6 +685,7 @@ export default function InterviewSetupPage() {
               length.
             </p>
           </Section>
+          </div>
 
           {/* ── Focus areas ── */}
           {availableFocusAreas.length > 0 && (
@@ -760,12 +766,50 @@ export default function InterviewSetupPage() {
             </section>
           )}
 
-          {/* ── Interviewer ── */}
-          <Section
-            icon={Users}
-            title='Your interviewer'
-            description='How the AI conducts the session.'
-          >
+          {/* ── Interviewer ──
+              Collapsed by default. Every control in here already has a
+              working default — a balanced interviewer and no extra rules —
+              so open it accounted for a third of the page while asking most
+              people to decide nothing. The summary line names the current
+              settings so collapsing hides the controls, not the state. */}
+          <section className='rounded-2xl border border-border/60 bg-card/60 shadow-sm backdrop-blur-sm'>
+            <button
+              type='button'
+              onClick={() => setShowInterviewer((o) => !o)}
+              aria-expanded={showInterviewer}
+              className='flex w-full items-start gap-3 p-4 text-left sm:p-5'
+            >
+              <span className='mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary'>
+                <Users className='size-4' />
+              </span>
+              <span className='min-w-0 flex-1'>
+                <span className='block text-sm font-semibold text-foreground'>
+                  Your interviewer
+                </span>
+                <span className='mt-0.5 block truncate text-xs text-muted-foreground'>
+                  {[
+                    aiPersona === 'default'
+                      ? 'Balanced'
+                      : aiPersona === 'strict'
+                        ? 'FAANG manager'
+                        : 'Supportive mentor',
+                    isTimed && 'timed',
+                    adaptiveMode && 'adaptive',
+                    stressMode && 'stress mode',
+                  ]
+                    .filter(Boolean)
+                    .join(' · ')}
+                </span>
+              </span>
+              {showInterviewer ? (
+                <ChevronUp className='mt-0.5 size-4 shrink-0 text-muted-foreground' />
+              ) : (
+                <ChevronDown className='mt-0.5 size-4 shrink-0 text-muted-foreground' />
+              )}
+            </button>
+
+            {showInterviewer && (
+            <div className='border-t border-border/50 p-4 pt-4 sm:p-5 sm:pt-4'>
             <div className='flex flex-wrap gap-2'>
               {(['default', 'supportive', 'strict'] as const).map((persona) => (
                 <button
@@ -790,38 +834,20 @@ export default function InterviewSetupPage() {
               ))}
             </div>
 
-            <div className='mt-5 border-t border-border/50 pt-5'>
-              <AdvancedOption
-                id='stress-toggle'
-                icon={AlertCircle}
-                iconColor='text-destructive'
-                title='Stress mode'
-                description='The AI may change requirements or add constraints mid-problem, to see how you adapt under pressure.'
-                checked={stressMode}
-                onChange={setStressMode}
-              />
-            </div>
-          </Section>
-
-          {/* ── Session rules ── */}
-          <Section
-            icon={Zap}
-            title='Session rules'
-            description='Off by default — turn on what you want to practise against.'
-          >
-            <div className='space-y-5'>
+            {/* Three toggles that were previously split across two sections
+                with a heading each. They are all the same kind of choice —
+                optional rules, all off by default — so one heading and a grid
+                says it without spending a screen on it. */}
+            <div className='mt-5 grid gap-4 border-t border-border/50 pt-5 sm:grid-cols-2'>
               <AdvancedOption
                 id='timed-toggle'
                 icon={Timer}
                 iconColor='text-primary'
                 title='Timed session'
-                description='A countdown for your chosen duration. Unanswered questions submit themselves when it runs out.'
+                description='A countdown for your duration. Unanswered questions submit themselves when it runs out.'
                 checked={isTimed}
                 onChange={setIsTimed}
               />
-
-              <div className='border-t border-border/50' />
-
               <AdvancedOption
                 id='adaptive-toggle'
                 icon={Zap}
@@ -831,8 +857,19 @@ export default function InterviewSetupPage() {
                 checked={adaptiveMode}
                 onChange={setAdaptiveMode}
               />
+              <AdvancedOption
+                id='stress-toggle'
+                icon={AlertCircle}
+                iconColor='text-destructive'
+                title='Stress mode'
+                description='The AI may change requirements mid-problem, to see how you adapt under pressure.'
+                checked={stressMode}
+                onChange={setStressMode}
+              />
             </div>
-          </Section>
+            </div>
+            )}
+          </section>
         </div>
 
         {/* ── Summary rail ── */}
