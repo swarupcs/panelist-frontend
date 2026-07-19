@@ -5,6 +5,7 @@ import { useAuthStore } from '../store/authStore'
 import { authApi } from '../api/auth.api'
 import type { LoginRequest, RegisterRequest } from '../types'
 import { queryClient } from '../lib/queryClient'
+import { takeReturnPath } from '../lib/post-auth-redirect'
 
 
 export function useCurrentUser() {
@@ -27,7 +28,9 @@ export function useLogin() {
       setAuth(data.user, data.tokens)
       queryClient.setQueryData(['auth', 'me'], { user: data.user })
       toast.success('Successfully logged in!')
-      navigate('/dashboard')
+      // Back to whatever sent them here — an interview invitation, usually.
+      // Always landing on /dashboard loses the thing they were trying to do.
+      navigate(takeReturnPath())
     },
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     onError: (error: any) => {

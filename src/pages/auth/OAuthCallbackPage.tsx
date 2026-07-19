@@ -19,6 +19,7 @@ import { Button } from '@/components/ui/button';
 import { authApi } from '@/api/auth.api';
 import { setAccessToken } from '@/api/access-token';
 import { useAuthStore } from '@/store/authStore';
+import { takeReturnPath } from '@/lib/post-auth-redirect';
 
 export default function OAuthCallbackPage() {
   const [searchParams] = useSearchParams();
@@ -68,7 +69,10 @@ export default function OAuthCallbackPage() {
         // recovers from expiry by refreshing against the cookie regardless.
         setAuth(user, { accessToken, refreshToken: '', expiresIn: 0 });
 
-        navigate(isNewUser ? '/onboarding' : '/dashboard', { replace: true });
+        // A new user still goes to onboarding; everyone else returns to
+        // whatever sent them to sign in, which for an invited candidate is
+        // the invitation itself.
+        navigate(isNewUser ? '/onboarding' : takeReturnPath(), { replace: true });
       } catch {
         // A token that /auth/me rejects is not a session. Clear it rather than
         // leaving a half-signed-in state that fails on the next request.

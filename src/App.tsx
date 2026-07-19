@@ -19,6 +19,7 @@ import RegisterPage from '@/pages/auth/RegisterPage';
 import ForgotPasswordPage from '@/pages/auth/ForgotPasswordPage';
 import ResetPasswordPage from '@/pages/auth/ResetPasswordPage';
 import OAuthCallbackPage from '@/pages/auth/OAuthCallbackPage';
+import InvitationPage from '@/pages/invite/InvitationPage';
 
 const OnboardingPage = lazy(() => import('@/pages/onboarding/OnboardingPage'));
 const DashboardPage = lazy(() => import('@/pages/dashboard/DashboardPage'));
@@ -76,6 +77,11 @@ function AppRoutes() {
             would bounce it to /dashboard mid-exchange, before it can send a
             new user to onboarding. */}
         <Route path="/auth/callback" element={<OAuthCallbackPage />} />
+
+        {/* Public, and outside every shell. A candidate must be able to see
+            what they are invited to before signing in — and an invited
+            candidate gets no sidebar, no streaks and no upsell. */}
+        <Route path="/invite/:token" element={<InvitationPage />} />
 
         {/* Public pages - viewable by anyone */}
         <Route path="/scorecard/:token" element={<PublicScorecardPage />} />
