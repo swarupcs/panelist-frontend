@@ -268,9 +268,11 @@ export default function InterviewSessionPage() {
   // Read inside the keydown handler, which is registered once and would
   // otherwise close over the first value it saw.
   const allowHintsRef = useRef(true);
+  const isAssessmentRef = useRef(false);
   useEffect(() => {
     allowHintsRef.current = assessment.allowHints;
-  }, [assessment.allowHints]);
+    isAssessmentRef.current = assessment.isAssessment;
+  }, [assessment.allowHints, assessment.isAssessment]);
 
   // Recording. Asked once per session; declining is remembered for the session
   // so the dialog does not reappear on every re-render or reload.
@@ -583,7 +585,9 @@ export default function InterviewSessionPage() {
           }
           break;
         case 'p':
-          if (phase === 'answering') {
+          // Same rule as the button: a shortcut that still worked would make
+          // hiding the control cosmetic.
+          if (phase === 'answering' && !isAssessmentRef.current) {
             e.preventDefault();
             handlePauseResume();
           }
@@ -691,6 +695,11 @@ export default function InterviewSessionPage() {
             onExpired={handleTimerExpired}
           />
 
+          {/* Hidden during an assessment. The server refuses to pause one, so
+              offering a button that returns an error would be a worse
+              experience than not offering it — and a paused clock is
+              unsupervised time to look up the answer. */}
+          {!assessment.isAssessment && (
           <IconButton
             onClick={handlePauseResume}
             disabled={phase === 'feedback'}
@@ -704,6 +713,7 @@ export default function InterviewSessionPage() {
               <Pause className='size-4' />
             )}
           </IconButton>
+          )}
 
           {!showEndConfirm ? (
             <IconButton

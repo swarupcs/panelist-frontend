@@ -179,6 +179,21 @@ export interface InterviewReport {
   generatedAt: string;
   /** True when events were recorded after this report was generated. */
   stale?: boolean;
+  /**
+   * What the score was produced under. Not supplementary — a rating read
+   * without it invites a comparison it cannot support.
+   */
+  conditions: InterviewConditions;
+}
+
+export interface InterviewConditions {
+  hintsUsed: number;
+  questionsSkipped: number;
+  questionsAnswered: number;
+  totalQuestions: number;
+  attemptNumber: number | null;
+  hintsAllowed: boolean;
+  isAssessment: boolean;
 }
 
 // ── Recruiter view ─────────────────────────────────────────────────────────

@@ -28,6 +28,7 @@ import { RubricBreakdown } from '@/components/interview/RubricBreakdown';
 import { TranscriptTimeline } from '@/components/interview/TranscriptTimeline';
 import { RecordingPlayer } from '@/components/interview/RecordingPlayer';
 import { OutcomeControl } from '@/components/recruiter/OutcomeControl';
+import { ConditionsBlock } from '@/components/interview/ConditionsBlock';
 import type { RecruiterCodeSubmission } from '@/types/panelist';
 
 type Tab = 'overview' | 'code' | 'design' | 'recording' | 'transcript';
@@ -162,6 +163,15 @@ export default function RecruiterSessionPage() {
             <span className="text-sm font-medium">{ratingVerdict(rating)}</span>
           </div>
         </div>
+
+        {/* Directly under the rating, not in a footnote. Two candidates scoring
+            the same did not necessarily do the same thing, and a reader
+            ranking them has no way to know that from the number alone. */}
+        {report?.conditions && (
+          <div className="border-t border-border/60 px-6 py-3">
+            <ConditionsBlock conditions={report.conditions} />
+          </div>
+        )}
 
         {/* Objective counts sit beside the AI's judgement so a reader can sanity
             check the rating against what actually happened. */}
