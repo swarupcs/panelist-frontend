@@ -32,17 +32,13 @@ import {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   Calendar,
 } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import {
   useAnalyticsDashboard,
   usePerformanceTrends,
   useSkillGaps,
 } from '@/hooks/useAnalytics';
-import {
-  PageHeader,
-  StatCard,
-  LoadingScreen,
-  ErrorState,
-} from '@/components/common';
+import { LoadingScreen, ErrorState } from '@/components/common';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -89,6 +85,62 @@ function ProgressBar({
   );
 }
 
+// ── Metric tile ────────────────────────────────────────────────────────────
+
+/**
+ * One headline number.
+ *
+ * The label sits above the value rather than below it. These are read as a
+ * row, and scanning four unlabelled numbers and then hunting for what each one
+ * meant is slower than reading the question first.
+ */
+function MetricTile({
+  label,
+  value,
+  subtitle,
+  icon: Icon,
+  accent = false,
+}: {
+  label: string;
+  value: string | number;
+  subtitle?: string;
+  icon: LucideIcon;
+  accent?: boolean;
+}) {
+  return (
+    <div
+      className={cn(
+        'rounded-2xl border p-4 shadow-sm transition-colors sm:p-5',
+        accent
+          ? 'border-primary/25 bg-gradient-to-br from-primary/10 to-card'
+          : 'border-border/60 bg-card/60',
+      )}
+    >
+      <div className='flex items-start justify-between gap-3'>
+        <p className='min-w-0 truncate text-xs font-medium uppercase tracking-wider text-muted-foreground'>
+          {label}
+        </p>
+        <span
+          className={cn(
+            'flex size-8 shrink-0 items-center justify-center rounded-lg',
+            accent ? 'bg-primary/15 text-primary' : 'bg-secondary/60 text-muted-foreground',
+          )}
+        >
+          <Icon className='size-4' />
+        </span>
+      </div>
+      <p className='mt-2 text-2xl font-semibold tabular-nums text-foreground sm:text-3xl'>
+        {value}
+      </p>
+      {subtitle && (
+        <p className={cn('mt-0.5 text-xs', accent ? 'text-primary' : 'text-muted-foreground')}>
+          {subtitle}
+        </p>
+      )}
+    </div>
+  );
+}
+
 import { ScoreOverTimeChart } from '@/components/analytics/ScoreOverTimeChart';
 import { QuestionsPerWeekChart } from '@/components/analytics/QuestionsPerWeekChart';
 import { DifficultyDistributionChart } from '@/components/analytics/DifficultyDistributionChart';
@@ -114,59 +166,85 @@ export default function AnalyticsPage() {
   const comparative = data?.comparative;
 
   return (
-    <div className='space-y-6 animate-fade-in'>
-      <PageHeader
-        title='Analytics'
-        description='Track your interview performance and progress'
-      />
+    <div className='animate-fade-in w-full space-y-5'>
+      {/* ── Hero ── */}
+      <section className='relative overflow-hidden rounded-2xl border border-border/60 bg-gradient-to-br from-primary/10 via-card to-accent/10 p-5 sm:p-6'>
+        <div
+          aria-hidden
+          className='pointer-events-none absolute -right-20 -top-24 size-64 rounded-full bg-primary/20 blur-3xl'
+        />
+        <div className='relative'>
+          <span className='inline-flex items-center gap-1.5 rounded-full border border-primary/25 bg-primary/10 px-2.5 py-1 text-[11px] font-medium uppercase tracking-wider text-primary'>
+            <BarChart3 className='size-3' />
+            Your performance
+          </span>
+          <h1 className='mt-2.5 text-2xl font-semibold tracking-tight text-foreground'>
+            Analytics
+          </h1>
+        </div>
+      </section>
 
-      {/* Stat cards */}
-      <div className='grid grid-cols-2 lg:grid-cols-4 gap-4'>
-        <StatCard
-          title='Total Interviews'
+      {/* ── Headline metrics ──
+          Rank is the only one carrying a comparison to other people, so it is
+          the only one given emphasis. Making all four loud would mean none of
+          them was. */}
+      <div className='grid grid-cols-2 gap-4 lg:grid-cols-4'>
+        <MetricTile
+          label='Total interviews'
           value={stats?.totalInterviews ?? 0}
           icon={BarChart3}
         />
-        <StatCard
-          title='Avg Score'
+        <MetricTile
+          label='Average score'
           value={stats ? formatScore(stats.averageScore) : '—'}
           icon={TrendingUp}
         />
-        <StatCard
-          title='Completion Rate'
+        <MetricTile
+          label='Completion rate'
           value={stats ? formatPercent(stats.completionRate) : '—'}
           icon={Target}
         />
-        <StatCard
-          title='Global Rank'
+        <MetricTile
+          label='Global rank'
           value={comparative?.userRank ? `#${comparative.userRank}` : '—'}
           subtitle={comparative ? `Top ${comparative.percentile}%` : undefined}
           icon={Users}
+          accent
         />
       </div>
 
       {/* LAYOUT FIX: plain state-driven tabs — no Radix/shadcn grid interference */}
       <div className='w-full space-y-4'>
-        {/* Tab bar */}
-        <div className='flex gap-1 rounded-lg bg-secondary/50 p-1 w-full'>
+        {/* Tab bar — sized to its labels rather than stretched across the
+            page. Five tabs spread over 1163px put "Performance" and
+            "Benchmarking" a screen-width apart and made the selected pill
+            enormous, which reads as a banner rather than a control. Scrolls
+            horizontally on narrow screens instead of cramming. */}
+        <div
+          role='tablist'
+          className='flex w-full gap-1 overflow-x-auto rounded-xl border border-border/60 bg-secondary/40 p-1 sm:w-fit'
+        >
           {(['performance', 'topics', 'gaps', 'weak', 'benchmark'] as const).map((tab) => {
             const labels: Record<string, string> = {
               performance: 'Performance',
               topics: 'Topics',
-              gaps: 'Skill Gaps',
-              weak: 'Weak Areas',
+              gaps: 'Skill gaps',
+              weak: 'Weak areas',
               benchmark: 'Benchmarking',
             };
             return (
               <button
                 key={tab}
                 type='button'
+                role='tab'
+                aria-selected={activeTab === tab}
                 onClick={() => setActiveTab(tab)}
                 className={cn(
-                  'flex-1 rounded-md px-3 py-2 text-sm font-medium transition-all duration-200',
+                  'shrink-0 rounded-lg px-3.5 py-1.5 text-sm font-medium transition-all duration-200',
+                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
                   activeTab === tab
                     ? 'bg-background text-foreground shadow-sm'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-background/50',
+                    : 'text-muted-foreground hover:bg-background/50 hover:text-foreground',
                 )}
               >
                 {labels[tab]}
