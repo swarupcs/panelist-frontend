@@ -58,7 +58,7 @@ const INITIAL_DIALOG: DialogState = {
 
 // Detail sub-tabs
 type DetailTab =
-  | 'overview' | 'activity' | 'interviews' | 'logins'
+  | 'overview' | 'activity' | 'interviews' | 'logins' | 'study'
   | 'bans' | 'suspensions' | 'sessions' | 'achievements' | 'weak-areas'
 
 // ── Main ───────────────────────────────────────────────────────────────────
@@ -380,6 +380,7 @@ function UserDetailPanel({
     { id: 'activity',     label: 'Activity',    icon: Activity,   count: dash?.activityLog?.length        },
     { id: 'interviews',   label: 'Interviews',  icon: FileText,   count: dash?.interviewStats.totalInterviews },
     { id: 'logins',       label: 'Logins',      icon: LogIn,      count: dash?.loginStats.totalLogins     },
+    { id: 'study',        label: 'Study',       icon: Brain,      count: dash?.studyStats.totalSessions   },
     { id: 'bans',         label: 'Bans',        icon: Ban,        count: data?.user.bans?.length          },
     { id: 'suspensions',  label: 'Suspensions', icon: ShieldAlert,count: data?.user.suspensions?.length   },
     { id: 'sessions',     label: 'Sessions',    icon: Wifi,       count: data?.user.refreshTokens?.length },
@@ -611,6 +612,59 @@ function UserDetailPanel({
                           </span>
                         </div>
                       ))}
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+
+            {/* Study sessions — time spent practising outside interviews */}
+            {tab === 'study' && (
+              <div className="space-y-3">
+                {dashLoading ? (
+                  <p className="text-sm text-muted-foreground text-center py-6">Loading study sessions…</p>
+                ) : (
+                  <>
+                    {dash && (
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                        {[
+                          { label: 'Sessions',  value: dash.studyStats.totalSessions },
+                          { label: 'Time',      value: formatMinutes(dash.studyStats.totalMinutes) },
+                          { label: 'Attempted', value: dash.studyStats.questionsAttempted },
+                          { label: 'Correct',   value: dash.studyStats.questionsCorrect },
+                        ].map((s) => (
+                          <div key={s.label} className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-center">
+                            <p className="text-base font-bold tabular-nums text-foreground">{s.value}</p>
+                            <p className="text-xs text-muted-foreground">{s.label}</p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
+                      {!dash?.studySessions.length ? (
+                        <p className="text-sm text-muted-foreground text-center py-6">No study sessions</p>
+                      ) : dash.studySessions.map((ss) => {
+                        const ssScore = ss.averageScore != null ? Number(ss.averageScore) : null
+                        return (
+                          <div key={ss.id} className="rounded-lg border border-border p-3 space-y-1">
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="text-sm font-medium text-foreground">
+                                {ss.topicCategory ? toTitleCase(ss.topicCategory) : 'General'}
+                              </span>
+                              <span className="text-xs text-muted-foreground">{formatDateTime(ss.date)}</span>
+                            </div>
+                            <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
+                              <span className="flex items-center gap-1"><Clock className="size-3" />{formatMinutes(ss.durationMinutes)}</span>
+                              <span>{ss.questionsCorrect}/{ss.questionsAttempted} correct</span>
+                              {ssScore != null && (
+                                <span className={cn('inline-flex items-center rounded-full border px-1.5 py-0.5', getScoreBg(ssScore))}>
+                                  {ssScore.toFixed(1)}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        )
+                      })}
                     </div>
                   </>
                 )}

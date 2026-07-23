@@ -23,7 +23,7 @@ export function RealtimeDashboard() {
     if (!token) return;
 
     let isMounted = true;
-    let reconnectTimer: NodeJS.Timeout;
+    let reconnectTimer: ReturnType<typeof setTimeout>;
 
     const connect = () => {
       setStatus('connecting');
