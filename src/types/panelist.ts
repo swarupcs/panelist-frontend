@@ -100,6 +100,12 @@ export interface SubmitDrawingRequest {
   explanation?: string;
   question?: string;
   questionIndex?: number;
+  /**
+   * Rendered PNG of the canvas as a `data:image/png;base64,` URL, for
+   * vision-based evaluation. Optional — the backend falls back to the text
+   * rendering of the scene when absent.
+   */
+  image?: string;
 }
 
 export interface SubmitDrawingResponse {

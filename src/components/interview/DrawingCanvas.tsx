@@ -3,10 +3,11 @@
 // Excalidraw canvas for the System Design track.
 //
 // On submit it captures the scene as JSON — elements plus a small slice of
-// appState — and posts it to the session's drawing endpoint. The backend
-// serialises the scene into a textual description (components, containment,
-// arrow-resolved connections) and evaluates that, so what matters here is
-// sending the structured scene rather than an image.
+// appState — and also renders the canvas to a PNG, posting both to the
+// session's drawing endpoint. The backend evaluates the diagram with a vision
+// model when the image is present (layout and connections a text serialisation
+// flattens are visible in the picture), and falls back to its textual
+// description of the scene otherwise.
 //
 // The response includes `interpretedAs`: how the backend actually read the
 // canvas. That is surfaced to the candidate deliberately — if a box was
@@ -17,7 +18,7 @@ import { useCallback, useMemo, useRef, useState } from 'react';
 // Excalidraw's stylesheet is imported once in main.tsx rather than here, so
 // that every whiteboard in the app is styled regardless of which route loaded
 // first. Do not add a local import back.
-import { Excalidraw } from '@excalidraw/excalidraw';
+import { Excalidraw, exportToBlob } from '@excalidraw/excalidraw';
 import {
   AlertCircle,
   CheckCircle2,
@@ -83,7 +84,7 @@ export function DrawingCanvas({
     setElementCount(elements.filter((el) => !(el as { isDeleted?: boolean }).isDeleted).length);
   }, []);
 
-  const handleSubmit = useCallback(() => {
+  const handleSubmit = useCallback(async () => {
     const api = apiRef.current;
     if (!api) return;
 
@@ -101,8 +102,33 @@ export function DrawingCanvas({
       },
     };
 
+    // Also render the canvas to a PNG so the backend can evaluate the design
+    // with a vision model — layout and connections a text serialisation flattens
+    // are visible in the image. Best-effort: on any failure we submit the scene
+    // alone and the backend falls back to its text rendering.
+    let image: string | undefined;
+    try {
+      const live = elements.filter((el) => !(el as { isDeleted?: boolean }).isDeleted);
+      if (live.length > 0) {
+        const blob = await exportToBlob({
+          elements: live as never,
+          appState: api.getAppState() as never,
+          files: api.getFiles() as never,
+          mimeType: 'image/png',
+        });
+        image = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(blob);
+        });
+      }
+    } catch {
+      // Fall back to scene-only evaluation.
+    }
+
     submit.mutate(
-      { scene, explanation: explanation.trim() || undefined, question, questionIndex },
+      { scene, explanation: explanation.trim() || undefined, question, questionIndex, image },
       {
         onSuccess: (data) => {
           setResult(data);
