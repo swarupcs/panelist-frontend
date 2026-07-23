@@ -49,6 +49,18 @@ export const panelistApi = {
     return res.data.data;
   },
 
+  /**
+   * Flush a batch of integrity/proctoring signals recorded during the
+   * interview. Best-effort: failures are swallowed by the caller so a dropped
+   * batch never interrupts the candidate.
+   */
+  recordIntegrityEvents: async (
+    sessionId: string,
+    events: Array<{ type: string; occurredAt: string; metadata?: Record<string, number> }>,
+  ): Promise<void> => {
+    await api.post(`/panelist/sessions/${sessionId}/integrity-events`, { events });
+  },
+
   /** Submit an Excalidraw scene for evaluation. */
   submitDrawing: async (
     sessionId: string,

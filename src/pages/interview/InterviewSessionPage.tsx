@@ -77,6 +77,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useSessionRecorder } from '@/hooks/useSessionRecorder';
 import { RecordingConsent } from '@/components/interview/RecordingConsent';
 import { useSessionContext } from '@/hooks/useSessionContext';
+import { useIntegrityMonitor } from '@/hooks/useIntegrityMonitor';
 
 // -- Types ------------------------------------------------------------------
 
@@ -286,6 +287,11 @@ export default function InterviewSessionPage() {
   // interview these come from the recruiter's template and are not the
   // candidate's to change.
   const assessment = useSessionContext(sessionId);
+
+  // Integrity monitoring. Only for invited (recruiter) interviews — a practice
+  // session has nothing to proctor and no reviewer to read the signals. Active
+  // until the interview completes.
+  useIntegrityMonitor(sessionId, assessment.isAssessment && !isCompleted);
 
   // Read inside the keydown handler, which is registered once and would
   // otherwise close over the first value it saw.

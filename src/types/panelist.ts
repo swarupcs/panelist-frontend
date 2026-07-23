@@ -303,5 +303,36 @@ export interface RecruiterDossier {
   report: InterviewReport | null;
   /** Set when the report could not be generated — show instead of the report. */
   reportError: string | null;
+  /**
+   * Proctoring signals rolled up for the reviewer. Null means none were
+   * recorded (older session, or the candidate's browser never reported any) —
+   * show as "not measured", never as "clean".
+   */
+  integrity: IntegritySummary | null;
   viewerIsOwner: boolean;
+}
+
+export type IntegrityRiskLevel = 'none' | 'low' | 'medium' | 'high';
+
+export interface IntegritySummary {
+  totalEvents: number;
+  counts: {
+    focusLost: number;
+    tabHidden: number;
+    awayCount: number;
+    totalAwaySeconds: number;
+    longestAwaySeconds: number;
+    pastes: number;
+    largePastes: number;
+    largestPasteChars: number;
+    copies: number;
+    fullscreenExits: number;
+  };
+  riskLevel: IntegrityRiskLevel;
+  flags: string[];
+  recentEvents: Array<{
+    type: string;
+    occurredAt: string;
+    metadata: Record<string, number> | null;
+  }>;
 }

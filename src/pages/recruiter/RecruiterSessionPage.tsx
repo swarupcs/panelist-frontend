@@ -16,6 +16,7 @@ import {
   FileText,
   Loader2,
   PenTool,
+  ShieldAlert,
   ShieldCheck,
   Sparkles,
   TrendingUp,
@@ -29,7 +30,7 @@ import { TranscriptTimeline } from '@/components/interview/TranscriptTimeline';
 import { RecordingPlayer } from '@/components/interview/RecordingPlayer';
 import { OutcomeControl } from '@/components/recruiter/OutcomeControl';
 import { ConditionsBlock } from '@/components/interview/ConditionsBlock';
-import type { RecruiterCodeSubmission } from '@/types/panelist';
+import type { RecruiterCodeSubmission, IntegritySummary, IntegrityRiskLevel } from '@/types/panelist';
 
 type Tab = 'overview' | 'code' | 'design' | 'recording' | 'transcript';
 
@@ -104,7 +105,7 @@ export default function RecruiterSessionPage() {
     );
   }
 
-  const { session, candidate, report, reportError, codeSubmissions, drawings, transcript, recording, cameraRecording, viewerIsOwner, invitation } = data;
+  const { session, candidate, report, reportError, codeSubmissions, drawings, transcript, recording, cameraRecording, viewerIsOwner, invitation, integrity } = data;
   const rating = report?.overallRating ?? 0;
 
   return (
@@ -240,6 +241,10 @@ export default function RecruiterSessionPage() {
               <OutcomeControl invitationId={invitation.id} outcome={invitation.outcome} />
             </Panel>
           )}
+          {/* Proctoring signals. Only meaningful for invited interviews; shown
+              high up because integrity concerns change how the rest is read. */}
+          {invitation && <IntegrityPanel integrity={integrity} />}
+
           {report ? (
             <>
               <Panel title="Summary">
@@ -357,6 +362,118 @@ function Stat({
       >
         {value}
       </p>
+    </div>
+  );
+}
+
+const RISK_STYLES: Record<IntegrityRiskLevel, { ring: string; badge: string; label: string }> = {
+  none:   { ring: 'text-emerald-500 ring-emerald-500/30 bg-emerald-500/5', badge: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20', label: 'No concerns' },
+  low:    { ring: 'text-sky-500 ring-sky-500/30 bg-sky-500/5',             badge: 'bg-sky-500/10 text-sky-500 border-sky-500/20',             label: 'Low' },
+  medium: { ring: 'text-amber-500 ring-amber-500/30 bg-amber-500/5',       badge: 'bg-amber-500/10 text-amber-500 border-amber-500/20',       label: 'Medium' },
+  high:   { ring: 'text-rose-500 ring-rose-500/30 bg-rose-500/5',          badge: 'bg-rose-500/10 text-rose-500 border-rose-500/20',          label: 'High' },
+};
+
+function fmtAway(seconds: number): string {
+  if (seconds < 60) return `${seconds}s`;
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return s > 0 ? `${m}m ${s}s` : `${m}m`;
+}
+
+const INTEGRITY_LABELS: Record<string, string> = {
+  FOCUS_LOST: 'Left the window',
+  FOCUS_RETURNED: 'Returned to the window',
+  TAB_HIDDEN: 'Switched away from the tab',
+  TAB_VISIBLE: 'Returned to the tab',
+  FULLSCREEN_EXIT: 'Exited fullscreen',
+  PASTE: 'Pasted into the editor',
+  COPY: 'Copied from the page',
+};
+
+function IntegrityPanel({ integrity }: { integrity: IntegritySummary | null }) {
+  if (!integrity) {
+    return (
+      <Panel title="Integrity" hint="Proctoring signals from the candidate's browser">
+        <p className="text-sm text-muted-foreground">
+          No integrity signals were recorded for this session — it predates proctoring, or the
+          candidate's browser reported none. This is not the same as a verified clean run.
+        </p>
+      </Panel>
+    );
+  }
+
+  const style = RISK_STYLES[integrity.riskLevel];
+  const c = integrity.counts;
+  const departures = c.awayCount || c.focusLost + c.tabHidden;
+
+  return (
+    <div className="rounded-xl border border-border/60 bg-card p-5">
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          {integrity.riskLevel === 'none'
+            ? <ShieldCheck className="h-4 w-4 text-emerald-500" />
+            : <ShieldAlert className={cn('h-4 w-4', style.ring.split(' ')[0])} />}
+          <h2 className="text-sm font-semibold">Integrity</h2>
+        </div>
+        <span className={cn('inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium', style.badge)}>
+          {style.label} risk
+        </span>
+      </div>
+
+      {/* Signal counts */}
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+        <IntegrityStat label="Left interview" value={String(departures)} warn={departures > 0} />
+        <IntegrityStat label="Time away" value={c.totalAwaySeconds ? fmtAway(c.totalAwaySeconds) : '—'} warn={c.totalAwaySeconds > 0} />
+        <IntegrityStat label="Large pastes" value={String(c.largePastes)} warn={c.largePastes > 0} />
+        <IntegrityStat label="Fullscreen exits" value={String(c.fullscreenExits)} warn={c.fullscreenExits > 0} />
+      </div>
+
+      {/* Human-readable flags */}
+      {integrity.flags.length > 0 && (
+        <ul className="mt-4 space-y-1.5">
+          {integrity.flags.map((f, i) => (
+            <li key={i} className="flex gap-2 text-sm text-muted-foreground">
+              <span className={cn('mt-1 h-1.5 w-1.5 shrink-0 rounded-full', integrity.riskLevel === 'none' ? 'bg-emerald-500' : 'bg-amber-500')} />
+              {f}
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {/* Raw timeline */}
+      {integrity.recentEvents.length > 0 && (
+        <details className="mt-4 group">
+          <summary className="cursor-pointer text-xs font-medium text-muted-foreground hover:text-foreground">
+            View {integrity.recentEvents.length} recent event{integrity.recentEvents.length === 1 ? '' : 's'}
+          </summary>
+          <div className="mt-2 max-h-56 space-y-1 overflow-y-auto pr-1">
+            {integrity.recentEvents.map((e, i) => (
+              <div key={i} className="flex items-center justify-between gap-2 rounded-md border border-border/50 px-2.5 py-1.5 text-xs">
+                <span className="text-foreground">{INTEGRITY_LABELS[e.type] ?? e.type}</span>
+                <span className="text-muted-foreground">
+                  {e.metadata?.chars != null && `${e.metadata.chars} chars · `}
+                  {e.metadata?.awayMs != null && `${fmtAway(Math.round(e.metadata.awayMs / 1000))} · `}
+                  {new Date(e.occurredAt).toLocaleTimeString()}
+                </span>
+              </div>
+            ))}
+          </div>
+        </details>
+      )}
+
+      <p className="mt-4 text-xs text-muted-foreground">
+        Signals to inform your review, not an automated verdict. Some are innocuous (a candidate
+        may open documentation the template permits).
+      </p>
+    </div>
+  );
+}
+
+function IntegrityStat({ label, value, warn }: { label: string; value: string; warn?: boolean }) {
+  return (
+    <div className="rounded-lg border border-border/50 px-3 py-2">
+      <p className="text-[11px] uppercase tracking-wide text-muted-foreground">{label}</p>
+      <p className={cn('text-lg font-semibold tabular-nums', warn ? 'text-amber-500' : 'text-foreground')}>{value}</p>
     </div>
   );
 }
