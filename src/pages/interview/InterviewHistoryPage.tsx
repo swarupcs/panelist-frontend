@@ -13,9 +13,13 @@ import {
   Loader2,
   Clock,
   Video,
+  Target,
+  Lightbulb,
+  BookOpen,
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { useRecentSessions } from '@/hooks/useInterviewExtended';
+import { useStudyPlan, useStartInterview } from '@/hooks/useInterview';
 import { recordingApi } from '@/api/recording.api';
 import { RecordingPlayer } from '@/components/interview/RecordingPlayer';
 import { Button } from '@/components/ui/button';
@@ -23,6 +27,7 @@ import { EmptyState, ScoreRing } from '@/components/common';
 import {
   formatDate,
   formatInterviewType,
+  formatCategory,
   getScoreColor,
   getDifficultyBadge,
   formatDuration,
@@ -77,6 +82,126 @@ function StatusBadge({ status }: { status: string }) {
  * the rows that do not — and twenty history rows do not become twenty
  * requests just to discover that most of them have nothing to show.
  */
+// Compact study plan for a past session, lazily loaded when the card is
+// expanded so the list doesn't fire one request per row up front.
+function SessionStudyPlan({ sessionId }: { sessionId: string }) {
+  const navigate = useNavigate();
+  const { data: plan, isLoading } = useStudyPlan(sessionId);
+  const startInterview = useStartInterview();
+
+  if (isLoading) {
+    return (
+      <div className='flex items-center gap-2 py-2 text-xs text-muted-foreground'>
+        <Loader2 className='size-3.5 animate-spin' />
+        Loading next steps…
+      </div>
+    );
+  }
+
+  if (!plan) return null;
+
+  const hasWeak = plan.weakCategories.length > 0;
+  const hasSuggestions = plan.suggestions.length > 0;
+  const due = plan.spacedRepetition.dueForReview;
+
+  if (!hasWeak && !hasSuggestions && due === 0) {
+    return (
+      <p className='py-1 text-xs text-muted-foreground'>
+        No weak areas flagged for this session — nice work.
+      </p>
+    );
+  }
+
+  return (
+    <div className='space-y-3'>
+      {hasWeak && (
+        <div className='space-y-2'>
+          <p className='text-xs font-medium text-muted-foreground flex items-center gap-1'>
+            <Target className='size-3.5 text-primary' />
+            Focus areas
+          </p>
+          <div className='flex flex-wrap gap-1.5'>
+            {plan.weakCategories.map((c) => (
+              <span
+                key={c.category}
+                className='inline-flex items-center gap-1 rounded-md border border-yellow-500/30 bg-yellow-500/10 px-2 py-0.5 text-xs font-medium text-yellow-500'
+              >
+                {formatCategory(c.category)}
+                {c.avgScore != null && (
+                  <span className='tabular-nums opacity-70'>{c.avgScore}</span>
+                )}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {hasSuggestions && (
+        <ul className='space-y-1'>
+          {plan.suggestions.slice(0, 3).map((s, i) => (
+            <li key={i} className='flex gap-1.5 text-xs text-muted-foreground'>
+              <Lightbulb className='size-3.5 shrink-0 text-amber-400 mt-0.5' />
+              {s}
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <div className='flex flex-wrap gap-2'>
+        {plan.recommendedPractice && (
+          <Button
+            size='sm'
+            className='h-7 gap-1.5 text-xs'
+            disabled={startInterview.isPending}
+            onClick={() =>
+              plan.recommendedPractice &&
+              startInterview.mutate({
+                type: plan.recommendedPractice.type,
+                difficulty: plan.recommendedPractice.difficulty,
+                focusAreas: plan.recommendedPractice.focusAreas,
+              })
+            }
+          >
+            {startInterview.isPending ? (
+              <Loader2 className='size-3 animate-spin' />
+            ) : (
+              <Play className='size-3' />
+            )}
+            Practice weak areas
+          </Button>
+        )}
+        {hasWeak && (
+          <Button
+            size='sm'
+            variant='outline'
+            className='h-7 gap-1.5 text-xs'
+            onClick={() =>
+              navigate(
+                `/learning?weaknesses=${encodeURIComponent(
+                  plan.weakCategories.map((c) => formatCategory(c.category)).join(', '),
+                )}`,
+              )
+            }
+          >
+            <BookOpen className='size-3' />
+            Build a study path
+          </Button>
+        )}
+        {due > 0 && (
+          <Button
+            size='sm'
+            variant='ghost'
+            className='h-7 gap-1.5 text-xs'
+            onClick={() => navigate('/interview?type=srs_review')}
+          >
+            Review {due} due
+          </Button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function SessionRecordings({ sessionId }: { sessionId: string }) {
   const { data, isLoading, isError } = useQuery({
     queryKey: ['interview', sessionId, 'recordings'],
@@ -125,6 +250,7 @@ function SessionRow({
   onReplay: (id: string) => void;
 }) {
   const [showRecording, setShowRecording] = useState(false);
+  const [showPlan, setShowPlan] = useState(false);
   const hasRecording = (item.recordingCount ?? 0) > 0;
   const score = item.score != null ? Math.round(Number(item.score)) : null;
   const isCompleted = item.status === 'COMPLETED';
@@ -230,6 +356,22 @@ function SessionRow({
           {isCompleted && (
             <button
               type='button'
+              onClick={() => setShowPlan((o) => !o)}
+              aria-expanded={showPlan}
+              title={showPlan ? 'Hide next steps' : 'Next steps'}
+              className={cn(
+                'rounded-md p-1.5 transition-colors',
+                showPlan
+                  ? 'bg-primary/10 text-primary'
+                  : 'text-muted-foreground hover:bg-secondary hover:text-foreground',
+              )}
+            >
+              <Target className='size-4' />
+            </button>
+          )}
+          {isCompleted && (
+            <button
+              type='button'
               onClick={() => onReplay(item.id)}
               title='Replay'
               className='rounded-md p-1.5 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors'
@@ -254,6 +396,12 @@ function SessionRow({
           </button>
         </div>
       </div>
+
+      {showPlan && (
+        <div className='mt-3 border-t border-border/60 pt-3'>
+          <SessionStudyPlan sessionId={item.id} />
+        </div>
+      )}
 
       {showRecording && (
         <div className='mt-3 border-t border-border/60'>
