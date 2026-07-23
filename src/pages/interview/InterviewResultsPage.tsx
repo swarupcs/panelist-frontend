@@ -423,6 +423,85 @@ function StudyPlanPanel({ sessionId }: { sessionId: string }) {
   );
 }
 
+// ── Pacing panel — how time was spent across questions ──────────────────────
+
+function PacingPanel({ questions }: { questions: QuestionResult[] }) {
+  const timed = questions
+    .map((q, i) => ({ ...q, index: i }))
+    .filter((q) => q.timeSpent != null && q.timeSpent > 0);
+
+  // Needs at least two timed questions for a distribution to mean anything.
+  if (timed.length < 2) return null;
+
+  const total = timed.reduce((sum, q) => sum + (q.timeSpent ?? 0), 0);
+  if (total <= 0) return null;
+
+  const avg = Math.round(total / timed.length);
+  const slowest = timed.reduce((a, b) => ((b.timeSpent ?? 0) > (a.timeSpent ?? 0) ? b : a));
+  const max = slowest.timeSpent ?? 1;
+  const slowestShare = Math.round(((slowest.timeSpent ?? 0) / total) * 100);
+  // Questions that were left unanswered / timed out — a pacing signal too.
+  const ranOut = questions.filter((q) => q.skipped || q.timeSpent === 0);
+
+  const insights: string[] = [];
+  if (slowestShare >= 40) {
+    insights.push(
+      `You spent ${slowestShare}% of your time on Q${slowest.index + 1} (${formatCategory(slowest.category)}).`,
+    );
+  }
+  if (ranOut.length > 0) {
+    insights.push(
+      `${ranOut.length} question${ranOut.length === 1 ? '' : 's'} went unanswered or ran out of time.`,
+    );
+  }
+  insights.push(`Average ${formatSeconds(avg)} per answered question.`);
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className='text-base flex items-center gap-2'>
+          <Clock className='size-4 text-primary' />
+          Pacing
+        </CardTitle>
+      </CardHeader>
+      <CardContent className='space-y-3'>
+        <div className='space-y-1.5'>
+          {timed.map((q) => {
+            const pct = Math.round(((q.timeSpent ?? 0) / max) * 100);
+            const isSlow = q.id === slowest.id;
+            return (
+              <div key={q.id} className='flex items-center gap-2'>
+                <span className='w-8 shrink-0 text-xs text-muted-foreground tabular-nums'>
+                  Q{q.index + 1}
+                </span>
+                <div className='flex-1 h-4 rounded bg-muted/40 overflow-hidden'>
+                  <div
+                    className={cn(
+                      'h-full rounded transition-all',
+                      isSlow ? 'bg-yellow-500/70' : 'bg-primary/60',
+                    )}
+                    style={{ width: `${Math.max(pct, 4)}%` }}
+                  />
+                </div>
+                <span className='w-14 shrink-0 text-right text-xs text-muted-foreground tabular-nums'>
+                  {formatSeconds(q.timeSpent)}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+        <ul className='space-y-1 border-t border-border/40 pt-2'>
+          {insights.map((s, i) => (
+            <li key={i} className='text-xs text-muted-foreground'>
+              • {s}
+            </li>
+          ))}
+        </ul>
+      </CardContent>
+    </Card>
+  );
+}
+
 // ── Main page ──────────────────────────────────────────────────────────────
 
 export default function InterviewResultsPage() {
@@ -709,6 +788,9 @@ export default function InterviewResultsPage() {
 
       {/* Study plan — closes the loop from this interview into next actions */}
       {sessionId && <StudyPlanPanel sessionId={sessionId} />}
+
+      {/* Pacing — time distribution across questions */}
+      <PacingPanel questions={results.questions} />
 
       {/* Per-question breakdown */}
       {results.questions.length > 0 && (
