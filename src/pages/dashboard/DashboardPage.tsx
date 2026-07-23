@@ -25,6 +25,7 @@ import {
   Smartphone,
   Play,
   Loader2,
+  FileSearch,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { useStartInterview } from '@/hooks/useInterview';
@@ -210,6 +211,14 @@ export default function DashboardPage() {
       color: 'text-yellow-400',
       bg: 'border-yellow-500/20 bg-yellow-500/5 hover:bg-yellow-500/10',
       onClick: () => navigate('/interview?type=mixed'),
+    },
+    {
+      icon: FileSearch,
+      label: 'Review Resume',
+      description: 'AI feedback for a role & JD',
+      color: 'text-rose-400',
+      bg: 'border-rose-500/20 bg-rose-500/5 hover:bg-rose-500/10',
+      onClick: () => navigate('/resume-review'),
     },
   ];
 

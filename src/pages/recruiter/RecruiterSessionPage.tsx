@@ -388,6 +388,8 @@ const INTEGRITY_LABELS: Record<string, string> = {
   FULLSCREEN_EXIT: 'Exited fullscreen',
   PASTE: 'Pasted into the editor',
   COPY: 'Copied from the page',
+  CAMERA_PERMISSION_LOST: 'Camera access lost',
+  MIC_PERMISSION_LOST: 'Microphone access lost',
 };
 
 function IntegrityPanel({ integrity }: { integrity: IntegritySummary | null }) {
@@ -425,7 +427,11 @@ function IntegrityPanel({ integrity }: { integrity: IntegritySummary | null }) {
         <IntegrityStat label="Left interview" value={String(departures)} warn={departures > 0} />
         <IntegrityStat label="Time away" value={c.totalAwaySeconds ? fmtAway(c.totalAwaySeconds) : '—'} warn={c.totalAwaySeconds > 0} />
         <IntegrityStat label="Large pastes" value={String(c.largePastes)} warn={c.largePastes > 0} />
-        <IntegrityStat label="Fullscreen exits" value={String(c.fullscreenExits)} warn={c.fullscreenExits > 0} />
+        {c.mediaPermissionLost > 0 ? (
+          <IntegrityStat label="Cam/mic lost" value={String(c.mediaPermissionLost)} warn />
+        ) : (
+          <IntegrityStat label="Fullscreen exits" value={String(c.fullscreenExits)} warn={c.fullscreenExits > 0} />
+        )}
       </div>
 
       {/* Human-readable flags */}

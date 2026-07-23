@@ -81,6 +81,30 @@ export function useIntegrityMonitor(sessionId: string | undefined, enabled: bool
     document.addEventListener('fullscreenchange', onFullscreen)
     window.addEventListener('pagehide', onPageHide)
 
+    // Watch camera / microphone permission. Losing it mid-interview (revoked in
+    // the browser, or the device taken over by another app) is a strong signal
+    // for a recorded assessment. The Permissions API for these names is not
+    // universally supported, so this is entirely best-effort.
+    const mediaWatchers: Array<{ status: PermissionStatus; onChange: () => void }> = []
+    const watchMedia = async (name: 'camera' | 'microphone', event: string) => {
+      try {
+        // `camera`/`microphone` are not in the standard PermissionName union.
+        const status = await navigator.permissions?.query({
+          name: name as PermissionName,
+        })
+        if (!status) return
+        const onChange = () => {
+          if (status.state === 'denied') push(event)
+        }
+        status.addEventListener('change', onChange)
+        mediaWatchers.push({ status, onChange })
+      } catch {
+        // Unsupported browser (e.g. Firefox for camera) — skip silently.
+      }
+    }
+    void watchMedia('camera', 'CAMERA_PERMISSION_LOST')
+    void watchMedia('microphone', 'MIC_PERMISSION_LOST')
+
     const interval = window.setInterval(flush, FLUSH_INTERVAL_MS)
 
     return () => {
@@ -91,6 +115,9 @@ export function useIntegrityMonitor(sessionId: string | undefined, enabled: bool
       document.removeEventListener('copy', onCopy, true)
       document.removeEventListener('fullscreenchange', onFullscreen)
       window.removeEventListener('pagehide', onPageHide)
+      mediaWatchers.forEach(({ status, onChange }) =>
+        status.removeEventListener('change', onChange),
+      )
       window.clearInterval(interval)
       flush()
     }

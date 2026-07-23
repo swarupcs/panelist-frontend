@@ -327,6 +327,7 @@ export interface IntegritySummary {
     largestPasteChars: number;
     copies: number;
     fullscreenExits: number;
+    mediaPermissionLost: number;
   };
   riskLevel: IntegrityRiskLevel;
   flags: string[];
