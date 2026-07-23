@@ -14,6 +14,8 @@ export const adminKeys = {
   userList:      (p: object)  => [...adminKeys.users(), p]                    as const,
   userDetail:    (id: string) => [...adminKeys.users(), id]                   as const,
   userActivity:  (id: string) => [...adminKeys.users(), id, 'activity']       as const,
+  userDashboard: (id: string) => [...adminKeys.users(), id, 'dashboard']      as const,
+  userInterview: (id: string, s: string) => [...adminKeys.users(), id, 'interview', s] as const,
   actions:       (p: object)  => [...adminKeys.all, 'actions', p]             as const,
   analytics:     ()           => [...adminKeys.all, 'analytics']              as const,
   overview:      ()           => [...adminKeys.analytics(), 'overview']       as const,
@@ -83,6 +85,27 @@ export function useAdminUserActivity(userId: string | null, limit = 50) {
     queryKey: adminKeys.userActivity(userId ?? ''),
     queryFn:  () => adminUserApi.getUserActivity(userId!, limit),
     enabled:  !!userId,
+  })
+}
+
+export function useAdminUserActivityDashboard(userId: string | null) {
+  return useQuery({
+    queryKey: adminKeys.userDashboard(userId ?? ''),
+    queryFn:  () => adminUserApi.getUserActivityDashboard(userId!),
+    enabled:  !!userId,
+    staleTime: 1000 * 30,
+  })
+}
+
+export function useAdminUserInterviewDetail(
+  userId: string | null,
+  sessionId: string | null,
+) {
+  return useQuery({
+    queryKey: adminKeys.userInterview(userId ?? '', sessionId ?? ''),
+    queryFn:  () => adminUserApi.getUserInterviewDetail(userId!, sessionId!),
+    enabled:  !!userId && !!sessionId,
+    staleTime: 1000 * 60,
   })
 }
 

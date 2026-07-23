@@ -14,6 +14,8 @@ import type {
   AdminPerformanceMetrics,
   AdminReport,
   AdminBulkBanResult,
+  AdminUserActivityDashboard,
+  AdminInterviewDetail,
   AdminAIQuestionStats,
   AdminAIQuestion,
   Pagination,
@@ -114,6 +116,21 @@ export const adminUserApi = {
   getUserActivity: async (userId: string, limit = 50) => {
     const res = await api.get(`/admin/users/${userId}/activity?limit=${limit}`)
     return res.data.data
+  },
+
+  getUserActivityDashboard: async (
+    userId: string,
+  ): Promise<AdminUserActivityDashboard> => {
+    const res = await api.get(`/admin/users/${userId}/activity-dashboard`)
+    return res.data.data
+  },
+
+  getUserInterviewDetail: async (
+    userId: string,
+    sessionId: string,
+  ): Promise<AdminInterviewDetail> => {
+    const res = await api.get(`/admin/users/${userId}/interviews/${sessionId}`)
+    return res.data.data.session
   },
 
   exportUserData: async (userId: string) => {

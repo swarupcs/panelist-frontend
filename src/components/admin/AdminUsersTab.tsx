@@ -4,6 +4,7 @@ import {
   Search, Ban, ShieldAlert, ShieldOff, Trash2, Key,
   StickyNote, AlertTriangle, MoreVertical, ChevronLeft,
   ChevronRight, UserCheck, Download, Eye, RefreshCw,
+  LogIn, Clock, Activity, FileText, Code2, CheckCircle2, XCircle,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   History, Trophy, Brain, Wifi,
 } from 'lucide-react'
@@ -26,11 +27,18 @@ import {
   useUnsuspendUser, useChangeUserRole, useDeleteUser,
   useResetUserPassword, useMarkSuspicious, useBulkBanUsers,
   useAdminUserDetails, useUpdateAdminNotes,
+  useAdminUserActivityDashboard, useAdminUserInterviewDetail,
 } from '@/hooks/useAdmin'
 import { adminUserApi } from '@/api/admin.api'
-import { formatRelative, formatDate, formatDateTime, getInitials } from '@/utils/formatters'
+import {
+  formatRelative, formatDate, formatDateTime, getInitials,
+  formatMinutes, formatInterviewType, toTitleCase, getScoreBg,
+} from '@/utils/formatters'
 import { cn } from '@/lib/cn'
-import type { AdminUserListItem, UserFilterStatus, UserSortField } from '@/types/admin'
+import type {
+  AdminUserListItem, UserFilterStatus, UserSortField,
+  AdminInterviewSummary,
+} from '@/types/admin'
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -49,7 +57,9 @@ const INITIAL_DIALOG: DialogState = {
 }
 
 // Detail sub-tabs
-type DetailTab = 'overview' | 'bans' | 'suspensions' | 'sessions' | 'achievements' | 'weak-areas'
+type DetailTab =
+  | 'overview' | 'activity' | 'interviews' | 'logins'
+  | 'bans' | 'suspensions' | 'sessions' | 'achievements' | 'weak-areas'
 
 // ── Main ───────────────────────────────────────────────────────────────────
 
@@ -361,10 +371,15 @@ function UserDetailPanel({
   onSuspend: () => void; onUnsuspend: () => void; onDelete: () => void
 }) {
   const { data, isLoading } = useAdminUserDetails(userId)
+  const { data: dash, isLoading: dashLoading } = useAdminUserActivityDashboard(userId)
   const [tab, setTab] = useState<DetailTab>('overview')
+  const [openInterviewId, setOpenInterviewId] = useState<string | null>(null)
 
   const DETAIL_TABS: { id: DetailTab; label: string; icon: React.ElementType; count?: number }[] = [
     { id: 'overview',     label: 'Overview',    icon: Eye      },
+    { id: 'activity',     label: 'Activity',    icon: Activity,   count: dash?.activityLog?.length        },
+    { id: 'interviews',   label: 'Interviews',  icon: FileText,   count: dash?.interviewStats.totalInterviews },
+    { id: 'logins',       label: 'Logins',      icon: LogIn,      count: dash?.loginStats.totalLogins     },
     { id: 'bans',         label: 'Bans',        icon: Ban,        count: data?.user.bans?.length          },
     { id: 'suspensions',  label: 'Suspensions', icon: ShieldAlert,count: data?.user.suspensions?.length   },
     { id: 'sessions',     label: 'Sessions',    icon: Wifi,       count: data?.user.refreshTokens?.length },
@@ -403,7 +418,7 @@ function UserDetailPanel({
               {DETAIL_TABS.map((t) => {
                 const Icon = t.icon
                 return (
-                  <button key={t.id} onClick={() => setTab(t.id)}
+                  <button key={t.id} onClick={() => { setTab(t.id); setOpenInterviewId(null) }}
                     className={cn(
                       'flex items-center gap-1 px-3 py-1.5 text-xs font-medium whitespace-nowrap border-b-2 -mb-px transition-colors',
                       tab === t.id ? 'border-primary text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground',
@@ -467,6 +482,138 @@ function UserDetailPanel({
                     <Trash2 className="size-3.5" /> Delete
                   </Button>
                 </div>
+              </div>
+            )}
+
+            {/* Activity timeline — all cross-feature actions */}
+            {tab === 'activity' && (
+              <div className="space-y-2">
+                {dashLoading ? (
+                  <p className="text-sm text-muted-foreground text-center py-6">Loading activity…</p>
+                ) : !dash?.activityLog?.length ? (
+                  <p className="text-sm text-muted-foreground text-center py-6">No activity recorded</p>
+                ) : (
+                  <div className="space-y-1 max-h-80 overflow-y-auto pr-1">
+                    {dash.activityLog.map((act) => (
+                      <div key={act.id} className="flex items-center gap-2 rounded-lg border border-border px-3 py-2">
+                        <Activity className="size-3.5 text-muted-foreground shrink-0" />
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm text-foreground truncate">{toTitleCase(act.action)}</p>
+                          {(act.method || act.endpoint) && (
+                            <p className="text-xs text-muted-foreground font-mono truncate">
+                              {act.method} {act.endpoint}
+                            </p>
+                          )}
+                        </div>
+                        {act.statusCode != null && (
+                          <Badge variant={act.statusCode < 400 ? 'secondary' : 'destructive'} className="text-xs shrink-0">
+                            {act.statusCode}
+                          </Badge>
+                        )}
+                        <span className="text-xs text-muted-foreground shrink-0 whitespace-nowrap">
+                          {formatRelative(act.createdAt)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Interviews — count, time spent, and per-interview detail */}
+            {tab === 'interviews' && (
+              openInterviewId ? (
+                <InterviewDetailView
+                  userId={userId}
+                  sessionId={openInterviewId}
+                  onBack={() => setOpenInterviewId(null)}
+                />
+              ) : dashLoading ? (
+                <p className="text-sm text-muted-foreground text-center py-6">Loading interviews…</p>
+              ) : (
+                <div className="space-y-3">
+                  {dash && (
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                      {[
+                        { label: 'Total',      value: dash.interviewStats.totalInterviews },
+                        { label: 'Completed',  value: dash.interviewStats.completedInterviews },
+                        { label: 'Time Spent', value: formatMinutes(dash.interviewStats.totalTimeSpentMinutes) },
+                        { label: 'Avg Score',  value: dash.interviewStats.avgScore.toFixed(1) },
+                      ].map((s) => (
+                        <div key={s.label} className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-center">
+                          <p className="text-base font-bold tabular-nums text-foreground">{s.value}</p>
+                          <p className="text-xs text-muted-foreground">{s.label}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {dash && dash.interviewStats.byType.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5">
+                      {dash.interviewStats.byType.map((t) => (
+                        <Badge key={t.type} variant="secondary" className="text-xs">
+                          {formatInterviewType(t.type.toLowerCase())}: {t.count}
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+                  <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
+                    {!dash?.interviews.length ? (
+                      <p className="text-sm text-muted-foreground text-center py-6">No interviews taken</p>
+                    ) : dash.interviews.map((iv) => (
+                      <InterviewRow key={iv.id} iv={iv} onOpen={() => setOpenInterviewId(iv.id)} />
+                    ))}
+                  </div>
+                </div>
+              )
+            )}
+
+            {/* Login history — when, from where, and success/failure */}
+            {tab === 'logins' && (
+              <div className="space-y-3">
+                {dashLoading ? (
+                  <p className="text-sm text-muted-foreground text-center py-6">Loading logins…</p>
+                ) : (
+                  <>
+                    {dash && (
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                        {[
+                          { label: 'Total',      value: dash.loginStats.totalLogins },
+                          { label: 'Successful', value: dash.loginStats.successfulLogins },
+                          { label: 'Failed',     value: dash.loginStats.failedLogins },
+                          { label: 'Unique IPs', value: dash.loginStats.uniqueIps },
+                        ].map((s) => (
+                          <div key={s.label} className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-center">
+                            <p className="text-base font-bold tabular-nums text-foreground">{s.value}</p>
+                            <p className="text-xs text-muted-foreground">{s.label}</p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    <div className="space-y-1.5 max-h-72 overflow-y-auto pr-1">
+                      {!dash?.loginHistory.length ? (
+                        <p className="text-sm text-muted-foreground text-center py-6">No login history</p>
+                      ) : dash.loginHistory.map((lh) => (
+                        <div key={lh.id} className="flex items-center gap-2 rounded-lg border border-border px-3 py-2">
+                          {lh.success
+                            ? <CheckCircle2 className="size-3.5 text-green-400 shrink-0" />
+                            : <XCircle className="size-3.5 text-destructive shrink-0" />}
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm text-foreground">
+                              {formatDateTime(lh.createdAt)}
+                              {lh.loginMethod && <span className="text-muted-foreground"> · {lh.loginMethod}</span>}
+                            </p>
+                            <p className="text-xs text-muted-foreground font-mono truncate">
+                              {lh.ipAddress || 'unknown IP'}{lh.userAgent ? ` · ${lh.userAgent}` : ''}
+                            </p>
+                          </div>
+                          <span className="text-xs text-muted-foreground shrink-0 whitespace-nowrap">
+                            {formatRelative(lh.createdAt)}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
               </div>
             )}
 
@@ -586,6 +733,165 @@ function UserDetailPanel({
         ) : null}
       </CardContent>
     </Card>
+  )
+}
+
+// ── Interview Row + Detail ─────────────────────────────────────────────────
+
+function statusBadgeClass(status: string): string {
+  switch (status) {
+    case 'COMPLETED':   return 'bg-green-500/10 text-green-400 border-green-500/20'
+    case 'ACTIVE':
+    case 'IN_PROGRESS': return 'bg-blue-500/10 text-blue-400 border-blue-500/20'
+    case 'PAUSED':      return 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20'
+    case 'ABANDONED':   return 'bg-red-500/10 text-red-400 border-red-500/20'
+    default:            return 'bg-muted text-muted-foreground'
+  }
+}
+
+function InterviewRow({ iv, onOpen }: { iv: AdminInterviewSummary; onOpen: () => void }) {
+  const score = iv.score != null ? Number(iv.score) : null
+  return (
+    <button
+      onClick={onOpen}
+      className="w-full text-left rounded-lg border border-border p-3 hover:bg-muted/20 transition-colors">
+      <div className="flex items-center justify-between gap-2 mb-1">
+        <div className="flex items-center gap-1.5 flex-wrap min-w-0">
+          <span className="text-sm font-medium text-foreground">{formatInterviewType(iv.type.toLowerCase())}</span>
+          {iv.role && <Badge variant="secondary" className="text-xs">{toTitleCase(iv.role)}</Badge>}
+          {iv.difficulty && <Badge variant="secondary" className="text-xs">{toTitleCase(iv.difficulty)}</Badge>}
+          <span className={cn('inline-flex items-center rounded-full border px-2 py-0.5 text-xs', statusBadgeClass(iv.status))}>
+            {toTitleCase(iv.status)}
+          </span>
+        </div>
+        <ChevronRight className="size-3.5 text-muted-foreground shrink-0" />
+      </div>
+      <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
+        <span className="flex items-center gap-1"><Clock className="size-3" />{iv.duration != null ? formatMinutes(iv.duration) : '—'}</span>
+        <span className="flex items-center gap-1"><FileText className="size-3" />{iv._count.questions} Qs</span>
+        {score != null && (
+          <span className={cn('inline-flex items-center rounded-full border px-1.5 py-0.5', getScoreBg(score))}>
+            {score.toFixed(1)}
+          </span>
+        )}
+        <span className="ml-auto">{formatDateTime(iv.startTime)}</span>
+      </div>
+    </button>
+  )
+}
+
+function InterviewDetailView({
+  userId, sessionId, onBack,
+}: { userId: string; sessionId: string; onBack: () => void }) {
+  const { data: iv, isLoading } = useAdminUserInterviewDetail(userId, sessionId)
+
+  return (
+    <div className="space-y-3">
+      <Button variant="ghost" size="sm" className="h-7 -ml-2" onClick={onBack}>
+        <ChevronLeft className="size-3.5" /> Back to interviews
+      </Button>
+
+      {isLoading ? (
+        <p className="text-sm text-muted-foreground text-center py-6">Loading interview…</p>
+      ) : !iv ? (
+        <p className="text-sm text-muted-foreground text-center py-6">Interview not found</p>
+      ) : (
+        <>
+          {/* Summary */}
+          <div className="rounded-lg border border-border p-3 space-y-2">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className="text-sm font-semibold text-foreground">{formatInterviewType(iv.type.toLowerCase())}</span>
+              {iv.role && <Badge variant="secondary" className="text-xs">{toTitleCase(iv.role)}</Badge>}
+              {iv.difficulty && <Badge variant="secondary" className="text-xs">{toTitleCase(iv.difficulty)}</Badge>}
+              <span className={cn('inline-flex items-center rounded-full border px-2 py-0.5 text-xs', statusBadgeClass(iv.status))}>
+                {toTitleCase(iv.status)}
+              </span>
+              {iv.isTimed && <Badge variant="secondary" className="text-xs">Timed</Badge>}
+              {iv.isAdaptive && <Badge variant="secondary" className="text-xs">Adaptive</Badge>}
+              {iv.isSimulated && <Badge variant="secondary" className="text-xs">Simulated</Badge>}
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+              <div><p className="text-muted-foreground">Score</p><p className="font-medium text-foreground">{iv.score != null ? Number(iv.score).toFixed(1) : '—'}</p></div>
+              <div><p className="text-muted-foreground">Duration</p><p className="font-medium text-foreground">{iv.duration != null ? formatMinutes(iv.duration) : '—'}</p></div>
+              <div><p className="text-muted-foreground">Questions</p><p className="font-medium text-foreground">{iv._count.questions}</p></div>
+              <div><p className="text-muted-foreground">Started</p><p className="font-medium text-foreground">{formatDateTime(iv.startTime)}</p></div>
+            </div>
+            {iv.endTime && <p className="text-xs text-muted-foreground">Ended {formatDateTime(iv.endTime)}</p>}
+            {iv.companyTarget && <p className="text-xs text-muted-foreground">Target: {iv.companyTarget}</p>}
+            {iv.feedback && (
+              <div className="rounded-md bg-muted/40 px-2.5 py-2">
+                <p className="text-xs text-muted-foreground">{iv.feedback}</p>
+              </div>
+            )}
+          </div>
+
+          {/* Report */}
+          {iv.report && (
+            <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 space-y-1">
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-medium text-primary">Report</p>
+                <Badge variant="secondary" className="text-xs">Rating {iv.report.overallRating}/5</Badge>
+              </div>
+              <p className="text-sm text-foreground">{iv.report.summary}</p>
+            </div>
+          )}
+
+          {/* Per-question breakdown */}
+          <div>
+            <p className="text-xs font-medium text-muted-foreground mb-2">
+              Questions ({iv.questions.length})
+            </p>
+            <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
+              {!iv.questions.length ? (
+                <p className="text-sm text-muted-foreground text-center py-4">No questions recorded</p>
+              ) : iv.questions.map((q) => {
+                const qScore = q.score != null ? Number(q.score) : null
+                return (
+                  <div key={q.id} className="rounded-lg border border-border p-2.5 space-y-1.5">
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="text-sm text-foreground flex-1">
+                        <span className="text-muted-foreground">Q{q.questionIndex + 1}. </span>
+                        {q.question}
+                      </p>
+                      {qScore != null && (
+                        <span className={cn('inline-flex items-center rounded-full border px-1.5 py-0.5 text-xs shrink-0', getScoreBg(qScore))}>
+                          {qScore.toFixed(1)}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2 flex-wrap text-xs text-muted-foreground">
+                      <Badge variant="secondary" className="text-xs">{toTitleCase(q.category)}</Badge>
+                      {q.difficulty && <Badge variant="secondary" className="text-xs">{toTitleCase(q.difficulty)}</Badge>}
+                      {q.isCorrect != null && (
+                        <span className={q.isCorrect ? 'text-green-400' : 'text-destructive'}>
+                          {q.isCorrect ? 'Correct' : 'Incorrect'}
+                        </span>
+                      )}
+                      {q.timeSpent != null && <span className="flex items-center gap-1"><Clock className="size-3" />{q.timeSpent}s</span>}
+                      {q.hintsUsed > 0 && <span>{q.hintsUsed} hint{q.hintsUsed !== 1 ? 's' : ''}</span>}
+                    </div>
+                    {q.userAnswer && (
+                      <div className="rounded-md bg-muted/40 px-2.5 py-1.5">
+                        <p className="text-xs text-muted-foreground whitespace-pre-wrap line-clamp-4">{q.userAnswer}</p>
+                      </div>
+                    )}
+                    {q.userCode && (
+                      <div className="rounded-md bg-muted/60 px-2.5 py-1.5 overflow-x-auto">
+                        <p className="text-xs font-medium text-muted-foreground flex items-center gap-1 mb-1">
+                          <Code2 className="size-3" />{q.language || 'code'}
+                        </p>
+                        <pre className="text-xs text-foreground whitespace-pre font-mono">{q.userCode}</pre>
+                      </div>
+                    )}
+                    {q.feedback && <p className="text-xs text-blue-400">💬 {q.feedback}</p>}
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        </>
+      )}
+    </div>
   )
 }
 

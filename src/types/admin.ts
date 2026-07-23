@@ -131,6 +131,149 @@ export interface AdminActivityLog {
 }
 
 // ============================================================
+// User Activity Dashboard  (GET /admin/users/:userId/activity-dashboard)
+// ============================================================
+export interface AdminLoginHistoryEntry {
+  id: string
+  ipAddress?: string | null
+  userAgent?: string | null
+  loginMethod?: string | null
+  success: boolean
+  createdAt: string
+}
+
+export interface AdminInterviewSummary {
+  id: string
+  type: string
+  role?: string | null
+  difficulty?: string | null
+  status: string
+  score?: number | string | null
+  startTime: string
+  endTime?: string | null
+  duration?: number | null
+  totalQuestions: number
+  language?: string | null
+  companyTarget?: string | null
+  isAdaptive: boolean
+  isTimed: boolean
+  isSimulated: boolean
+  createdAt: string
+  _count: { questions: number }
+}
+
+export interface AdminStudySessionSummary {
+  id: string
+  topicCategory?: string | null
+  durationMinutes: number
+  questionsAttempted: number
+  questionsCorrect: number
+  averageScore?: number | string | null
+  date: string
+}
+
+export interface AdminUserActivityDashboard {
+  user: {
+    id: string
+    email: string
+    name: string
+    role: string
+    createdAt: string
+    lastLogin?: string | null
+    isActive: boolean
+    isBanned: boolean
+    isSuspended: boolean
+  }
+  interviewStats: {
+    totalInterviews: number
+    completedInterviews: number
+    completionRate: number
+    totalTimeSpentMinutes: number
+    avgDurationMinutes: number
+    avgScore: number
+    totalQuestions: number
+    firstInterviewAt?: string | null
+    lastInterviewAt?: string | null
+    byType: Array<{ type: string; count: number }>
+    byStatus: Array<{ status: string; count: number }>
+  }
+  interviews: AdminInterviewSummary[]
+  loginStats: {
+    totalLogins: number
+    successfulLogins: number
+    failedLogins: number
+    uniqueIps: number
+    lastLogin?: string | null
+  }
+  loginHistory: AdminLoginHistoryEntry[]
+  studyStats: {
+    totalSessions: number
+    totalMinutes: number
+    questionsAttempted: number
+    questionsCorrect: number
+  }
+  studySessions: AdminStudySessionSummary[]
+  activityLog: AdminActivityLog[]
+}
+
+// ============================================================
+// Single Interview Detail  (GET /admin/users/:userId/interviews/:sessionId)
+// ============================================================
+export interface AdminInterviewQuestionDetail {
+  id: string
+  questionIndex: number
+  question: string
+  difficulty?: string | null
+  category: string
+  subcategory?: string | null
+  userAnswer?: string | null
+  userCode?: string | null
+  language?: string | null
+  score?: number | string | null
+  feedback?: string | null
+  timeSpent?: number | null
+  hintsUsed: number
+  isCorrect?: boolean | null
+  complexity?: string | null
+  createdAt: string
+  answeredAt?: string | null
+}
+
+export interface AdminInterviewReport {
+  id: string
+  overallRating: number
+  summary: string
+  rubricScores: unknown
+  strengths: unknown
+  weaknesses: unknown
+  suggestions: unknown
+  createdAt: string
+}
+
+export interface AdminInterviewDetail {
+  id: string
+  type: string
+  role?: string | null
+  difficulty?: string | null
+  status: string
+  score?: number | string | null
+  feedback?: string | null
+  startTime: string
+  endTime?: string | null
+  duration?: number | null
+  totalQuestions: number
+  language?: string | null
+  companyTarget?: string | null
+  isAdaptive: boolean
+  isTimed: boolean
+  isSimulated: boolean
+  createdAt: string
+  questions: AdminInterviewQuestionDetail[]
+  report?: AdminInterviewReport | null
+  _count: { questions: number; events: number }
+}
+
+// ============================================================
 // Admin Action (Audit Log)
 // ============================================================
 export interface AdminAction {
