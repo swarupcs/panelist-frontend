@@ -34,7 +34,7 @@ function Header() {
   }
 
   return (
-    <header className="flex h-14 items-center justify-between border-b border-border bg-card/50 backdrop-blur-sm px-4 sticky top-0 z-40">
+    <header className="flex h-14 items-center justify-between border-b border-border bg-card/50 backdrop-blur-sm px-4 sticky top-0 z-40 print:hidden">
       <div className="flex items-center gap-3">
         <div className="md:hidden">
           <MobileNav />
@@ -123,11 +123,11 @@ export function AppShell() {
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-background">
-      <div className="hidden md:flex">
+    <div className="flex h-screen overflow-hidden bg-background print:h-auto print:overflow-visible">
+      <div className="hidden md:flex print:hidden">
         <Sidebar />
       </div>
-      <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
+      <div className="flex flex-col flex-1 min-w-0 overflow-hidden print:overflow-visible">
         <Header />
         {/* Two shapes, chosen per route.
             Ordinary pages grow and let main scroll them. A page that scrolls
@@ -138,7 +138,7 @@ export function AppShell() {
             content and so grows without limit. Capping it turns the chat's
             flex-1 into a real constraint; a minimum would not, which is the
             mistake that let the composer slide off the bottom. */}
-        <main className={cn('flex-1', fillsViewport ? 'overflow-hidden' : 'overflow-y-auto')}>
+        <main className={cn('flex-1 print:overflow-visible', fillsViewport ? 'overflow-hidden' : 'overflow-y-auto')}>
           <div
             className={cn(
               'mx-auto w-full max-w-7xl p-4 md:p-6',

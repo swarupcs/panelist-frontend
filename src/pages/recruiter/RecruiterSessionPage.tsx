@@ -13,9 +13,11 @@ import {
   ArrowLeft,
   Clock,
   Code2,
+  Download,
   FileText,
   Loader2,
   PenTool,
+  Printer,
   ShieldAlert,
   ShieldCheck,
   Sparkles,
@@ -108,15 +110,55 @@ export default function RecruiterSessionPage() {
   const { session, candidate, report, reportError, codeSubmissions, drawings, transcript, recording, cameraRecording, viewerIsOwner, invitation, integrity } = data;
   const rating = report?.overallRating ?? 0;
 
+  // Export is a reviewer action: the whole authorized dossier — report,
+  // integrity, transcript, code, decision context — as a self-contained record.
+  // Recruiter/admin only (never the candidate viewing their own session), so
+  // the exported file can carry the proctoring snapshot the candidate can't see.
+  const canExport = !viewerIsOwner;
+
+  const handleExport = () => {
+    const filename = `dossier-${(candidate.name || candidate.email || session.id)
+      .replace(/[^a-z0-9]+/gi, '-')
+      .toLowerCase()}-${session.id.slice(0, 8)}.json`;
+    const blob = new Blob([JSON.stringify({ exportedAt: new Date().toISOString(), ...data }, null, 2)], {
+      type: 'application/json',
+    });
+    const url = URL.createObjectURL(blob);
+    Object.assign(document.createElement('a'), { href: url, download: filename }).click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="mx-auto max-w-5xl space-y-6 px-4 py-8">
-      <Link
-        to="/dashboard"
-        className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition hover:text-foreground"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        Back
-      </Link>
+      <div className="flex items-center justify-between gap-2 print:hidden">
+        <Link
+          to="/dashboard"
+          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition hover:text-foreground"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back
+        </Link>
+        {canExport && (
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => window.print()}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-sm font-medium text-muted-foreground transition hover:bg-secondary hover:text-foreground"
+            >
+              <Printer className="h-3.5 w-3.5" />
+              Print / PDF
+            </button>
+            <button
+              type="button"
+              onClick={handleExport}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-sm font-medium text-muted-foreground transition hover:bg-secondary hover:text-foreground"
+            >
+              <Download className="h-3.5 w-3.5" />
+              Export
+            </button>
+          </div>
+        )}
+      </div>
 
       {/* ── Header: the hiring signal, before any of the evidence ───────── */}
       <header className="overflow-hidden rounded-2xl border border-border/60 bg-gradient-to-br from-primary/5 via-transparent to-accent/5">
