@@ -18,6 +18,7 @@ import {
   AlertTriangle,
   ArrowRight,
   BarChart3,
+  BookOpen,
   Briefcase,
   CheckCircle,
   Clock,
@@ -348,21 +349,38 @@ function StudyPlanPanel({ sessionId }: { sessionId: string }) {
                 </span>
               ))}
             </div>
-            {plan.recommendedPractice && (
+            <div className='flex flex-wrap gap-2'>
+              {plan.recommendedPractice && (
+                <Button
+                  size='sm'
+                  className='gap-2'
+                  disabled={startInterview.isPending}
+                  onClick={startPractice}
+                >
+                  {startInterview.isPending ? (
+                    <Loader2 className='size-3.5 animate-spin' />
+                  ) : (
+                    <Play className='size-3.5' />
+                  )}
+                  Practice these weak areas
+                </Button>
+              )}
               <Button
                 size='sm'
+                variant='outline'
                 className='gap-2'
-                disabled={startInterview.isPending}
-                onClick={startPractice}
+                onClick={() =>
+                  navigate(
+                    `/learning?weaknesses=${encodeURIComponent(
+                      plan.weakCategories.map((c) => formatCategory(c.category)).join(', '),
+                    )}`,
+                  )
+                }
               >
-                {startInterview.isPending ? (
-                  <Loader2 className='size-3.5 animate-spin' />
-                ) : (
-                  <Play className='size-3.5' />
-                )}
-                Practice these weak areas
+                <BookOpen className='size-3.5' />
+                Build a study path
               </Button>
-            )}
+            </div>
           </div>
         )}
 

@@ -1,6 +1,6 @@
 // src/pages/learning/LearningPage.tsx
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   BookOpen,
   CheckCircle2,
@@ -155,11 +155,14 @@ function CompanyGauntlets({ onGenerate, isGenerating }: { onGenerate: (preset: a
 }
 
 function PathGenerator() {
+  const [searchParams] = useSearchParams();
   const [role, setRole] = useState('FULLSTACK_DEVELOPER');
   const [level, setLevel] = useState('BEGINNER');
   const [hours, setHours] = useState(10);
   const [targetCompanies, setTargetCompanies] = useState('');
-  const [weaknesses, setWeaknesses] = useState('');
+  // Prefilled when arriving from a finished interview's study plan, e.g.
+  // /learning?weaknesses=Dynamic%20Programming%2C%20Graphs
+  const [weaknesses, setWeaknesses] = useState(() => searchParams.get('weaknesses') ?? '');
   const generate = useGeneratePath();
 
   return (
