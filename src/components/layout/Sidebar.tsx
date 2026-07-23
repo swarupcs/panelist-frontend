@@ -13,6 +13,7 @@ import {
   Shield,
   Brain,
   History,
+  FileSearch,
   MessageSquare,
   Users,
   BookUser,
@@ -42,6 +43,7 @@ interface NavItem {
 const NAV_ITEMS: NavItem[] = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/interview', icon: Code2, label: 'Interview' },
+  { to: '/resume-review', icon: FileSearch, label: 'Resume Review' },
   { to: '/chat', icon: MessageSquare, label: 'AI Coach' },
   { to: '/analytics', icon: BarChart3, label: 'Analytics' },
   { to: '/learning', icon: BookOpen, label: 'Learning' },
