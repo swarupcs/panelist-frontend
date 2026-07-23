@@ -183,6 +183,16 @@ export function useSessionResults(sessionId: string | null) {
   });
 }
 
+/** Post-interview study plan: weak topics, suggestions, reviews due. */
+export function useStudyPlan(sessionId: string | null) {
+  return useQuery({
+    queryKey: ['interview', 'study-plan', sessionId],
+    queryFn: () => interviewApi.getStudyPlan(sessionId!),
+    enabled: !!sessionId,
+    staleTime: 1000 * 60, // due-review counts drift slowly; a minute is fine
+  });
+}
+
 // ── Timer ──────────────────────────────────────────────────────────────────
 
 export function useTimerStatus(sessionId: string | null, enabled = false) {

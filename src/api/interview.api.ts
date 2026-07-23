@@ -22,6 +22,7 @@ import type {
   SessionResults,
   SessionListResponse,
 } from '@/types';
+import type { StudyPlan } from '@/types/study-plan';
 
 export const interviewApi = {
   startInterview: async (
@@ -70,6 +71,12 @@ export const interviewApi = {
 
   getResults: async (sessionId: string): Promise<SessionResults> => {
     const res = await api.get(`/interview/${sessionId}/results`);
+    return res.data.data;
+  },
+
+  /** Post-interview study plan: weak topics, suggestions, reviews due. */
+  getStudyPlan: async (sessionId: string): Promise<StudyPlan> => {
+    const res = await api.get(`/interview/${sessionId}/study-plan`);
     return res.data.data;
   },
 

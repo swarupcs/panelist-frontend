@@ -38,8 +38,7 @@ import {
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { resetSession } from '@/store/interviewSlice';
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-import { useSessionResults } from '@/hooks/useInterview';
+import { useStudyPlan, useStartInterview } from '@/hooks/useInterview';
 import { interviewApi } from '@/api/interview.api';
 import { ScoreRing } from '@/components/common';
 import { QuestionRating } from '@/components/interview/QuestionRating';
@@ -295,48 +294,112 @@ function QuestionRow({
   );
 }
 
-// ── Weak areas panel ───────────────────────────────────────────────────────
+// ── Study plan panel — closes the learning loop ─────────────────────────────
+//
+// Turns the finished interview into next actions: the topics to focus on, a
+// one-click focused practice session covering all of them, the report's
+// concrete suggestions, and any spaced-repetition reviews now due.
 
-function WeakAreaPanel({
-  failedQuestions,
-  sessionType,
-}: {
-  failedQuestions: QuestionResult[];
-  sessionType: string;
-}) {
+function StudyPlanPanel({ sessionId }: { sessionId: string }) {
   const navigate = useNavigate();
-  const categories = [...new Set(failedQuestions.map((q) => q.category))];
-  if (categories.length < 2) return null;
+  const { data: plan } = useStudyPlan(sessionId);
+  const startInterview = useStartInterview();
+
+  if (!plan) return null;
+
+  const hasWeak = plan.weakCategories.length > 0;
+  const hasSuggestions = plan.suggestions.length > 0;
+  const due = plan.spacedRepetition.dueForReview;
+  if (!hasWeak && !hasSuggestions && due === 0) return null;
+
+  const startPractice = () => {
+    if (!plan.recommendedPractice) return;
+    startInterview.mutate({
+      type: plan.recommendedPractice.type,
+      difficulty: plan.recommendedPractice.difficulty,
+      focusAreas: plan.recommendedPractice.focusAreas,
+    });
+  };
 
   return (
-    <Card className='border-yellow-500/20 bg-yellow-500/5'>
+    <Card className='border-primary/20 bg-primary/5'>
       <CardHeader>
         <CardTitle className='text-base flex items-center gap-2'>
-          <Target className='size-4 text-yellow-400' />
-          Recommended Practice
+          <Target className='size-4 text-primary' />
+          Your next steps
         </CardTitle>
       </CardHeader>
-      <CardContent className='space-y-2'>
-        <p className='text-xs text-muted-foreground mb-3'>
-          You struggled with these topics. Click to start a focused session.
-        </p>
-        <div className='flex flex-wrap gap-2'>
-          {categories.map((cat) => (
-            <button
-              key={cat}
-              type='button'
-              onClick={() => navigate(practiceUrl(sessionType, cat))}
-              className={cn(
-                'flex items-center gap-1.5 rounded-lg border border-yellow-500/30',
-                'bg-yellow-500/10 px-3 py-1.5 text-xs font-medium text-yellow-400',
-                'hover:bg-yellow-500/20 transition-colors',
-              )}
+      <CardContent className='space-y-4'>
+        {hasWeak && (
+          <div className='space-y-2'>
+            <p className='text-xs text-muted-foreground'>
+              Focus areas from this interview
+            </p>
+            <div className='flex flex-wrap gap-2'>
+              {plan.weakCategories.map((c) => (
+                <span
+                  key={c.category}
+                  className='inline-flex items-center gap-1.5 rounded-lg border border-yellow-500/30 bg-yellow-500/10 px-2.5 py-1 text-xs font-medium text-yellow-500'
+                >
+                  {formatCategory(c.category)}
+                  {c.avgScore != null && (
+                    <span className='tabular-nums opacity-70'>{c.avgScore}</span>
+                  )}
+                </span>
+              ))}
+            </div>
+            {plan.recommendedPractice && (
+              <Button
+                size='sm'
+                className='gap-2'
+                disabled={startInterview.isPending}
+                onClick={startPractice}
+              >
+                {startInterview.isPending ? (
+                  <Loader2 className='size-3.5 animate-spin' />
+                ) : (
+                  <Play className='size-3.5' />
+                )}
+                Practice these weak areas
+              </Button>
+            )}
+          </div>
+        )}
+
+        {hasSuggestions && (
+          <div className='space-y-1.5'>
+            <p className='text-xs text-muted-foreground flex items-center gap-1'>
+              <Lightbulb className='size-3.5 text-amber-400' />
+              What to practise next
+            </p>
+            <ul className='space-y-1'>
+              {plan.suggestions.slice(0, 6).map((s, i) => (
+                <li key={i} className='flex gap-2 text-sm text-foreground'>
+                  <CheckCircle className='size-3.5 text-primary shrink-0 mt-0.5' />
+                  {s}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {due > 0 && (
+          <div className='flex items-center justify-between gap-2 rounded-lg border border-border/60 px-3 py-2'>
+            <span className='text-sm text-muted-foreground'>
+              <span className='font-semibold text-foreground'>{due}</span> review
+              {due === 1 ? '' : 's'} due from spaced repetition
+            </span>
+            <Button
+              size='sm'
+              variant='outline'
+              className='gap-1.5'
+              onClick={() => navigate('/interview?type=srs_review')}
             >
-              {formatCategory(cat)}
-              <ArrowRight className='size-3' />
-            </button>
-          ))}
-        </div>
+              <RotateCcw className='size-3.5' />
+              Review now
+            </Button>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
@@ -443,10 +506,6 @@ export default function InterviewResultsPage() {
   const failedCount = hasQuestionScores
     ? results.questions.filter((q) => !q.skipped && (q.score ?? 0) < 60).length
     : null;
-  const failedQs = hasQuestionScores
-    ? results.questions.filter((q) => q.skipped || (q.score ?? 0) < 60)
-    : [];
-
   // Stats: if per-question stats are all 0 but overallScore exists, use overallScore
   const statsAreEmpty =
     (results.stats?.avgScore ?? 0) === 0 &&
@@ -630,10 +689,8 @@ export default function InterviewResultsPage() {
         </Link>
       )}
 
-      {/* Weak areas panel — only when we have real failed questions */}
-      {failedQs.length >= 2 && (
-        <WeakAreaPanel failedQuestions={failedQs} sessionType={sessionType} />
-      )}
+      {/* Study plan — closes the loop from this interview into next actions */}
+      {sessionId && <StudyPlanPanel sessionId={sessionId} />}
 
       {/* Per-question breakdown */}
       {results.questions.length > 0 && (
