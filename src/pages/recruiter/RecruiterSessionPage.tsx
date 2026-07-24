@@ -32,7 +32,7 @@ import { TranscriptTimeline } from '@/components/interview/TranscriptTimeline';
 import { RecordingPlayer } from '@/components/interview/RecordingPlayer';
 import { OutcomeControl } from '@/components/recruiter/OutcomeControl';
 import { ConditionsBlock } from '@/components/interview/ConditionsBlock';
-import type { RecruiterCodeSubmission, IntegritySummary, IntegrityRiskLevel } from '@/types/panelist';
+import type { RecruiterCodeSubmission, IntegritySummary, IntegrityRiskLevel, AiAssistanceAssessment, AiLikelihood } from '@/types/panelist';
 
 type Tab = 'overview' | 'code' | 'design' | 'recording' | 'transcript';
 
@@ -107,7 +107,7 @@ export default function RecruiterSessionPage() {
     );
   }
 
-  const { session, candidate, report, reportError, codeSubmissions, drawings, transcript, recording, cameraRecording, viewerIsOwner, invitation, integrity } = data;
+  const { session, candidate, report, reportError, codeSubmissions, drawings, transcript, recording, cameraRecording, viewerIsOwner, invitation, integrity, aiAssistance } = data;
   const rating = report?.overallRating ?? 0;
 
   // Export is a reviewer action: the whole authorized dossier — report,
@@ -286,6 +286,9 @@ export default function RecruiterSessionPage() {
           {/* Proctoring signals. Only meaningful for invited interviews; shown
               high up because integrity concerns change how the rest is read. */}
           {invitation && <IntegrityPanel integrity={integrity} />}
+          {invitation && aiAssistance && aiAssistance.likelihood !== 'none' && (
+            <AiAssistancePanel assessment={aiAssistance} />
+          )}
 
           {report ? (
             <>
@@ -512,6 +515,42 @@ function IntegrityPanel({ integrity }: { integrity: IntegritySummary | null }) {
       <p className="mt-4 text-xs text-muted-foreground">
         Signals to inform your review, not an automated verdict. Some are innocuous (a candidate
         may open documentation the template permits).
+      </p>
+    </div>
+  );
+}
+
+const AI_LIKELIHOOD_STYLE: Record<AiLikelihood, { badge: string; label: string }> = {
+  none: { badge: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20', label: 'None' },
+  low: { badge: 'bg-sky-500/10 text-sky-500 border-sky-500/20', label: 'Low' },
+  medium: { badge: 'bg-amber-500/10 text-amber-500 border-amber-500/20', label: 'Medium' },
+  high: { badge: 'bg-rose-500/10 text-rose-500 border-rose-500/20', label: 'High' },
+};
+
+function AiAssistancePanel({ assessment }: { assessment: AiAssistanceAssessment }) {
+  const style = AI_LIKELIHOOD_STYLE[assessment.likelihood];
+  return (
+    <div className="rounded-xl border border-border/60 bg-card p-5">
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <ShieldAlert className={cn('h-4 w-4', style.badge.split(' ')[1])} />
+          <h2 className="text-sm font-semibold">AI-assistance likelihood</h2>
+        </div>
+        <span className={cn('inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium', style.badge)}>
+          {style.label}
+        </span>
+      </div>
+      <ul className="space-y-1.5">
+        {assessment.reasons.map((r, i) => (
+          <li key={i} className="flex gap-2 text-sm text-muted-foreground">
+            <span className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-amber-500" />
+            {r}
+          </li>
+        ))}
+      </ul>
+      <p className="mt-3 text-xs text-muted-foreground">
+        A heuristic to inform your review, not proof. A fast typist or a snippet the candidate wrote
+        themselves can trip these signals.
       </p>
     </div>
   );

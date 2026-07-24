@@ -315,7 +315,19 @@ export interface RecruiterDossier {
    * show as "not measured", never as "clean".
    */
   integrity: IntegritySummary | null;
+  /** Heuristic likelihood the answers were AI-assisted. Recruiter-only. */
+  aiAssistance: AiAssistanceAssessment | null;
   viewerIsOwner: boolean;
+}
+
+export type AiLikelihood = 'none' | 'low' | 'medium' | 'high'
+
+export interface AiAssistanceAssessment {
+  likelihood: AiLikelihood
+  reasons: string[]
+  largePastes: number
+  fastAnswers: number
+  instantHighScoreAnswers: number
 }
 
 export type IntegrityRiskLevel = 'none' | 'low' | 'medium' | 'high';
