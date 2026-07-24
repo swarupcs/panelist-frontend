@@ -193,6 +193,15 @@ export function useStudyPlan(sessionId: string | null) {
   });
 }
 
+/** The user's interview-readiness score. */
+export function useReadiness() {
+  return useQuery({
+    queryKey: ['interview', 'readiness'],
+    queryFn: interviewApi.getReadiness,
+    staleTime: 1000 * 60 * 2,
+  });
+}
+
 /** Spoken-delivery analytics for a finished session (null when no prose). */
 export function useDeliveryAnalytics(sessionId: string | null) {
   return useQuery({

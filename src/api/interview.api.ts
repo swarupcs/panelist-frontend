@@ -24,6 +24,7 @@ import type {
 } from '@/types';
 import type { StudyPlan } from '@/types/study-plan';
 import type { DeliveryAnalytics } from '@/types/delivery';
+import type { Readiness } from '@/types/readiness';
 
 export const interviewApi = {
   startInterview: async (
@@ -85,6 +86,12 @@ export const interviewApi = {
   getDelivery: async (sessionId: string): Promise<DeliveryAnalytics | null> => {
     const res = await api.get(`/interview/${sessionId}/delivery`);
     return res.data.data.delivery;
+  },
+
+  /** The user's interview-readiness score. */
+  getReadiness: async (): Promise<Readiness> => {
+    const res = await api.get('/interview/readiness');
+    return res.data.data;
   },
 
   getTimerStatus: async (sessionId: string): Promise<TimerStatus> => {

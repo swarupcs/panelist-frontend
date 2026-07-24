@@ -29,7 +29,7 @@ import {
   Building2,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
-import { useStartInterview } from '@/hooks/useInterview';
+import { useStartInterview, useReadiness } from '@/hooks/useInterview';
 import { useAnalyticsDashboard } from '@/hooks/useAnalytics';
 import { useUserProgress } from '@/hooks/useProgress';
 import { useAchievements, useGamificationStats } from '@/hooks/useGamification';
@@ -99,6 +99,73 @@ function QuickAction({
         </span>
       </span>
     </button>
+  );
+}
+
+// ── Interview readiness ──────────────────────────────────────────────────────
+
+const READINESS_TONE: Record<string, string> = {
+  'Interview ready': 'text-emerald-500 ring-emerald-500/30 bg-emerald-500/5',
+  'Nearly there': 'text-sky-500 ring-sky-500/30 bg-sky-500/5',
+  Building: 'text-amber-500 ring-amber-500/30 bg-amber-500/5',
+  'Not ready yet': 'text-rose-500 ring-rose-500/30 bg-rose-500/5',
+};
+
+function ReadinessCard() {
+  const navigate = useNavigate();
+  const { data: r } = useReadiness();
+  if (!r) return null;
+
+  if (!r.hasData) {
+    return (
+      <Card className='border-primary/20 bg-primary/5'>
+        <CardContent className='flex flex-wrap items-center justify-between gap-3 py-5'>
+          <div className='flex items-center gap-2'>
+            <Target className='size-5 text-primary' />
+            <p className='text-sm text-muted-foreground'>
+              Take your first interview to unlock your readiness score.
+            </p>
+          </div>
+          <Button size='sm' onClick={() => navigate('/interview')}>Start</Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const tone = READINESS_TONE[r.band] ?? READINESS_TONE.Building;
+  return (
+    <Card>
+      <CardHeader className='pb-2'>
+        <CardTitle className='text-base flex items-center gap-2'>
+          <Target className='size-4 text-primary' /> Interview readiness
+        </CardTitle>
+      </CardHeader>
+      <CardContent className='space-y-4'>
+        <div className='flex items-center gap-4'>
+          <div className={cn('flex size-20 shrink-0 flex-col items-center justify-center rounded-2xl ring-1', tone)}>
+            <span className='text-2xl font-bold tabular-nums'>{r.score}</span>
+            <span className='text-[10px] uppercase opacity-70'>of 100</span>
+          </div>
+          <div className='min-w-0'>
+            <p className='text-lg font-semibold text-foreground'>{r.band}</p>
+            {r.tips.map((t, i) => (
+              <p key={i} className='text-xs text-muted-foreground'>{t}</p>
+            ))}
+          </div>
+        </div>
+        <div className='space-y-1.5'>
+          {r.components.map((c) => (
+            <div key={c.key} className='flex items-center gap-2'>
+              <span className='w-32 shrink-0 text-xs text-muted-foreground'>{c.label}</span>
+              <div className='flex-1 h-2 rounded bg-muted/40 overflow-hidden'>
+                <div className='h-full rounded bg-primary/60' style={{ width: `${c.value}%` }} />
+              </div>
+              <span className='w-8 shrink-0 text-right text-xs tabular-nums text-muted-foreground'>{c.value}</span>
+            </div>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -369,6 +436,9 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
       )}
+
+      {/* ── Interview readiness ── */}
+      <ReadinessCard />
 
       {/* ── Quick actions ── */}
       <div>
