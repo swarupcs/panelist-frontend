@@ -20,6 +20,7 @@ import {
   Brain,
 } from 'lucide-react';
 import { queryApi } from '@/api/interview.api';
+import { streamQuery } from '@/api/chat-stream';
 import { useAuthStore } from '@/store/authStore';
  
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -231,6 +232,9 @@ export default function AIChatPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  // True once tokens are streaming into the reply, so the "Thinking…" bubble
+  // gives way to the live-filling message rather than showing alongside it.
+  const [streaming, setStreaming] = useState(false);
   const [sessionId] = useState(() => uuidv4());
   const [useRAG, setUseRAG] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -255,38 +259,80 @@ export default function AIChatPage() {
       setMessages((prev) => [...prev, userMsg]);
       setInput('');
       setIsLoading(true);
+      setStreaming(false);
+
+      // The assistant reply is created lazily on the first token, so the
+      // "Thinking…" indicator holds until there is something to show.
+      const assistantId = uuidv4();
+      let created = false;
+      const ensureAssistant = () => {
+        if (created) return;
+        created = true;
+        setStreaming(true);
+        setMessages((prev) => [
+          ...prev,
+          { id: assistantId, role: 'assistant', content: '', timestamp: new Date() },
+        ]);
+      };
+      const patchAssistant = (patch: Partial<Message>) =>
+        setMessages((prev) => prev.map((m) => (m.id === assistantId ? { ...m, ...patch } : m)));
+      const appendAssistant = (delta: string) =>
+        setMessages((prev) =>
+          prev.map((m) => (m.id === assistantId ? { ...m, content: m.content + delta } : m)),
+        );
 
       try {
-        const res = await queryApi.processQuery({
-          query: text.trim(),
-          userId: user.id,
-          sessionId,
-          useRAG,
-        });
-
-        const assistantMsg: Message = {
-          id: uuidv4(),
-          role: 'assistant',
-          content: res.response,
-          agentType: res.agentType,
-          confidence: res.confidence,
-          suggestedFollowUps: res.suggestedFollowUps,
-          timestamp: new Date(),
-        };
-
-        setMessages((prev) => [...prev, assistantMsg]);
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      } catch (err) {
-        const errorMsg: Message = {
-          id: uuidv4(),
-          role: 'assistant',
-          content:
-            "I'm sorry, I encountered an error processing your request. Please try again.",
-          timestamp: new Date(),
-        };
-        setMessages((prev) => [...prev, errorMsg]);
+        let metaAgent: string | undefined;
+        await streamQuery(
+          { query: text.trim(), userId: user.id, sessionId, useRAG },
+          {
+            onMeta: (meta) => {
+              metaAgent = meta.agentType;
+            },
+            onToken: (delta) => {
+              ensureAssistant();
+              appendAssistant(delta);
+            },
+            onDone: (done) => {
+              ensureAssistant();
+              patchAssistant({
+                agentType: done.agentType ?? metaAgent,
+                confidence: done.confidence,
+                suggestedFollowUps: done.suggestedFollowUps,
+              });
+            },
+          },
+        );
+        // A stream that produced no tokens is treated as a failure so the
+        // blocking endpoint can answer instead of leaving an empty bubble.
+        if (!created) throw new Error('empty stream');
+      } catch {
+        // Streaming failed (transport, proxy, or a provider without streaming).
+        // Fall back to the blocking endpoint so the user still gets an answer.
+        try {
+          const res = await queryApi.processQuery({
+            query: text.trim(),
+            userId: user.id,
+            sessionId,
+            useRAG,
+          });
+          ensureAssistant();
+          patchAssistant({
+            content: res.response,
+            agentType: res.agentType,
+            confidence: res.confidence,
+            suggestedFollowUps: res.suggestedFollowUps,
+          });
+        } catch {
+          ensureAssistant();
+          patchAssistant({
+            content:
+              "I'm sorry, I encountered an error processing your request. Please try again.",
+          });
+        }
       } finally {
         setIsLoading(false);
+        setStreaming(false);
         setTimeout(() => inputRef.current?.focus(), 100);
       }
     },
@@ -417,8 +463,8 @@ export default function AIChatPage() {
           />
         ))}
 
-        {/* Loading indicator */}
-        {isLoading && (
+        {/* Loading indicator — only until the reply starts streaming in */}
+        {isLoading && !streaming && (
           <div className='flex gap-3 items-start animate-fade-in'>
             <div className='flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10'>
               <Bot className='size-4 text-primary' />
