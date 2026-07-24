@@ -26,6 +26,7 @@ import {
   Play,
   Loader2,
   FileSearch,
+  Building2,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { useStartInterview } from '@/hooks/useInterview';
@@ -219,6 +220,14 @@ export default function DashboardPage() {
       color: 'text-rose-400',
       bg: 'border-rose-500/20 bg-rose-500/5 hover:bg-rose-500/10',
       onClick: () => navigate('/resume-review'),
+    },
+    {
+      icon: Building2,
+      label: 'Company Loop',
+      description: 'Full multi-round onsite',
+      color: 'text-cyan-400',
+      bg: 'border-cyan-500/20 bg-cyan-500/5 hover:bg-cyan-500/10',
+      onClick: () => navigate('/interview/loops'),
     },
   ];
 

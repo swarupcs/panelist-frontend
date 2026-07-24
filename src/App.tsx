@@ -26,6 +26,7 @@ const DashboardPage = lazy(() => import('@/pages/dashboard/DashboardPage'));
 const InterviewSetupPage = lazy(() => import('@/pages/interview/InterviewSetupPage'));
 const ResumeReviewPage = lazy(() => import('@/pages/interview/ResumeReviewPage'));
 const ResumeReviewToolPage = lazy(() => import('@/pages/resume/ResumeReviewPage'));
+const InterviewLoopPage = lazy(() => import('@/pages/interview/InterviewLoopPage'));
 const InterviewSessionPage = lazy(() => import('@/pages/interview/InterviewSessionPage'));
 const InterviewResultsPage = lazy(() => import('@/pages/interview/InterviewResultsPage'));
 const InterviewReplayPage = lazy(() => import('@/pages/interview/InterviewReplayPage'));
@@ -112,6 +113,8 @@ function AppRoutes() {
 
             {/* Interview routes — static before dynamic */}
             <Route path="/interview" element={<InterviewSetupPage />} />
+            <Route path="/interview/loops" element={<InterviewLoopPage />} />
+            <Route path="/interview/loops/:loopId" element={<InterviewLoopPage />} />
             <Route path="/interview/resume" element={<ResumeReviewPage />} />
             <Route path="/resume-review" element={<ResumeReviewToolPage />} />
             <Route path="/interview/history" element={<InterviewHistoryPage />} />
