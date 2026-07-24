@@ -158,6 +158,16 @@ export function useInvitations(templateId?: string) {
   })
 }
 
+export function useCandidateComparison(templateId?: string) {
+  const { isRecruiter } = useAvailableViews()
+
+  return useQuery({
+    queryKey: [...recruiterKeys.invitations(templateId), 'candidates'],
+    queryFn: () => recruiterApi.listCandidates(templateId),
+    enabled: isRecruiter,
+  })
+}
+
 export function useInvite() {
   const queryClient = useQueryClient()
 

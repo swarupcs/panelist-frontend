@@ -32,6 +32,7 @@ const InterviewResultsPage = lazy(() => import('@/pages/interview/InterviewResul
 const InterviewReplayPage = lazy(() => import('@/pages/interview/InterviewReplayPage'));
 const RecruiterSessionPage = lazy(() => import('@/pages/recruiter/RecruiterSessionPage'));
 const RecruiterDashboardPage = lazy(() => import('@/pages/recruiter/RecruiterDashboardPage'));
+const RecruiterCandidatesPage = lazy(() => import('@/pages/recruiter/RecruiterCandidatesPage'));
 const RecruiterSetupPage = lazy(() => import('@/pages/recruiter/RecruiterSetupPage'));
 const InterviewHistoryPage = lazy(() => import('@/pages/interview/InterviewHistoryPage'));
 const InterviewComparePage = lazy(() => import('@/pages/interview/InterviewComparePage'));
@@ -122,6 +123,7 @@ function AppRoutes() {
             <Route path="/interview/results/:sessionId" element={<InterviewResultsPage />} />
             <Route path="/interview/replay/:sessionId" element={<InterviewReplayPage />} />
             <Route path="/recruiter" element={<RecruiterDashboardPage />} />
+            <Route path="/recruiter/candidates" element={<RecruiterCandidatesPage />} />
             <Route path="/recruiter/setup" element={<RecruiterSetupPage />} />
             <Route path="/recruiter/sessions/:sessionId" element={<RecruiterSessionPage />} />
             {/* Voice mode — must be before /:sessionId catch-all */}

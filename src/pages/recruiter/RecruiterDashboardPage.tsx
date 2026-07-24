@@ -18,6 +18,7 @@ import {
   Send,
   TriangleAlert,
   UserCheck,
+  Users,
   BellRing,
 } from 'lucide-react';
 import { cn } from '@/lib/cn';
@@ -192,7 +193,17 @@ export default function RecruiterDashboardPage() {
 
       {/* ── Candidates ─────────────────────────────────────────────────── */}
       <section className="space-y-3">
-        <h2 className="text-sm font-semibold">Candidates</h2>
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="text-sm font-semibold">Candidates</h2>
+          {(pipeline?.invitations.length ?? 0) > 1 && (
+            <Link
+              to="/recruiter/candidates"
+              className="inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:underline"
+            >
+              <Users className="size-3.5" /> Compare &amp; rank
+            </Link>
+          )}
+        </div>
 
         {!pipeline?.invitations.length ? (
           <p className="text-sm text-muted-foreground">

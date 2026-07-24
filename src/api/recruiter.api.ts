@@ -73,6 +73,23 @@ export interface Invitation {
   }>
 }
 
+export interface CandidateComparison {
+  invitationId: string
+  email: string
+  name: string | null
+  templateId: string
+  templateName: string
+  status: InvitationStatus
+  outcome: HiringOutcome
+  identityConfidence: IdentityConfidence
+  sessionId: string | null
+  score: number | null
+  rating: number | null
+  durationMinutes: number | null
+  completedAt: string | null
+  integrityRisk: 'none' | 'low' | 'medium' | 'high' | null
+}
+
 export interface CreateTemplateInput {
   name: string
   type: string
@@ -136,6 +153,15 @@ export const recruiterApi = {
   ): Promise<{ invitations: Invitation[]; quota: { used: number; limit: number } }> => {
     const res = await api.get(
       `/recruiter/invitations${templateId ? `?templateId=${templateId}` : ''}`,
+    )
+    return res.data.data
+  },
+
+  listCandidates: async (
+    templateId?: string,
+  ): Promise<{ candidates: CandidateComparison[]; templates: Array<{ id: string; name: string }> }> => {
+    const res = await api.get(
+      `/recruiter/candidates${templateId ? `?templateId=${templateId}` : ''}`,
     )
     return res.data.data
   },
