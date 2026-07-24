@@ -170,6 +170,9 @@ export interface SessionResults {
   endTime: string | null;
   overallScore: number;
   feedback: string | null;
+  /** Set when this session is one round of a company loop. */
+  loopId?: string | null;
+  loopRoundIndex?: number | null;
   stats: SessionResultStats;
   questions: QuestionResult[];
 }

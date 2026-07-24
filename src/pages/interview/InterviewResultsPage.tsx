@@ -20,6 +20,7 @@ import {
   BarChart3,
   BookOpen,
   Briefcase,
+  Building2,
   CheckCircle,
   Clock,
   Download,
@@ -40,6 +41,7 @@ import {
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { resetSession } from '@/store/interviewSlice';
 import { useStudyPlan, useStartInterview } from '@/hooks/useInterview';
+import { useInterviewLoop, useStartLoopRound } from '@/hooks/useInterviewLoop';
 import { interviewApi } from '@/api/interview.api';
 import { ScoreRing } from '@/components/common';
 import { QuestionRating } from '@/components/interview/QuestionRating';
@@ -502,6 +504,59 @@ function PacingPanel({ questions }: { questions: QuestionResult[] }) {
   );
 }
 
+// ── Company-loop continuation banner ────────────────────────────────────────
+//
+// Shown when the finished session was a round of a company loop: keeps the
+// candidate moving through the onsite instead of making them navigate back.
+
+function LoopContinuationBanner({ loopId }: { loopId: string }) {
+  const navigate = useNavigate();
+  const { data: loop } = useInterviewLoop(loopId);
+  const startRound = useStartLoopRound();
+
+  if (!loop) return null;
+
+  const done = loop.status === 'COMPLETED';
+  const hasNext = !done && loop.progress.nextRoundIndex != null;
+
+  const continueLoop = () => {
+    startRound.mutate(loopId, {
+      onSuccess: (r) => navigate(`/interview/${r.sessionId}`),
+      onError: () => navigate(`/interview/loops/${loopId}`),
+    });
+  };
+
+  return (
+    <Card className='border-cyan-500/30 bg-cyan-500/5'>
+      <CardContent className='flex flex-wrap items-center justify-between gap-3 py-4'>
+        <div className='flex items-center gap-2 min-w-0'>
+          <Building2 className='size-4 text-cyan-400 shrink-0' />
+          <div className='min-w-0'>
+            <p className='text-sm font-medium text-foreground truncate'>{loop.title}</p>
+            <p className='text-xs text-muted-foreground'>
+              {loop.progress.completed} of {loop.progress.total} rounds complete
+            </p>
+          </div>
+        </div>
+        {done ? (
+          <Button size='sm' className='gap-1.5' onClick={() => navigate(`/interview/loops/${loopId}`)}>
+            <Trophy className='size-3.5' /> See your verdict
+          </Button>
+        ) : hasNext ? (
+          <Button size='sm' className='gap-1.5' disabled={startRound.isPending} onClick={continueLoop}>
+            {startRound.isPending ? <Loader2 className='size-3.5 animate-spin' /> : <ArrowRight className='size-3.5' />}
+            Next round
+          </Button>
+        ) : (
+          <Button size='sm' variant='outline' onClick={() => navigate(`/interview/loops/${loopId}`)}>
+            Back to loop
+          </Button>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 // ── Main page ──────────────────────────────────────────────────────────────
 
 export default function InterviewResultsPage() {
@@ -633,6 +688,9 @@ export default function InterviewResultsPage() {
 
   return (
     <div className='max-w-2xl mx-auto space-y-6 animate-fade-in'>
+      {/* Company-loop continuity — jump straight to the next round */}
+      {results.loopId && <LoopContinuationBanner loopId={results.loopId} />}
+
       {/* Hero card */}
       <Card className='border-primary/20 bg-gradient-to-br from-primary/5 to-accent/5'>
         <CardContent className='pt-8 pb-8 text-center space-y-6'>
