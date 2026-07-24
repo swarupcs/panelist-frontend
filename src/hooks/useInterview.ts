@@ -157,7 +157,15 @@ export function useEndInterview() {
 
 export function useRequestHint(sessionId: string) {
   return useMutation({
-    mutationFn: () => interviewApi.getHint(sessionId),
+    // Prefer an adaptive hint tailored to the candidate's current attempt;
+    // fall back to the next stored hint if generation isn't available.
+    mutationFn: async (partial?: string) => {
+      try {
+        return await interviewApi.getAdaptiveHint(sessionId, partial);
+      } catch {
+        return await interviewApi.getHint(sessionId);
+      }
+    },
   });
 }
 

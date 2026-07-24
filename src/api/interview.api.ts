@@ -46,6 +46,12 @@ export const interviewApi = {
     return res.data.data;
   },
 
+  /** A hint generated for the candidate's current attempt. */
+  getAdaptiveHint: async (sessionId: string, partial?: string): Promise<HintResponse> => {
+    const res = await api.post(`/interview/${sessionId}/hint/smart`, { partial });
+    return res.data.data;
+  },
+
   getSession: async (sessionId: string) => {
     const res = await api.get(`/interview/${sessionId}`);
     return res.data.data;

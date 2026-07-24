@@ -540,13 +540,14 @@ export default function InterviewSessionPage() {
 
   const handleHint = useCallback(() => {
     if (!sessionId || hintsExhaustedRef.current) return;
-    requestHint.mutate(undefined, {
+    // Send the current text draft so the hint can target where they are.
+    requestHint.mutate(answer.trim() || undefined, {
       onSuccess: (data) => {
         setHints((h) => [...h, data.hint]);
         setShowHints(true);
       },
     });
-  }, [sessionId, requestHint]);
+  }, [sessionId, requestHint, answer]);
 
   const handlePauseResume = useCallback(() => {
     if (!sessionId) return;
