@@ -21,6 +21,7 @@ import {
   BookOpen,
   Briefcase,
   Building2,
+  Mic,
   CheckCircle,
   Clock,
   Download,
@@ -40,7 +41,7 @@ import {
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { resetSession } from '@/store/interviewSlice';
-import { useStudyPlan, useStartInterview } from '@/hooks/useInterview';
+import { useStudyPlan, useStartInterview, useDeliveryAnalytics } from '@/hooks/useInterview';
 import { useInterviewLoop, useStartLoopRound } from '@/hooks/useInterviewLoop';
 import { interviewApi } from '@/api/interview.api';
 import { ScoreRing } from '@/components/common';
@@ -54,6 +55,7 @@ import {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   formatScore,
   getDifficultyBadge,
+  getScoreColor,
   formatDate,
   formatDuration,
   formatCategory,
@@ -504,6 +506,65 @@ function PacingPanel({ questions }: { questions: QuestionResult[] }) {
   );
 }
 
+// ── Spoken-delivery panel ───────────────────────────────────────────────────
+//
+// Shown only when the session has prose answers (voice / behavioural). Grades
+// *how* the candidate spoke — filler words, pace, hedging — alongside the
+// content score.
+
+function DeliveryPanel({ sessionId }: { sessionId: string }) {
+  const { data: delivery } = useDeliveryAnalytics(sessionId);
+  if (!delivery) return null;
+
+  const stats = [
+    { label: 'Delivery', value: String(delivery.deliveryScore), tone: getScoreColor(delivery.deliveryScore) },
+    { label: 'Pace (wpm)', value: delivery.wordsPerMinute != null ? String(delivery.wordsPerMinute) : '—' },
+    { label: 'Filler /100w', value: String(delivery.filler.perHundredWords) },
+    { label: 'Avg words', value: String(delivery.avgAnswerWords) },
+  ];
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className='text-base flex items-center gap-2'>
+          <Mic className='size-4 text-primary' />
+          Delivery
+        </CardTitle>
+      </CardHeader>
+      <CardContent className='space-y-3'>
+        <div className='grid grid-cols-2 sm:grid-cols-4 gap-2'>
+          {stats.map((s) => (
+            <div key={s.label} className='rounded-lg border border-border/60 bg-muted/30 px-3 py-2 text-center'>
+              <p className={cn('text-lg font-bold tabular-nums', s.tone ?? 'text-foreground')}>{s.value}</p>
+              <p className='text-xs text-muted-foreground'>{s.label}</p>
+            </div>
+          ))}
+        </div>
+
+        {delivery.filler.top.length > 0 && (
+          <div className='flex flex-wrap items-center gap-1.5'>
+            <span className='text-xs text-muted-foreground'>Most-used fillers:</span>
+            {delivery.filler.top.map((f) => (
+              <Badge key={f.phrase} variant='secondary' className='text-xs'>
+                “{f.phrase}” ×{f.count}
+              </Badge>
+            ))}
+          </div>
+        )}
+
+        <ul className='space-y-1'>
+          {delivery.tips.map((t, i) => (
+            <li key={i} className='flex gap-1.5 text-xs text-muted-foreground'>
+              <Lightbulb className='size-3.5 shrink-0 text-amber-400 mt-0.5' />
+              {t}
+            </li>
+          ))}
+        </ul>
+      </CardContent>
+    </Card>
+  );
+}
+
 // ── Company-loop continuation banner ────────────────────────────────────────
 //
 // Shown when the finished session was a round of a company loop: keeps the
@@ -849,6 +910,9 @@ export default function InterviewResultsPage() {
 
       {/* Pacing — time distribution across questions */}
       <PacingPanel questions={results.questions} />
+
+      {/* Delivery — how they spoke (voice / behavioural only) */}
+      {sessionId && <DeliveryPanel sessionId={sessionId} />}
 
       {/* Per-question breakdown */}
       {results.questions.length > 0 && (

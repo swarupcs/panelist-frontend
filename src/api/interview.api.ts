@@ -23,6 +23,7 @@ import type {
   SessionListResponse,
 } from '@/types';
 import type { StudyPlan } from '@/types/study-plan';
+import type { DeliveryAnalytics } from '@/types/delivery';
 
 export const interviewApi = {
   startInterview: async (
@@ -78,6 +79,12 @@ export const interviewApi = {
   getStudyPlan: async (sessionId: string): Promise<StudyPlan> => {
     const res = await api.get(`/interview/${sessionId}/study-plan`);
     return res.data.data;
+  },
+
+  /** Spoken-delivery analytics; null when the session has no prose answers. */
+  getDelivery: async (sessionId: string): Promise<DeliveryAnalytics | null> => {
+    const res = await api.get(`/interview/${sessionId}/delivery`);
+    return res.data.data.delivery;
   },
 
   getTimerStatus: async (sessionId: string): Promise<TimerStatus> => {

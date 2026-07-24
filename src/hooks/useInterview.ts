@@ -193,6 +193,16 @@ export function useStudyPlan(sessionId: string | null) {
   });
 }
 
+/** Spoken-delivery analytics for a finished session (null when no prose). */
+export function useDeliveryAnalytics(sessionId: string | null) {
+  return useQuery({
+    queryKey: ['interview', 'delivery', sessionId],
+    queryFn: () => interviewApi.getDelivery(sessionId!),
+    enabled: !!sessionId,
+    staleTime: Infinity, // computed from immutable completed-session answers
+  });
+}
+
 // ── Timer ──────────────────────────────────────────────────────────────────
 
 export function useTimerStatus(sessionId: string | null, enabled = false) {
