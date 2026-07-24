@@ -18,6 +18,7 @@ import {
   Send,
   TriangleAlert,
   UserCheck,
+  BellRing,
 } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { Button } from '@/components/ui/button';
@@ -213,6 +214,15 @@ export default function RecruiterDashboardPage() {
                     <p className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                       <span>{invitation.template.name}</span>
                       <span className={cn('font-medium', status.tone)}>{status.label}</span>
+                      {invitation.reminderSentAt && (
+                        <span
+                          className="inline-flex items-center gap-1 text-amber-500"
+                          title={`Reminder emailed ${new Date(invitation.reminderSentAt).toLocaleString()}`}
+                        >
+                          <BellRing className="size-3" />
+                          Reminded
+                        </span>
+                      )}
                       <OutcomeControl
                         invitationId={invitation.id}
                         outcome={invitation.outcome}

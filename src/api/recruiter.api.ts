@@ -59,6 +59,8 @@ export interface Invitation {
   expiresAt: string
   createdAt: string
   completedAt: string | null
+  /** Set once an "expiring soon" reminder has been emailed to the candidate. */
+  reminderSentAt: string | null
   accommodationExtraMinutes: number
   maxAttempts: number
   outcome: HiringOutcome
